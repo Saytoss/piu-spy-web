@@ -32,24 +32,28 @@ const columns = [
     maxWidth: 50,
     filterable: true,
     filterMethod: (filter, rows) => {
-      return matchSorter(rows, filter.value, { keys: ["track"] });
+      return matchSorter(rows, filter.value, { keys: ["chart_label"] });
     },
     filterAll: true,
     accessor: "chart_label"
+  },
+  {
+    // filterable: true,
+    // filterMethod: (filter, rows) => {
+    //   return matchSorter(rows, filter.value, { keys: [""] });
+    // },
+    // filterAll: true,
+    Cell: props => (
+      <div>
+        {props.original.results.map(res => (
+          <div key={res.nickname}>
+            {res.nickname} - {res.score}
+          </div>
+        ))}
+      </div>
+    ),
+    accessor: "results"
   }
-  // {
-  //   filterable: true,
-  //   filterMethod: (filter, rows) => {
-  //     return matchSorter(rows, filter.value, { keys: ["name"] });
-  //   },
-  //   filterAll: true,
-  //   Cell: props => (
-  //     <a href={`https://osu.ppy.sh/users/${props.original.name}`}>
-  //       {props.original.name}
-  //     </a>
-  //   ),
-  //   accessor: "name"
-  // },
   // {
   //   maxWidth: 300,
   //   Cell: ({ original }) => (
