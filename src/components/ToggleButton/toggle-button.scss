@@ -1,0 +1,17 @@
+.toggle-button {
+  padding: 4px 0;
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+
+  background: #666;
+  border-radius: 4px;
+  color: white;
+  border: 1px solid #999;
+  &.active {
+    background: #337ab7;
+    border-radius: 4px;
+    color: white;
+    border: 1px solid #95cdff;
+  }
+}

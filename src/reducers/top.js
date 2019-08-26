@@ -1,6 +1,8 @@
-import { fetchJson } from "utils/fetch";
+import _ from 'lodash/fp';
 
-import { HOST } from "constants/backend";
+import { fetchJson } from 'utils/fetch';
+
+import { HOST } from 'constants/backend';
 
 const LOADING = `TOP/LOADING`;
 const SUCCESS = `TOP/SUCCESS`;
@@ -8,27 +10,58 @@ const ERROR = `TOP/ERROR`;
 
 const initialState = {
   isLoading: false,
-  data: []
+  data: [],
 };
+
+const transformBackendData = _.flow(
+  _.get('top'),
+  _.values,
+  _.map(item => ({
+    song: item.track,
+    chartLabel: item.chart_label,
+    chartLevel: item.chart_label.slice(1),
+    chartType: item.chart_label.slice(0, 1),
+    mix: item.mix,
+    results: _.map(
+      res => ({
+        nickname: res.nickname,
+        date: res.gained,
+        isExactDate: !!res.exact_gained_date,
+        score: res.score,
+        perfect: res.perfect,
+        great: res.greats,
+        good: res.goods,
+        bad: res.bads,
+        miss: res.misses,
+        combo: res.max_combo,
+        mods: res.mods_list,
+        isRank: !!res.rank_mode,
+      }),
+      item.results
+    ),
+  })),
+  _.orderBy(['song', 'chartLabel'], ['asc', 'asc']),
+  data => ({ data })
+);
 
 export default function reducer(state = initialState, action) {
   switch (action.type) {
     case LOADING:
       return {
         ...state,
-        isLoading: true
+        isLoading: true,
       };
     case ERROR:
       return {
         ...state,
         isLoading: false,
-        error: action.error
+        error: action.error,
       };
     case SUCCESS:
       return {
         ...state,
         isLoading: false,
-        data: action.data
+        ...transformBackendData(action.data),
       };
     default:
       return state;
@@ -40,7 +73,7 @@ export const fetchTopScores = () => {
     dispatch({ type: LOADING });
     try {
       const data = await fetchJson({
-        url: `${HOST}/top`
+        url: `${HOST}/top`,
       });
       dispatch({ type: SUCCESS, data });
       return data;

@@ -5,7 +5,7 @@ export const fetchJson = async ({ url }) => {
       const data = await response.json();
       return data;
     } else {
-      throw Error("HTTP Status " + response.status);
+      throw Error('HTTP Status ' + response.status);
     }
   } catch (error) {
     console.error(error);

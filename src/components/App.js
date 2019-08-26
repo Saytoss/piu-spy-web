@@ -1,9 +1,9 @@
-import React, { Component } from "react";
-import { Route, Redirect, Switch } from "react-router-dom";
+import React, { Component } from 'react';
+import { Route } from 'react-router-dom';
 
-import "./App.scss";
+import './App.scss';
 
-import Rankings from "components/Rankings/Rankings";
+import Rankings from 'components/Rankings/Rankings';
 
 class App extends Component {
   render() {

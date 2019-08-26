@@ -1,10 +1,10 @@
-import { combineReducers, createStore, applyMiddleware, compose } from "redux";
-import thunk from "redux-thunk";
+import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import thunk from 'redux-thunk';
 
-import top from "reducers/top";
+import top from 'reducers/top';
 
 const rootReducer = combineReducers({
-  top
+  top,
 });
 
 export const store = createStore(
@@ -14,8 +14,8 @@ export const store = createStore(
         applyMiddleware(thunk),
         window.__REDUX_DEVTOOLS_EXTENSION__({
           stateSanitizer: state => ({
-            ...state
-          })
+            ...state,
+          }),
         })
       )
     : applyMiddleware(thunk)

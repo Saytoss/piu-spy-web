@@ -1,17 +1,17 @@
-import "promise-polyfill";
-import "whatwg-fetch";
-import "utils/polyfills";
+// import 'promise-polyfill';
+// import 'whatwg-fetch';
+// import 'utils/polyfills';
 
-import React from "react";
-import ReactDOM from "react-dom";
-import { HashRouter } from "react-router-dom";
-import { Provider } from "react-redux";
-import JavascriptTimeAgo from "javascript-time-ago";
-import en from "javascript-time-ago/locale/en";
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { HashRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import JavascriptTimeAgo from 'javascript-time-ago';
+import en from 'javascript-time-ago/locale/en';
 
-import "./index.css";
-import App from "components/App";
-import { store } from "reducers";
+import './index.scss';
+import App from 'components/App';
+import { store } from 'reducers';
 
 JavascriptTimeAgo.locale(en);
 
@@ -21,5 +21,5 @@ ReactDOM.render(
       <App />
     </HashRouter>
   </Provider>,
-  document.getElementById("root")
+  document.getElementById('root')
 );
