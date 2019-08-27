@@ -40,7 +40,7 @@ const transformBackendData = _.flow(
       item.results
     ),
   })),
-  _.orderBy(['song', 'chartLabel'], ['asc', 'asc']),
+  _.orderBy(['song', 'chartLevel'], ['asc', 'desc']),
   data => ({ data })
 );
 

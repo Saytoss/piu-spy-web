@@ -1,4 +1,53 @@
 .rankings {
+  .filters {
+    display: flex;
+    flex-flow: row wrap;
+    padding: 10px;
+    > div {
+      margin-right: 10px;
+    }
+  }
+  .top-list {
+    > .song-block {
+      background: #353535;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      padding: 8px;
+      display: flex;
+      > .song-name {
+        flex: 0 0 200px;
+      }
+      > .charts {
+        flex: 1 1 auto;
+        display: flex;
+        flex-flow: column nowrap;
+        > .chart {
+          background: #424242;
+          padding: 8px;
+          display: flex;
+          flex-flow: row wrap;
+          border-radius: 10px;
+          margin-bottom: 8px;
+          > .chart-name {
+            font-weight: 600;
+            flex: 0 0 50px;
+            background: #169c16;
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 25px;
+            margin-right: 20px;
+            &.single {
+              background: #af2928;
+            }
+          }
+        }
+      }
+    }
+  }
   .filter-charts-button {
     width: 85px;
   }

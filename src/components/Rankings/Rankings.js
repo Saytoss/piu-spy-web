@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import toBe from 'prop-types';
 import { connect } from 'react-redux';
-import ReactTable from 'react-table';
 import matchSorter from 'match-sorter';
 import { Range, getTrackBackground } from 'react-range';
 import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
 import Select from 'react-select';
+import classNames from 'classnames';
 
 import Overlay from 'components/Overlay/Overlay';
 import ToggleButton from 'components/ToggleButton/ToggleButton';
@@ -18,10 +18,41 @@ import { fetchTopScores } from 'reducers/top';
 
 const chartMinMax = [1, 29];
 
-function ChartFilter({ column, filter, onChange }) {
-  const filterValue = filter && filter.value;
-  const range = _.getOr(chartMinMax, 'value.range', filter);
-  const type = _.getOr(null, 'value.type', filter);
+const filterCharts = (filter, rows) => {
+  const range = _.getOr(chartMinMax, 'range', filter);
+  const type = _.getOr(null, 'type', filter);
+
+  const filtered = _.flow(
+    _.filter(row => {
+      return (
+        row.chartLevel >= range[0] &&
+        row.chartLevel <= range[1] &&
+        (!type || type === row.chartType)
+      );
+    })
+  )(rows);
+  return filtered;
+};
+
+const getFilteredData = (data, filter) => {
+  console.log(data, filter);
+  const names = _.map('value', filter.players);
+  return _.flow(
+    _.compact([
+      filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
+      names.length &&
+        _.filter(row => {
+          const rowNames = _.map('nickname', row.results);
+          return _.every(name => rowNames.includes(name), names);
+        }),
+      filter.chartRange && (items => filterCharts(filter.chartRange, items)),
+    ])
+  )(data);
+};
+
+function ChartFilter({ filterValue, onChange }) {
+  const range = _.getOr(chartMinMax, 'range', filterValue);
+  const type = _.getOr(null, 'type', filterValue);
   let buttonText = 'Filter charts';
   if (filterValue) {
     const t = type || '';
@@ -126,22 +157,6 @@ function ChartFilter({ column, filter, onChange }) {
   );
 }
 
-const filterCharts = (filter, rows) => {
-  const range = _.getOr(chartMinMax, 'value.range', filter);
-  const type = _.getOr(null, 'value.type', filter);
-
-  const filtered = _.flow(
-    _.filter(row => {
-      return (
-        row._original.chartLevel >= range[0] &&
-        row._original.chartLevel <= range[1] &&
-        (!type || type === row._original.chartType)
-      );
-    })
-  )(rows);
-  return filtered;
-};
-
 const playersSelector = createSelector(
   state => state.top.data,
   _.flow(
@@ -174,6 +189,8 @@ class TopScores extends Component {
     isLoading: toBe.bool.isRequired,
   };
 
+  state = { filter: {} };
+
   componentDidMount() {
     const { isLoading } = this.props;
     if (!isLoading) {
@@ -182,52 +199,25 @@ class TopScores extends Component {
   }
 
   getColumns() {
-    const { players } = this.props;
-    console.log(players);
     return [
       {
         minWidth: 120,
         maxWidth: 250,
         Header: 'song',
-        filterable: true,
-        filterMethod: (filter, rows) => {
-          return matchSorter(rows, filter.value, { keys: ['song'] });
-        },
-        filterAll: true,
         accessor: 'song',
       },
       {
         minWidth: 95,
         maxWidth: 95,
-        filterable: true,
-        filterAll: true,
-        Filter: ChartFilter,
-        filterMethod: filterCharts,
         accessor: 'chartLabel',
       },
       {
-        filterable: true,
         filterMethod: (filter, rows) => {
           const names = _.map('value', _.get('value', filter));
           return _.filter(row => {
             const rowNames = _.map('nickname', row.results);
             return _.every(name => rowNames.includes(name), names);
           }, rows);
-        },
-        filterAll: true,
-        Filter: ({ column, filter, onChange }) => {
-          return (
-            <Select
-              closeMenuOnSelect={false}
-              className="select players"
-              classNamePrefix="select"
-              placeholder="select players"
-              isMulti
-              options={players}
-              value={_.get('value', filter)}
-              onChange={onChange}
-            />
-          );
         },
         Cell: props => (
           <div>
@@ -245,14 +235,76 @@ class TopScores extends Component {
 
   render() {
     const { isLoading, data, error, players } = this.props;
+    const filteredData = getFilteredData(data, this.state.filter);
+    const bySong = _.groupBy('song', filteredData);
+    const songs = _.keys(bySong);
     return (
       <div className="rankings">
         <header></header>
         <div className="content">
           {error && error.message}
+          <div className="filters">
+            <div className="song-name">
+              <input
+                type="text"
+                className="form-control"
+                onChange={e => {
+                  const song = e.target.value;
+                  this.setState(state => ({ filter: { ...state.filter, song } }));
+                }}
+              />
+            </div>
+            <div className="chart-range">
+              <ChartFilter
+                filterValue={this.state.filter.chartRange}
+                onChange={chartRange =>
+                  this.setState(state => ({ filter: { ...state.filter, chartRange } }))
+                }
+              />
+            </div>
+            <div className="players">
+              <Select
+                closeMenuOnSelect={false}
+                className="select players"
+                classNamePrefix="select"
+                placeholder="select players"
+                isMulti
+                options={players}
+                value={_.getOr(null, 'players', this.state.filter)}
+                onChange={players =>
+                  this.setState(state => ({ filter: { ...state.filter, players } }))
+                }
+              />
+            </div>
+          </div>
           <div className="top-list">
-            <ReactTable
-              data={data}
+            {songs.map(song => (
+              <div className="song-block" key={song}>
+                <div className="song-name">{song}</div>
+                <div className="charts">
+                  {_.orderBy(['chartLevel'], ['desc'], bySong[song]).map(chart => (
+                    <div className="chart" key={chart.chartLabel}>
+                      <div
+                        className={classNames('chart-name', { single: chart.chartType === 'S' })}
+                      >
+                        {chart.chartLabel}
+                      </div>
+                      <div className="results">
+                        {chart.results.map(res => (
+                          <div key={res.score + res.nickname}>
+                            {res.nickname}
+                            {' - '}
+                            {res.score}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {/* <ReactTable
+              data={filteredData}
               columns={this.getColumns()}
               showPageSizeOptions={false}
               defaultPageSize={20}
@@ -261,7 +313,7 @@ class TopScores extends Component {
               minRows={4}
               noDataText={isLoading ? 'loading...' : 'no data found'}
               players={players}
-            />
+            /> */}
           </div>
         </div>
       </div>
