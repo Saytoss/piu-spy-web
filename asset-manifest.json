@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.css": "/piu-spy-web/static/css/main.09531681.chunk.css",
+    "main.css": "/piu-spy-web/static/css/main.522b3ae6.chunk.css",
     "main.js": "/piu-spy-web/static/js/main.ef79d4b1.chunk.js",
     "main.js.map": "/piu-spy-web/static/js/main.ef79d4b1.chunk.js.map",
     "runtime~main.js": "/piu-spy-web/static/js/runtime~main.43c989ce.js",
@@ -9,9 +9,9 @@
     "static/js/2.8707ef4f.chunk.js": "/piu-spy-web/static/js/2.8707ef4f.chunk.js",
     "static/js/2.8707ef4f.chunk.js.map": "/piu-spy-web/static/js/2.8707ef4f.chunk.js.map",
     "index.html": "/piu-spy-web/index.html",
-    "precache-manifest.216d06d1a30a13a9dde20f2db4f9e457.js": "/piu-spy-web/precache-manifest.216d06d1a30a13a9dde20f2db4f9e457.js",
+    "precache-manifest.938aa27e034d8bc85e06f2d9d17ae561.js": "/piu-spy-web/precache-manifest.938aa27e034d8bc85e06f2d9d17ae561.js",
     "service-worker.js": "/piu-spy-web/service-worker.js",
     "static/css/2.d4b275d9.chunk.css.map": "/piu-spy-web/static/css/2.d4b275d9.chunk.css.map",
-    "static/css/main.09531681.chunk.css.map": "/piu-spy-web/static/css/main.09531681.chunk.css.map"
+    "static/css/main.522b3ae6.chunk.css.map": "/piu-spy-web/static/css/main.522b3ae6.chunk.css.map"
   }
 }
