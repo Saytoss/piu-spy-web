@@ -38,9 +38,8 @@ const transformBackendData = _.flow(
         isRank: !!res.rank_mode,
         accuracy: res.max_combo
           ? (
-              (res.perfects * 300 + res.greats * 150 + res.goods * 50 + res.bads * 15) /
-              (res.perfects + res.greats + res.goods + res.bads + res.misses) /
-              3
+              (res.perfects * 100 + res.greats * 50 + res.goods * 20 + res.bads * 10) /
+              (res.perfects + res.greats + res.goods + res.bads + res.misses)
             ).toFixed(1)
           : null,
       }),
