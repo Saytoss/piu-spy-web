@@ -6,6 +6,15 @@
     > div {
       margin-right: 10px;
     }
+    input.form-control {
+      height: 30px;
+      &::placeholder {
+        font-size: 12px;
+      }
+    }
+    .filter-charts-button {
+      width: 95px;
+    }
   }
   .top-list {
     > .song-block {
@@ -16,6 +25,8 @@
       display: flex;
       > .song-name {
         flex: 0 0 200px;
+        font-size: 20px;
+        font-weight: 600;
       }
       > .charts {
         flex: 1 1 auto;
@@ -44,15 +55,55 @@
               background: #af2928;
             }
           }
+          > .results {
+            tr {
+              &:nth-child(even) {
+                background: #4b4b4b;
+              }
+            }
+            td {
+              padding: 2px 4px 0 4px;
+              &.nickname {
+                width: 130px;
+              }
+              &.score {
+                width: 110px;
+              }
+              &.number {
+                width: 51px;
+                text-align: center;
+              }
+              &.combo {
+                width: 60px;
+              }
+              &.rank {
+                width: 30px;
+                text-align: center;
+              }
+              &.miss {
+                background: rgba(255, 0, 0, 0.05);
+              }
+              &.bad {
+                background: rgba(255, 0, 255, 0.05);
+              }
+              &.good {
+                background: rgba(255, 255, 0, 0.05);
+              }
+              &.great {
+                background: rgba(0, 255, 0, 0.05);
+              }
+              &.perfect {
+                background: rgba(0, 255, 255, 0.05);
+              }
+              &.rank.vj {
+                background: rgba(255, 0, 0, 0.1);
+                font-weight: 600;
+              }
+            }
+          }
         }
       }
     }
-  }
-  .filter-charts-button {
-    width: 85px;
-  }
-  .rt-th {
-    overflow: visible;
   }
 }
 

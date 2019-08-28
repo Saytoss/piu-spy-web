@@ -28,7 +28,7 @@ const transformBackendData = _.flow(
         date: res.gained,
         isExactDate: !!res.exact_gained_date,
         score: res.score,
-        perfect: res.perfect,
+        perfect: res.perfects,
         great: res.greats,
         good: res.goods,
         bad: res.bads,

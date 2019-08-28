@@ -7,6 +7,7 @@ import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
 import Select from 'react-select';
 import classNames from 'classnames';
+import numeral from 'numeral';
 
 import Overlay from 'components/Overlay/Overlay';
 import ToggleButton from 'components/ToggleButton/ToggleButton';
@@ -35,7 +36,6 @@ const filterCharts = (filter, rows) => {
 };
 
 const getFilteredData = (data, filter) => {
-  console.log(data, filter);
   const names = _.map('value', filter.players);
   return _.flow(
     _.compact([
@@ -53,7 +53,7 @@ const getFilteredData = (data, filter) => {
 function ChartFilter({ filterValue, onChange }) {
   const range = _.getOr(chartMinMax, 'range', filterValue);
   const type = _.getOr(null, 'type', filterValue);
-  let buttonText = 'Filter charts';
+  let buttonText = 'charts filter...';
   if (filterValue) {
     const t = type || '';
     buttonText = range[0] === range[1] ? `${t}${range[0]}` : `${t}${range[0]}-${t}${range[1]}`;
@@ -189,7 +189,7 @@ class TopScores extends Component {
     isLoading: toBe.bool.isRequired,
   };
 
-  state = { filter: {} };
+  state = { filter: {}, showItemsCount: 10 };
 
   componentDidMount() {
     const { isLoading } = this.props;
@@ -235,9 +235,12 @@ class TopScores extends Component {
 
   render() {
     const { isLoading, data, error, players } = this.props;
-    const filteredData = getFilteredData(data, this.state.filter);
+    const { showItemsCount, filter } = this.state;
+    const filteredData = getFilteredData(data, filter);
     const bySong = _.groupBy('song', filteredData);
-    const songs = _.keys(bySong);
+    const allSongs = _.keys(bySong);
+    const canShowMore = allSongs.length > showItemsCount;
+    const songs = _.slice(0, showItemsCount, allSongs);
     return (
       <div className="rankings">
         <header></header>
@@ -247,6 +250,7 @@ class TopScores extends Component {
             <div className="song-name">
               <input
                 type="text"
+                placeholder="song name..."
                 className="form-control"
                 onChange={e => {
                   const song = e.target.value;
@@ -267,7 +271,7 @@ class TopScores extends Component {
                 closeMenuOnSelect={false}
                 className="select players"
                 classNamePrefix="select"
-                placeholder="select players"
+                placeholder="select players..."
                 isMulti
                 options={players}
                 value={_.getOr(null, 'players', this.state.filter)}
@@ -277,6 +281,7 @@ class TopScores extends Component {
               />
             </div>
           </div>
+          {isLoading && 'Loading...'}
           <div className="top-list">
             {songs.map(song => (
               <div className="song-block" key={song}>
@@ -290,30 +295,45 @@ class TopScores extends Component {
                         {chart.chartLabel}
                       </div>
                       <div className="results">
-                        {chart.results.map(res => (
-                          <div key={res.score + res.nickname}>
-                            {res.nickname}
-                            {' - '}
-                            {res.score}
-                          </div>
-                        ))}
+                        <table>
+                          <tbody>
+                            {chart.results.map(res => (
+                              <tr key={res.score + res.nickname}>
+                                <td className="nickname">{res.nickname}</td>
+                                <td className="score">{numeral(res.score).format('0,0')}</td>
+                                <td className="number miss">{res.miss}</td>
+                                <td className="number bad">{res.bad}</td>
+                                <td className="number good">{res.good}</td>
+                                <td className="number great">{res.great}</td>
+                                <td className="number perfect">{res.perfect}</td>
+                                <td className="combo">
+                                  {res.combo}
+                                  {res.combo ? 'x' : ''}
+                                </td>
+                                <td className={res.isRank ? 'rank vj' : 'rank'}>
+                                  {res.isRank && 'VJ'}
+                                </td>
+                                <td className="date">{res.date}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
-            {/* <ReactTable
-              data={filteredData}
-              columns={this.getColumns()}
-              showPageSizeOptions={false}
-              defaultPageSize={20}
-              sortable
-              resizable={false}
-              minRows={4}
-              noDataText={isLoading ? 'loading...' : 'no data found'}
-              players={players}
-            /> */}
+            {!isLoading && canShowMore && (
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={() =>
+                  this.setState(state => ({ showItemsCount: state.showItemsCount + 10 }))
+                }
+              >
+                show more...
+              </button>
+            )}
           </div>
         </div>
       </div>
