@@ -8,14 +8,19 @@ import { createSelector } from 'reselect';
 import Select from 'react-select';
 import classNames from 'classnames';
 import numeral from 'numeral';
+import localForage from 'localforage';
 
-import Overlay from 'components/Overlay/Overlay';
-import ToggleButton from 'components/ToggleButton/ToggleButton';
+import Overlay from 'components/Shared/Overlay/Overlay';
+import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
+import Input from 'components/Shared/Input/Input';
+import Toggle from 'components/Shared/Toggle/Toggle';
 
 import 'react-table/react-table.css';
 import './rankings.scss';
 
 import { fetchTopScores } from 'reducers/top';
+
+import { colorsArray } from 'utils/colors';
 
 const chartMinMax = [1, 29];
 
@@ -37,15 +42,27 @@ const filterCharts = (filter, rows) => {
 
 const getFilteredData = (data, filter) => {
   const names = _.map('value', filter.players);
+  const namesOr = _.map('value', filter.playersOr);
+  const namesNot = _.map('value', filter.playersNot);
+
   return _.flow(
     _.compact([
+      filter.chartRange && (items => filterCharts(filter.chartRange, items)),
       filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
-      names.length &&
+      !filter.showRank &&
+        _.flow(
+          _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
+          _.filter(row => _.size(row.results))
+        ),
+      (names.length || namesOr.length || namesNot.length) &&
         _.filter(row => {
           const rowNames = _.map('nickname', row.results);
-          return _.every(name => rowNames.includes(name), names);
+          return (
+            (!names.length || _.every(name => rowNames.includes(name), names)) &&
+            (!namesOr.length || _.some(name => rowNames.includes(name), namesOr)) &&
+            (!namesNot.length || !_.some(name => rowNames.includes(name), namesNot))
+          );
         }),
-      filter.chartRange && (items => filterCharts(filter.chartRange, items)),
     ])
   )(data);
 };
@@ -53,17 +70,17 @@ const getFilteredData = (data, filter) => {
 function ChartFilter({ filterValue, onChange }) {
   const range = _.getOr(chartMinMax, 'range', filterValue);
   const type = _.getOr(null, 'type', filterValue);
-  let buttonText = 'charts filter...';
+  let buttonText = 'фильтр чартов...';
   if (filterValue) {
     const t = type || '';
-    buttonText = range[0] === range[1] ? `${t}${range[0]}` : `${t}${range[0]}-${t}${range[1]}`;
+    buttonText = range[0] === range[1] ? `${t}${range[0]}` : `${t}${range[0]} - ${t}${range[1]}`;
   }
 
   return (
     <div>
       <Overlay
         overlayItem={
-          <button className="filter-charts-button btn btn-sm btn-primary">{buttonText}</button>
+          <button className="filter-charts-button btn btn-sm btn-dark">{buttonText}</button>
         }
       >
         <div className="chart-range-overlay">
@@ -151,6 +168,26 @@ function ChartFilter({ filterValue, onChange }) {
               </div>
             )}
           />
+          <div className="inputs">
+            <Input
+              type="number"
+              className="form-control"
+              min={chartMinMax[0]}
+              max={Math.min(chartMinMax[1], range[1])}
+              value={range[0]}
+              onBlur={value => {
+                onChange({ type, range: [value, range[1]] });
+              }}
+            />
+            <Input
+              type="number"
+              className="form-control"
+              min={Math.max(chartMinMax[0], range[0])}
+              max={chartMinMax[1]}
+              value={range[1]}
+              onBlur={value => onChange({ type, range: [range[0], value] })}
+            />
+          </div>
         </div>
       </Overlay>
     </div>
@@ -189,100 +226,148 @@ class TopScores extends Component {
     isLoading: toBe.bool.isRequired,
   };
 
-  state = { filter: {}, showItemsCount: 10 };
+  state = { filter: { showRank: true }, showItemsCount: 10 };
 
   componentDidMount() {
     const { isLoading } = this.props;
     if (!isLoading) {
       this.props.fetchTopScores();
     }
+    localForage
+      .getItem('filter')
+      .then(filter => filter && this.setState({ filter }))
+      .catch(error => console.warn('Cannot get filter from local storage', error));
   }
 
-  getColumns() {
-    return [
-      {
-        minWidth: 120,
-        maxWidth: 250,
-        Header: 'song',
-        accessor: 'song',
-      },
-      {
-        minWidth: 95,
-        maxWidth: 95,
-        accessor: 'chartLabel',
-      },
-      {
-        filterMethod: (filter, rows) => {
-          const names = _.map('value', _.get('value', filter));
-          return _.filter(row => {
-            const rowNames = _.map('nickname', row.results);
-            return _.every(name => rowNames.includes(name), names);
-          }, rows);
-        },
-        Cell: props => (
-          <div>
-            {props.original.results.map(res => (
-              <div key={res.nickname}>
-                {res.nickname} - {res.score}
-              </div>
-            ))}
-          </div>
-        ),
-        accessor: 'results',
-      },
-    ];
-  }
+  setFilter = _.curry((name, value) => {
+    this.setState(
+      state => ({ filter: { ...state.filter, [name]: value } }),
+      () => {
+        localForage.setItem('filter', this.state.filter);
+      }
+    );
+  });
 
   render() {
     const { isLoading, data, error, players } = this.props;
-    const { showItemsCount, filter } = this.state;
+    const { showItemsCount, filter, isAdvancedOpen } = this.state;
     const filteredData = getFilteredData(data, filter);
     const bySong = _.groupBy('song', filteredData);
     const allSongs = _.keys(bySong);
     const canShowMore = allSongs.length > showItemsCount;
     const songs = _.slice(0, showItemsCount, allSongs);
+
+    const uniqueSelectedNames = _.slice(
+      0,
+      colorsArray.length,
+      _.uniq([..._.map('value', filter.players), ..._.map('value', filter.playersOr)])
+    );
+
+    const hasAdvancedFilters = _.size(filter.playersOr) || _.size(filter.playersNot);
+
     return (
       <div className="rankings">
-        <header></header>
+        <header>leaderboard</header>
         <div className="content">
           {error && error.message}
           <div className="filters">
-            <div className="song-name">
-              <input
-                type="text"
-                placeholder="song name..."
+            <div className="song-name _margin-right">
+              <Input
+                placeholder="название песни..."
                 className="form-control"
-                onChange={e => {
-                  const song = e.target.value;
-                  this.setState(state => ({ filter: { ...state.filter, song } }));
-                }}
+                onChange={this.setFilter('song')}
               />
             </div>
-            <div className="chart-range">
+            <div className="chart-range _margin-right">
               <ChartFilter
                 filterValue={this.state.filter.chartRange}
-                onChange={chartRange =>
-                  this.setState(state => ({ filter: { ...state.filter, chartRange } }))
-                }
+                onChange={this.setFilter('chartRange')}
               />
             </div>
-            <div className="players">
-              <Select
-                closeMenuOnSelect={false}
-                className="select players"
-                classNamePrefix="select"
-                placeholder="select players..."
-                isMulti
-                options={players}
-                value={_.getOr(null, 'players', this.state.filter)}
-                onChange={players =>
-                  this.setState(state => ({ filter: { ...state.filter, players } }))
-                }
-              />
+            {!isAdvancedOpen && (
+              <div className="players _margin-right">
+                <Select
+                  closeMenuOnSelect={false}
+                  className="select players"
+                  classNamePrefix="select"
+                  placeholder="игроки..."
+                  isMulti
+                  options={players}
+                  value={_.getOr(null, 'players', this.state.filter)}
+                  onChange={this.setFilter('players')}
+                />
+              </div>
+            )}
+            <div className="advanced-btn-holder">
+              <button
+                className={classNames('btn btn-sm btn-dark', {
+                  'red-border': !isAdvancedOpen && hasAdvancedFilters,
+                })}
+                onClick={() => this.setState({ isAdvancedOpen: !isAdvancedOpen })}
+              >
+                {isAdvancedOpen ? 'меньше опций ⯅' : 'больше опций ⯆'}
+              </button>
             </div>
           </div>
+          {isAdvancedOpen && (
+            <div className="advanced-filters">
+              <div className="people-filters">
+                <label className="label">показывать чарты, которые сыграл:</label>
+                <div className="players-block">
+                  <div className="_margin-right">
+                    <label className="label">каждый из этих</label>
+                    <Select
+                      closeMenuOnSelect={false}
+                      className="select players"
+                      classNamePrefix="select"
+                      placeholder="игроки..."
+                      isMulti
+                      options={players}
+                      value={_.getOr(null, 'players', this.state.filter)}
+                      onChange={this.setFilter('players')}
+                    />
+                  </div>
+                  <div className="_margin-right">
+                    <label className="label">и хоть один из этих</label>
+                    <Select
+                      closeMenuOnSelect={false}
+                      className="select players"
+                      classNamePrefix="select"
+                      placeholder="игроки..."
+                      isMulti
+                      options={players}
+                      value={_.getOr(null, 'playersOr', this.state.filter)}
+                      onChange={this.setFilter('playersOr')}
+                    />
+                  </div>
+                  <div className="_margin-right">
+                    <label className="label">и никто из этих</label>
+                    <Select
+                      closeMenuOnSelect={false}
+                      className="select players"
+                      classNamePrefix="select"
+                      placeholder="игроки..."
+                      isMulti
+                      options={players}
+                      value={_.getOr(null, 'playersNot', this.state.filter)}
+                      onChange={this.setFilter('playersNot')}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Toggle
+                  checked={_.getOr(false, 'showRank', this.state.filter)}
+                  onChange={this.setFilter('showRank')}
+                >
+                  показывать скоры на ранке
+                </Toggle>
+              </div>
+            </div>
+          )}
           {isLoading && 'Loading...'}
           <div className="top-list">
+            {_.isEmpty(songs) && !isLoading && 'ничего не найдено'}
             {songs.map((song, songIndex) => (
               <div className="song-block" key={song}>
                 <div className="song-name">{song}</div>
@@ -300,6 +385,7 @@ class TopScores extends Component {
                         <table>
                           {chartIndex === 0 && songIndex === 0 && (
                             <thead>
+                              <tr className="header-background-block"></tr>
                               <tr>
                                 <th className="place"></th>
                                 <th className="nickname"></th>
@@ -317,30 +403,42 @@ class TopScores extends Component {
                             </thead>
                           )}
                           <tbody>
-                            {chart.results.map((res, index) => (
-                              <tr key={res.score + res.nickname}>
-                                <td className="place">#{index + 1}</td>
-                                <td className="nickname">{res.nickname}</td>
-                                <td className="score">{numeral(res.score).format('0,0')}</td>
-                                <td className="number miss">{res.miss}</td>
-                                <td className="number bad">{res.bad}</td>
-                                <td className="number good">{res.good}</td>
-                                <td className="number great">{res.great}</td>
-                                <td className="number perfect">{res.perfect}</td>
-                                <td className="combo">
-                                  {res.combo}
-                                  {res.combo ? 'x' : ''}
-                                </td>
-                                <td className={classNames('rank', { vj: res.isRank })}>
-                                  {res.isRank && 'VJ'}
-                                </td>
-                                <td className="accuracy">
-                                  {res.accuracy}
-                                  {res.accuracy ? '%' : ''}
-                                </td>
-                                <td className="date">{res.date}</td>
-                              </tr>
-                            ))}
+                            {chart.results.map((res, index) => {
+                              const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
+                              return (
+                                <tr key={res.score + res.nickname}>
+                                  <td className="place">#{index + 1}</td>
+                                  <td
+                                    className="nickname"
+                                    style={
+                                      nameIndex > -1
+                                        ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
+                                        : {}
+                                    }
+                                  >
+                                    {res.nickname}
+                                  </td>
+                                  <td className="score">{numeral(res.score).format('0,0')}</td>
+                                  <td className="number miss">{res.miss}</td>
+                                  <td className="number bad">{res.bad}</td>
+                                  <td className="number good">{res.good}</td>
+                                  <td className="number great">{res.great}</td>
+                                  <td className="number perfect">{res.perfect}</td>
+                                  <td className="combo">
+                                    {res.combo}
+                                    {res.combo ? 'x' : ''}
+                                  </td>
+                                  <td className={classNames('rank', { vj: res.isRank })}>
+                                    {res.isRank && 'VJ'}
+                                  </td>
+                                  <td className="accuracy">
+                                    {res.accuracy}
+                                    {res.accuracy ? '%' : ''}
+                                  </td>
+                                  <td className="date">{res.date}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

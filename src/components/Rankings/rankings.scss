@@ -1,10 +1,31 @@
 .rankings {
+  header {
+    padding: 10px 10px 0 10px;
+    font-size: 20px;
+    color: #666;
+  }
+  .advanced-filters {
+    padding: 0 10px 10px 10px;
+    .people-filters {
+      margin-bottom: 5px;
+    }
+    .players-block {
+      display: flex;
+      flex-flow: row wrap;
+      > div {
+        flex-basis: 190px;
+      }
+      .select {
+        width: auto;
+      }
+    }
+  }
   .filters {
     display: flex;
     flex-flow: row wrap;
     padding: 10px;
-    > div {
-      margin-right: 10px;
+    > .song-name > input {
+      width: 190px;
     }
     input.form-control {
       height: 30px;
@@ -13,10 +34,14 @@
       }
     }
     .filter-charts-button {
-      width: 95px;
+      width: 120px;
+    }
+    .btn.red-border {
+      border: 1px solid darkred;
     }
   }
   .top-list {
+    margin-top: 14px;
     > .song-block {
       background: #353535;
       border-radius: 10px;
@@ -62,11 +87,7 @@
             }
           }
           > .results {
-            tr {
-              &:nth-child(even) {
-                background: #4b4b4b;
-              }
-            }
+            position: relative;
             td,
             th {
               padding: 2px 4px 0 4px;
@@ -118,16 +139,39 @@
                 background: rgba(0, 255, 255, 0.05);
               }
               &.rank.vj {
-                background: rgba(255, 0, 0, 0.1);
+                background: rgba(255, 0, 0, 0.18);
                 font-weight: 600;
               }
             }
-            th {
-              padding: 0 4px 3px 4px;
-              line-height: 12px;
-              font-size: 12px !important;
-              font-weight: 400;
-              color: #999;
+            tbody {
+              tr {
+                &:nth-child(even) {
+                  background: #4b4b4b;
+                }
+              }
+            }
+            thead {
+              position: relative;
+              tr {
+                position: absolute;
+                top: -28px;
+                &.header-background-block {
+                  width: 547px;
+                  height: 35px;
+                  left: 226px;
+                  top: -34px;
+                  border-radius: 8px;
+                  z-index: -1;
+                  background: #353535;
+                }
+              }
+              th {
+                padding: 0 4px 3px 4px;
+                line-height: 12px;
+                font-size: 12px !important;
+                font-weight: 400;
+                color: #999;
+              }
             }
           }
         }
@@ -139,7 +183,7 @@
 .chart-range-overlay {
   padding: 10px 15px;
   width: 200px;
-  height: 80px;
+  height: 120px;
   display: flex;
   flex-flow: column nowrap;
   align-items: center;
@@ -155,6 +199,16 @@
       height: 35px;
       font-size: 18px;
       font-weight: 600;
+    }
+  }
+  > .inputs {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 10px;
+    > input {
+      width: 45px;
+      border-color: #777;
     }
   }
 }
