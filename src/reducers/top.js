@@ -36,6 +36,13 @@ const transformBackendData = _.flow(
         combo: res.max_combo,
         mods: res.mods_list,
         isRank: !!res.rank_mode,
+        accuracy: res.max_combo
+          ? (
+              (res.perfects * 300 + res.greats * 150 + res.goods * 50 + res.bads * 15) /
+              (res.perfects + res.greats + res.goods + res.bads + res.misses) /
+              3
+            ).toFixed(2)
+          : null,
       }),
       item.results
     ),

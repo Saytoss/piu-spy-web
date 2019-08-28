@@ -54,6 +54,9 @@
             justify-content: center;
             border-radius: 25px;
             margin-right: 20px;
+            > .chart-separator {
+              width: 2px;
+            }
             &.single {
               background: #af2928;
             }
@@ -66,14 +69,25 @@
             }
             td {
               padding: 2px 4px 0 4px;
+              &.place {
+                color: #888;
+              }
+              &.date {
+                color: #888;
+              }
               &.nickname {
-                width: 130px;
+                width: 190px;
+              }
+              &.accuracy {
+                width: 85px;
+                text-align: right;
               }
               &.score {
                 width: 110px;
+                text-align: right;
               }
               &.number {
-                width: 51px;
+                width: 54px;
                 text-align: center;
               }
               &.combo {

@@ -163,7 +163,7 @@ const playersSelector = createSelector(
     _.flatMap(_.get('results')),
     _.map('nickname'),
     _.uniq,
-    _.sortBy(_.identity),
+    _.sortBy(_.toLower),
     _.map(name => ({ label: name, value: name }))
   )
 );
@@ -292,15 +292,22 @@ class TopScores extends Component {
                       <div
                         className={classNames('chart-name', { single: chart.chartType === 'S' })}
                       >
-                        {chart.chartLabel}
+                        {chart.chartType}
+                        <span className="chart-separator" />
+                        {chart.chartLevel}
                       </div>
                       <div className="results">
                         <table>
                           <tbody>
-                            {chart.results.map(res => (
+                            {chart.results.map((res, index) => (
                               <tr key={res.score + res.nickname}>
+                                <td className="place">#{index + 1}</td>
                                 <td className="nickname">{res.nickname}</td>
                                 <td className="score">{numeral(res.score).format('0,0')}</td>
+                                <td className="accuracy">
+                                  {res.accuracy}
+                                  {res.accuracy ? '%' : ''}
+                                </td>
                                 <td className="number miss">{res.miss}</td>
                                 <td className="number bad">{res.bad}</td>
                                 <td className="number good">{res.good}</td>
@@ -310,7 +317,7 @@ class TopScores extends Component {
                                   {res.combo}
                                   {res.combo ? 'x' : ''}
                                 </td>
-                                <td className={res.isRank ? 'rank vj' : 'rank'}>
+                                <td className={classNames('rank', { vj: res.isRank })}>
                                   {res.isRank && 'VJ'}
                                 </td>
                                 <td className="date">{res.date}</td>
