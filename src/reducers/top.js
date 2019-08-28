@@ -41,7 +41,7 @@ const transformBackendData = _.flow(
               (res.perfects * 300 + res.greats * 150 + res.goods * 50 + res.bads * 15) /
               (res.perfects + res.greats + res.goods + res.bads + res.misses) /
               3
-            ).toFixed(2)
+            ).toFixed(1)
           : null,
       }),
       item.results
