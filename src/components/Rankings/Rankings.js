@@ -283,11 +283,11 @@ class TopScores extends Component {
           </div>
           {isLoading && 'Loading...'}
           <div className="top-list">
-            {songs.map(song => (
+            {songs.map((song, songIndex) => (
               <div className="song-block" key={song}>
                 <div className="song-name">{song}</div>
                 <div className="charts">
-                  {_.orderBy(['chartLevel'], ['desc'], bySong[song]).map(chart => (
+                  {_.orderBy(['chartLevel'], ['desc'], bySong[song]).map((chart, chartIndex) => (
                     <div className="chart" key={chart.chartLabel}>
                       <div
                         className={classNames('chart-name', { single: chart.chartType === 'S' })}
@@ -298,16 +298,30 @@ class TopScores extends Component {
                       </div>
                       <div className="results">
                         <table>
+                          {chartIndex === 0 && songIndex === 0 && (
+                            <thead>
+                              <tr>
+                                <th className="place"></th>
+                                <th className="nickname"></th>
+                                <th className="score">score</th>
+                                <th className="number">miss</th>
+                                <th className="number">bad</th>
+                                <th className="number">good</th>
+                                <th className="number">great</th>
+                                <th className="number">perfect</th>
+                                <th className="combo">combo</th>
+                                <th className="rank"></th>
+                                <th className="accuracy">accuracy</th>
+                                <th className="date"></th>
+                              </tr>
+                            </thead>
+                          )}
                           <tbody>
                             {chart.results.map((res, index) => (
                               <tr key={res.score + res.nickname}>
                                 <td className="place">#{index + 1}</td>
                                 <td className="nickname">{res.nickname}</td>
                                 <td className="score">{numeral(res.score).format('0,0')}</td>
-                                <td className="accuracy">
-                                  {res.accuracy}
-                                  {res.accuracy ? '%' : ''}
-                                </td>
                                 <td className="number miss">{res.miss}</td>
                                 <td className="number bad">{res.bad}</td>
                                 <td className="number good">{res.good}</td>
@@ -319,6 +333,10 @@ class TopScores extends Component {
                                 </td>
                                 <td className={classNames('rank', { vj: res.isRank })}>
                                   {res.isRank && 'VJ'}
+                                </td>
+                                <td className="accuracy">
+                                  {res.accuracy}
+                                  {res.accuracy ? '%' : ''}
                                 </td>
                                 <td className="date">{res.date}</td>
                               </tr>

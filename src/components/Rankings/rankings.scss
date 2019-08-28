@@ -67,13 +67,15 @@
                 background: #4b4b4b;
               }
             }
-            td {
+            td,
+            th {
               padding: 2px 4px 0 4px;
               &.place {
                 color: #888;
               }
               &.date {
                 color: #888;
+                font-size: 15px;
               }
               &.nickname {
                 width: 190px;
@@ -81,6 +83,7 @@
               &.accuracy {
                 width: 75px;
                 text-align: right;
+                font-size: 15px;
               }
               &.score {
                 width: 110px;
@@ -92,6 +95,7 @@
               }
               &.combo {
                 width: 60px;
+                font-size: 15px;
               }
               &.rank {
                 width: 30px;
@@ -116,6 +120,13 @@
                 background: rgba(255, 0, 0, 0.1);
                 font-weight: 600;
               }
+            }
+            th {
+              padding: 0 4px 3px 4px;
+              line-height: 12px;
+              font-size: 12px !important;
+              font-weight: 400;
+              color: #999;
             }
           }
         }
