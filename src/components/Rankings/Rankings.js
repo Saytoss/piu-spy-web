@@ -9,6 +9,9 @@ import Select from 'react-select';
 import classNames from 'classnames';
 import numeral from 'numeral';
 import localForage from 'localforage';
+import TimeAgo from 'react-timeago';
+import ruStrings from 'react-timeago/lib/language-strings/ru';
+import buildFormatter from 'react-timeago/lib/formatters/buildFormatter';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
@@ -21,6 +24,8 @@ import './rankings.scss';
 import { fetchTopScores } from 'reducers/top';
 
 import { colorsArray } from 'utils/colors';
+
+const timeAgoFormatter = buildFormatter(ruStrings);
 
 const chartMinMax = [1, 29];
 
@@ -253,7 +258,8 @@ class TopScores extends Component {
     const { showItemsCount, filter, isAdvancedOpen } = this.state;
     const filteredData = getFilteredData(data, filter);
     const bySong = _.groupBy('song', filteredData);
-    const allSongs = _.keys(bySong);
+    const allSongs = _.uniq(_.map(_.get('song'), filteredData));
+
     const canShowMore = allSongs.length > showItemsCount;
     const songs = _.slice(0, showItemsCount, allSongs);
 
@@ -368,85 +374,99 @@ class TopScores extends Component {
           {isLoading && 'Loading...'}
           <div className="top-list">
             {_.isEmpty(songs) && !isLoading && 'ничего не найдено'}
-            {songs.map((song, songIndex) => (
-              <div className="song-block" key={song}>
-                <div className="song-name">{song}</div>
-                <div className="charts">
-                  {_.orderBy(['chartLevel'], ['desc'], bySong[song]).map((chart, chartIndex) => (
-                    <div className="chart" key={chart.chartLabel}>
-                      <div
-                        className={classNames('chart-name', { single: chart.chartType === 'S' })}
-                      >
-                        {chart.chartType}
-                        <span className="chart-separator" />
-                        {chart.chartLevel}
-                      </div>
-                      <div className="results">
-                        <table>
-                          {chartIndex === 0 && songIndex === 0 && (
-                            <thead>
-                              <tr className="header-background-block"></tr>
-                              <tr>
-                                <th className="place"></th>
-                                <th className="nickname"></th>
-                                <th className="score">score</th>
-                                <th className="number">miss</th>
-                                <th className="number">bad</th>
-                                <th className="number">good</th>
-                                <th className="number">great</th>
-                                <th className="number">perfect</th>
-                                <th className="combo">combo</th>
-                                <th className="rank"></th>
-                                <th className="accuracy">accuracy</th>
-                                <th className="date"></th>
-                              </tr>
-                            </thead>
-                          )}
-                          <tbody>
-                            {chart.results.map((res, index) => {
-                              const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
-                              return (
-                                <tr key={res.score + res.nickname}>
-                                  <td className="place">#{index + 1}</td>
-                                  <td
-                                    className="nickname"
-                                    style={
-                                      nameIndex > -1
-                                        ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
-                                        : {}
-                                    }
-                                  >
-                                    {res.nickname}
-                                  </td>
-                                  <td className="score">{numeral(res.score).format('0,0')}</td>
-                                  <td className="number miss">{res.miss}</td>
-                                  <td className="number bad">{res.bad}</td>
-                                  <td className="number good">{res.good}</td>
-                                  <td className="number great">{res.great}</td>
-                                  <td className="number perfect">{res.perfect}</td>
-                                  <td className="combo">
-                                    {res.combo}
-                                    {res.combo ? 'x' : ''}
-                                  </td>
-                                  <td className={classNames('rank', { vj: res.isRank })}>
-                                    {res.isRank && 'VJ'}
-                                  </td>
-                                  <td className="accuracy">
-                                    {res.accuracy}
-                                    {res.accuracy ? '%' : ''}
-                                  </td>
-                                  <td className="date">{res.date}</td>
+            {songs.map((song, songIndex) => {
+              const sortedCharts = _.orderBy(['chartLevel'], ['desc'], bySong[song]);
+              const latestSongResultDate = _.flow(
+                _.sortBy('latestScoreDate'),
+                _.last,
+                _.get('latestScoreDate')
+              )(sortedCharts);
+              return (
+                <div className="song-block" key={song}>
+                  <div className="song-name">{song}</div>
+                  <div className="charts">
+                    {sortedCharts.map((chart, chartIndex) => (
+                      <div className="chart" key={chart.chartLabel}>
+                        <div
+                          className={classNames('chart-name', { single: chart.chartType === 'S' })}
+                        >
+                          {chart.chartType}
+                          <span className="chart-separator" />
+                          {chart.chartLevel}
+                        </div>
+                        <div className="results">
+                          <table>
+                            {chartIndex === 0 && songIndex === 0 && (
+                              <thead>
+                                <tr className="header-background-block"></tr>
+                                <tr>
+                                  <th className="place"></th>
+                                  <th className="nickname"></th>
+                                  <th className="score">score</th>
+                                  <th className="number">miss</th>
+                                  <th className="number">bad</th>
+                                  <th className="number">good</th>
+                                  <th className="number">great</th>
+                                  <th className="number">perfect</th>
+                                  <th className="combo">combo</th>
+                                  <th className="rank"></th>
+                                  <th className="accuracy">accuracy</th>
+                                  <th className="date"></th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                              </thead>
+                            )}
+                            <tbody>
+                              {chart.results.map((res, index) => {
+                                const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
+                                return (
+                                  <tr key={res.score + res.nickname}>
+                                    <td className="place">#{index + 1}</td>
+                                    <td
+                                      className="nickname"
+                                      style={
+                                        nameIndex > -1
+                                          ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
+                                          : {}
+                                      }
+                                    >
+                                      {res.nickname}
+                                    </td>
+                                    <td className="score">{numeral(res.score).format('0,0')}</td>
+                                    <td className="number miss">{res.miss}</td>
+                                    <td className="number bad">{res.bad}</td>
+                                    <td className="number good">{res.good}</td>
+                                    <td className="number great">{res.great}</td>
+                                    <td className="number perfect">{res.perfect}</td>
+                                    <td className="combo">
+                                      {res.combo}
+                                      {res.combo ? 'x' : ''}
+                                    </td>
+                                    <td className={classNames('rank', { vj: res.isRank })}>
+                                      {res.isRank && 'VJ'}
+                                    </td>
+                                    <td className="accuracy">
+                                      {res.accuracy}
+                                      {res.accuracy ? '%' : ''}
+                                    </td>
+                                    <td
+                                      className={classNames('date', {
+                                        latest: res.date === latestSongResultDate,
+                                      })}
+                                    >
+                                      <TimeAgo date={res.date} formatter={timeAgoFormatter} />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {!isLoading && canShowMore && (
               <button
                 className="btn btn-sm btn-primary"

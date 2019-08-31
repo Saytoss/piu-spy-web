@@ -98,6 +98,9 @@
               &.date {
                 color: #888;
                 font-size: 15px;
+                &.latest {
+                  color: #eee;
+                }
               }
               &.nickname {
                 width: 190px;

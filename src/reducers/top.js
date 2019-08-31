@@ -46,7 +46,14 @@ const transformBackendData = _.flow(
       item.results
     ),
   })),
-  _.orderBy(['song', 'chartLevel'], ['asc', 'desc']),
+  _.map(song => ({
+    ...song,
+    latestScoreDate: song.results.reduce(
+      (latest, current) => (current.date > latest ? current.date : latest),
+      song.results[0].date
+    ),
+  })),
+  _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc']),
   data => ({ data })
 );
 
