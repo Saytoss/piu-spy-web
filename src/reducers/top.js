@@ -22,12 +22,13 @@ const transformBackendData = _.flow(
     chartLevel: item.chart_label.slice(1),
     chartType: item.chart_label.slice(0, 1),
     mix: item.mix,
-    results: _.map(
-      res => ({
+    results: _.map(res => {
+      return {
         nickname: res.nickname,
         date: res.gained,
+        dateObject: new Date(res.gained),
         grade: res.grade,
-        isExactDate: !!res.exact_gained_date,
+        isExactDate: !!res.exact_gain_date,
         score: res.score,
         perfect: res.perfects,
         great: res.greats,
@@ -43,9 +44,8 @@ const transformBackendData = _.flow(
               (res.perfects + res.greats + res.goods + res.bads + res.misses)
             ).toFixed(1)
           : null,
-      }),
-      item.results
-    ),
+      };
+    }, item.results),
   })),
   _.map(song => ({
     ...song,

@@ -6,14 +6,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { HashRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import JavascriptTimeAgo from 'javascript-time-ago';
-import en from 'javascript-time-ago/locale/en';
 
 import './index.scss';
 import App from 'components/App';
 import { store } from 'reducers';
-
-JavascriptTimeAgo.locale(en);
 
 ReactDOM.render(
   <Provider store={store}>

@@ -9,25 +9,40 @@ import Select from 'react-select';
 import classNames from 'classnames';
 import numeral from 'numeral';
 import localForage from 'localforage';
-import TimeAgo from 'react-timeago';
-import ruStrings from 'react-timeago/lib/language-strings/ru';
-import buildFormatter from 'react-timeago/lib/formatters/buildFormatter';
+import TimeAgo from 'javascript-time-ago';
+import ru from 'javascript-time-ago/locale/ru';
+import { convenient } from 'javascript-time-ago/gradation';
+import Tooltip from 'react-responsive-ui/modules/Tooltip';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
 import Input from 'components/Shared/Input/Input';
 import Toggle from 'components/Shared/Toggle/Toggle';
 
-import 'react-table/react-table.css';
+import 'react-responsive-ui/style.css';
 import './rankings.scss';
 
 import { fetchTopScores } from 'reducers/top';
 
 import { colorsArray } from 'utils/colors';
 
-const timeAgoFormatter = buildFormatter(ruStrings);
-
+TimeAgo.addLocale(ru);
+const timeAgo = new TimeAgo('ru-RU');
 const chartMinMax = [1, 29];
+
+const timeStyle = {
+  flavour: 'long',
+  gradation: convenient,
+  units: ['day', 'week', 'month'],
+};
+const tooltipFormatter = date => date.toLocaleDateString();
+const tooltipFormatterForBests = date => (
+  <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+    <div>точная дата взятия неизвестна</div>
+    <div>скор был записан с my best или machine best</div>
+    <div>дата записи: {date.toLocaleDateString()}</div>
+  </div>
+);
 
 const filterCharts = (filter, rows) => {
   const range = _.getOr(chartMinMax, 'range', filter);
@@ -467,7 +482,17 @@ class TopScores extends Component {
                                         latest: res.date === latestSongResultDate,
                                       })}
                                     >
-                                      <TimeAgo date={res.date} formatter={timeAgoFormatter} />
+                                      <Tooltip
+                                        content={
+                                          res.isExactDate
+                                            ? tooltipFormatter(res.dateObject)
+                                            : tooltipFormatterForBests(res.dateObject)
+                                        }
+                                        tooltipClassName="timeago-tooltip"
+                                      >
+                                        {timeAgo.format(res.dateObject, timeStyle)}
+                                        {res.isExactDate ? '' : '?'}
+                                      </Tooltip>
                                     </td>
                                   </tr>
                                 );

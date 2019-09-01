@@ -52,7 +52,7 @@
       display: flex;
       flex-flow: row wrap;
       > .song-name {
-        flex: 0 0 257px;
+        flex: 0 0 252px;
         font-size: 120%;
         font-weight: 600;
         margin-bottom: 5px;
@@ -115,7 +115,7 @@
               &.date {
                 color: #888;
                 font-size: 80%;
-                width: 120px;
+                width: 125px;
                 &.latest {
                   color: #eee;
                 }
@@ -201,7 +201,19 @@
   }
 }
 
+.timeago-tooltip {
+  background: #333;
+  border: 1px solid #292929;
+  border-radius: 7px;
+  font-size: 14px;
+  padding-top: 2px;
+  height: auto;
+}
+
 @media screen and (max-width: 900px) {
+  .timeago-tooltip {
+    font-size: 100%;
+  }
   .rankings {
     .top-list > .song-block > .charts > .chart {
       > .chart-name {
@@ -217,6 +229,36 @@
           &.grade .img-holder img {
             height: 1.8vw;
           }
+          // &.place {
+          //   width: 4.58%;
+          // }
+          // // &.nickname {
+          // //   width: 99%;
+          // // }
+          // &.score {
+          //   width: 13.47%;
+          // }
+          // &.grade {
+          //   width: 4.87%;
+          // }
+          // &.number {
+          //   width: 5.444%;
+          // }
+          // &.perfect {
+          //   width: 7.16%;
+          // }
+          // &.combo {
+          //   width: 7.16%;
+          // }
+          // &.rank {
+          //   width: 4.298%;
+          // }
+          // &.accuracy {
+          //   width: 7.16%;
+          // }
+          // &.date {
+          //   width: 12.6%;
+          // }
         }
         thead tr {
           position: static;
