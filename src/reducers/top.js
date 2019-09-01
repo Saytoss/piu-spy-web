@@ -26,6 +26,7 @@ const transformBackendData = _.flow(
       res => ({
         nickname: res.nickname,
         date: res.gained,
+        grade: res.grade,
         isExactDate: !!res.exact_gained_date,
         score: res.score,
         perfect: res.perfects,

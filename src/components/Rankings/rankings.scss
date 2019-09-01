@@ -101,6 +101,17 @@
                 color: #888;
                 width: 33px;
               }
+              &.grade {
+                width: 41px;
+                .img-holder {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  img {
+                    height: 16px;
+                  }
+                }
+              }
               &.date {
                 color: #888;
                 font-size: 80%;
@@ -166,7 +177,7 @@
                 position: absolute;
                 top: -28px;
                 &.header-background-block {
-                  width: 547px;
+                  width: 590px;
                   height: 35px;
                   left: 226px;
                   top: -34px;
@@ -192,21 +203,26 @@
 
 @media screen and (max-width: 900px) {
   .rankings {
-    .top-list > .song-block > .charts > .chart > .chart-name {
-      width: 6vw;
-      height: 6vw;
-      flex: 0 0 6vw;
-      border-radius: 3vw;
-    }
-    .top-list > .song-block > .charts > .chart > .results {
-      td,
-      th {
-        padding: 1.5px;
+    .top-list > .song-block > .charts > .chart {
+      > .chart-name {
+        width: 6vw;
+        height: 6vw;
+        flex: 0 0 6vw;
+        border-radius: 3vw;
       }
-      thead tr {
-        position: static;
-        &.header-background-block {
-          display: none;
+      > .results {
+        td,
+        th {
+          padding: 1.5px;
+          &.grade .img-holder img {
+            height: 1.8vw;
+          }
+        }
+        thead tr {
+          position: static;
+          &.header-background-block {
+            display: none;
+          }
         }
       }
     }

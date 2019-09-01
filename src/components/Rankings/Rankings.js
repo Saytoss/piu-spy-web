@@ -405,6 +405,7 @@ class TopScores extends Component {
                                   <th className="place"></th>
                                   <th className="nickname"></th>
                                   <th className="score">score</th>
+                                  <th className="grade"></th>
                                   <th className="number">miss</th>
                                   <th className="number">bad</th>
                                   <th className="number">good</th>
@@ -434,6 +435,17 @@ class TopScores extends Component {
                                       {res.nickname}
                                     </td>
                                     <td className="score">{numeral(res.score).format('0,0')}</td>
+                                    <td className="grade">
+                                      <div className="img-holder">
+                                        {res.grade && res.grade !== '?' && (
+                                          <img
+                                            src={`${process.env.PUBLIC_URL}/grades/${res.grade}.png`}
+                                            alt={res.grade}
+                                          />
+                                        )}
+                                        {res.grade === '?' && null}
+                                      </div>
+                                    </td>
                                     <td className="number miss">{res.miss}</td>
                                     <td className="number bad">{res.bad}</td>
                                     <td className="number good">{res.good}</td>
