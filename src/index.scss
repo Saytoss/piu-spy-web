@@ -9,6 +9,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media screen and (max-width: 900px) {
+  body {
+    font-size: 2vw;
+  }
+}
+
 html,
 body {
   height: 100%;

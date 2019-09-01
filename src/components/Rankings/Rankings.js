@@ -388,7 +388,9 @@ class TopScores extends Component {
                     {sortedCharts.map((chart, chartIndex) => (
                       <div className="chart" key={chart.chartLabel}>
                         <div
-                          className={classNames('chart-name', { single: chart.chartType === 'S' })}
+                          className={classNames('chart-name', {
+                            single: chart.chartType === 'S',
+                          })}
                         >
                           {chart.chartType}
                           <span className="chart-separator" />

@@ -1,7 +1,8 @@
 .rankings {
+  width: 100%;
   header {
     padding: 10px 10px 0 10px;
-    font-size: 20px;
+    font-size: 120%;
     color: #666;
   }
   .advanced-filters {
@@ -21,6 +22,7 @@
     }
   }
   .filters {
+    align-items: center;
     display: flex;
     flex-flow: row wrap;
     padding: 10px;
@@ -48,13 +50,14 @@
       margin-bottom: 8px;
       padding: 8px;
       display: flex;
+      flex-flow: row wrap;
       > .song-name {
-        flex: 0 0 200px;
-        font-size: 20px;
+        flex: 0 0 257px;
+        font-size: 120%;
         font-weight: 600;
       }
       > .charts {
-        flex: 1 1 auto;
+        flex: 0 1 auto;
         display: flex;
         flex-flow: column nowrap;
         > .chart {
@@ -67,6 +70,7 @@
           &:last-child {
             margin-bottom: 0;
           }
+
           > .chart-name {
             font-weight: 600;
             flex: 0 0 50px;
@@ -97,7 +101,8 @@
               }
               &.date {
                 color: #888;
-                font-size: 15px;
+                font-size: 80%;
+                width: 120px;
                 &.latest {
                   color: #eee;
                 }
@@ -108,7 +113,7 @@
               &.accuracy {
                 width: 75px;
                 text-align: right;
-                font-size: 15px;
+                font-size: 80%;
               }
               &.score {
                 width: 110px;
@@ -120,7 +125,7 @@
               }
               &.combo {
                 width: 60px;
-                font-size: 15px;
+                font-size: 80%;
               }
               &.rank {
                 width: 30px;
@@ -171,7 +176,7 @@
               th {
                 padding: 0 4px 3px 4px;
                 line-height: 12px;
-                font-size: 12px !important;
+                font-size: 60% !important;
                 font-weight: 400;
                 color: #999;
               }
@@ -180,6 +185,15 @@
         }
       }
     }
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .rankings .top-list > .song-block > .charts > .chart > .chart-name {
+    width: 6vw;
+    height: 6vw;
+    flex: 0 0 6vw;
+    border-radius: 3vw;
   }
 }
 
