@@ -2,7 +2,7 @@
   width: 100%;
   header {
     padding: 10px 10px 0 10px;
-    font-size: 120%;
+    font-size: 25px;
     color: #666;
   }
   .advanced-filters {
@@ -55,6 +55,7 @@
         flex: 0 0 257px;
         font-size: 120%;
         font-weight: 600;
+        margin-bottom: 5px;
       }
       > .charts {
         flex: 0 1 auto;
@@ -73,6 +74,7 @@
 
           > .chart-name {
             font-weight: 600;
+            line-height: 100%;
             flex: 0 0 50px;
             background: #169c16;
             width: 50px;
@@ -189,11 +191,36 @@
 }
 
 @media screen and (max-width: 900px) {
-  .rankings .top-list > .song-block > .charts > .chart > .chart-name {
-    width: 6vw;
-    height: 6vw;
-    flex: 0 0 6vw;
-    border-radius: 3vw;
+  .rankings {
+    .top-list > .song-block > .charts > .chart > .chart-name {
+      width: 6vw;
+      height: 6vw;
+      flex: 0 0 6vw;
+      border-radius: 3vw;
+    }
+    .top-list > .song-block > .charts > .chart > .results {
+      td,
+      th {
+        padding: 1.5px;
+      }
+      thead tr {
+        position: static;
+        &.header-background-block {
+          display: none;
+        }
+      }
+    }
+    .filters {
+      > * {
+        margin-bottom: 5px;
+      }
+    }
+    .advanced-filters {
+      label {
+        font-size: 12px;
+        margin: 3px 2px;
+      }
+    }
   }
 }
 
