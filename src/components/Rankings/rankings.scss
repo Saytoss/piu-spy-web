@@ -51,7 +51,7 @@
       margin-bottom: 8px;
       padding: 8px;
       display: flex;
-      flex-flow: row wrap;
+      flex-flow: row nowrap;
       > .song-name {
         flex: 0 0 260px;
         font-size: 100%;
@@ -221,15 +221,18 @@
 }
 
 @media screen and (max-width: 1255px) {
-  .rankings .top-list > .song-block > .song-name > .chart-name {
-    height: 25px;
-    border-radius: 5px;
-    margin-left: 0;
-  }
-  .rankings .top-list > .song-block > .song-name {
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-    flex: 0 0 100%;
+  .rankings .top-list > .song-block {
+    flex-wrap: wrap;
+    > .song-name {
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+      flex: 0 0 100%;
+      > .chart-name {
+        height: 25px;
+        border-radius: 5px;
+        margin-left: 0;
+      }
+    }
   }
 }
 
