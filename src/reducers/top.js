@@ -39,10 +39,11 @@ const transformBackendData = _.flow(
         mods: res.mods_list,
         isRank: !!res.rank_mode,
         accuracy: res.max_combo
-          ? (
-              (res.perfects * 100 + res.greats * 50 + res.goods * 20 + res.bads * 10) /
-              (res.perfects + res.greats + res.goods + res.bads + res.misses)
-            ).toFixed(1)
+          ? Math.floor(
+              ((res.perfects * 100 + res.greats * 50 + res.goods * 20 + res.bads * 10) /
+                (res.perfects + res.greats + res.goods + res.bads + res.misses)) *
+                100
+            ) / 100
           : null,
       };
     }, item.results),
