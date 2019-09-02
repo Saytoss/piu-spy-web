@@ -431,7 +431,10 @@ class TopScores extends Component {
                             {chart.results.map((res, index) => {
                               const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
                               return (
-                                <tr key={res.score + res.nickname}>
+                                <tr
+                                  key={res.score + res.nickname}
+                                  className={classNames({ empty: !res.isExactDate })}
+                                >
                                   <td className="place">#{index + 1}</td>
                                   <td
                                     className="nickname"
@@ -474,7 +477,6 @@ class TopScores extends Component {
                                   <td
                                     className={classNames('date', {
                                       latest: res.date === chart.latestScoreDate,
-                                      notexact: !res.isExactDate,
                                     })}
                                   >
                                     <Tooltip

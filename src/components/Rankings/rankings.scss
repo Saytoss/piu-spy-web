@@ -1,6 +1,6 @@
 .rankings {
   width: auto;
-  max-width: 1230px;
+  max-width: 967px;
   header {
     padding: 10px 10px 0 10px;
     font-size: 26px;
@@ -51,14 +51,28 @@
       margin-bottom: 8px;
       padding: 8px;
       display: flex;
-      flex-flow: row nowrap;
+      // flex-flow: row nowrap;
+      flex-flow: row wrap;
+
       > .song-name {
-        flex: 0 0 260px;
+        > .chart-name {
+          height: 25px;
+          border-radius: 5px;
+          margin-left: 0;
+        }
+      }
+
+      > .song-name {
         font-size: 100%;
         font-weight: 600;
-        margin-bottom: 5px;
+        margin-bottom: 6px;
         display: flex;
-        justify-content: space-between;
+        align-items: baseline;
+        // justify-content: space-between;
+        // flex: 0 0 260px;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        flex: 0 0 100%;
 
         > .chart-name {
           font-weight: 600;
@@ -66,14 +80,18 @@
           flex: 0 0 50px;
           background: #169c16;
           width: 50px;
-          height: 50px;
           text-align: center;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 25px;
           margin-right: 10px;
-          margin-left: 10px;
+          // border-radius: 25px;
+          // margin-left: 10px;
+          // height: 50px;
+          height: 25px;
+          border-radius: 5px;
+          margin-left: 0;
+
           > .chart-separator {
             width: 2px;
           }
@@ -124,12 +142,6 @@
                 &.latest {
                   color: #bef993;
                 }
-                &.notexact {
-                  color: #888;
-                  &.latest {
-                    color: #bef99352;
-                  }
-                }
               }
               &.nickname {
                 width: 190px;
@@ -155,21 +167,6 @@
                 width: 30px;
                 text-align: center;
               }
-              &.miss {
-                background: rgba(255, 0, 0, 0.05);
-              }
-              &.bad {
-                background: rgba(255, 0, 255, 0.05);
-              }
-              &.good {
-                background: rgba(255, 255, 0, 0.05);
-              }
-              &.great {
-                background: rgba(0, 255, 0, 0.05);
-              }
-              &.perfect {
-                background: rgba(0, 255, 255, 0.05);
-              }
               &.rank.vj {
                 background: rgba(255, 0, 0, 0.18);
                 font-weight: 600;
@@ -179,6 +176,31 @@
               tr {
                 &:nth-child(even) {
                   background: #4b4b4b;
+                }
+                &.empty td {
+                  &.date {
+                    color: #888;
+                    &.latest {
+                      color: #bef99352;
+                    }
+                  }
+                }
+                &:not(.empty) td {
+                  &.miss {
+                    background: rgba(255, 0, 0, 0.04);
+                  }
+                  &.bad {
+                    background: rgba(255, 0, 255, 0.04);
+                  }
+                  &.good {
+                    background: rgba(255, 255, 0, 0.04);
+                  }
+                  &.great {
+                    background: rgba(0, 255, 0, 0.04);
+                  }
+                  &.perfect {
+                    background: rgba(0, 255, 255, 0.04);
+                  }
                 }
               }
             }
@@ -221,21 +243,21 @@
   height: auto;
 }
 
-@media screen and (max-width: 1255px) {
-  .rankings .top-list > .song-block {
-    flex-wrap: wrap;
-    > .song-name {
-      flex-direction: row-reverse;
-      justify-content: flex-end;
-      flex: 0 0 100%;
-      > .chart-name {
-        height: 25px;
-        border-radius: 5px;
-        margin-left: 0;
-      }
-    }
-  }
-}
+// @media screen and (max-width: 1255px) {
+//   .rankings .top-list > .song-block {
+//     flex-wrap: wrap;
+//     > .song-name {
+//       flex-direction: row-reverse;
+//       justify-content: flex-end;
+//       flex: 0 0 100%;
+//       > .chart-name {
+//         height: 25px;
+//         border-radius: 5px;
+//         margin-left: 0;
+//       }
+//     }
+//   }
+// }
 
 @media screen and (max-width: 900px) {
   .timeago-tooltip {
