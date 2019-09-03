@@ -412,7 +412,6 @@ class TopScores extends Component {
               return (
                 <div className="song-block" key={chart.song + chart.chartLabel}>
                   <div className="song-name">
-                    <div>{chart.song}</div>
                     <div
                       className={classNames('chart-name', {
                         single: chart.chartType === 'S',
@@ -422,6 +421,7 @@ class TopScores extends Component {
                       <span className="chart-separator" />
                       {chart.chartLevel}
                     </div>
+                    <div>{chart.song}</div>
                   </div>
                   <div className="charts">
                     <div className="chart">
