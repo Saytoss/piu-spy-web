@@ -23,6 +23,12 @@ const transformBackendData = _.flow(
     chartType: item.chart_label.slice(0, 1),
     mix: item.mix,
     results: _.map(res => {
+      const acc =
+        Math.floor(
+          ((res.perfects * 100 + res.greats * 60 + res.goods * 30 + res.misses * -20) /
+            (res.perfects + res.greats + res.goods + res.bads + res.misses)) *
+            100
+        ) / 100;
       return {
         nickname: res.nickname,
         date: res.gained,
@@ -38,13 +44,7 @@ const transformBackendData = _.flow(
         combo: res.max_combo,
         mods: res.mods_list,
         isRank: !!res.rank_mode,
-        accuracy: res.max_combo
-          ? Math.floor(
-              ((res.perfects * 100 + res.greats * 50 + res.goods * 20 + res.bads * 10) /
-                (res.perfects + res.greats + res.goods + res.bads + res.misses)) *
-                100
-            ) / 100
-          : null,
+        accuracy: !res.max_combo ? null : acc > 0 ? acc : 0,
       };
     }, item.results),
   })),

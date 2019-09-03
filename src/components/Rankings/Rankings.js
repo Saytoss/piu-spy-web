@@ -13,6 +13,7 @@ import TimeAgo from 'javascript-time-ago';
 import ru from 'javascript-time-ago/locale/ru';
 import { convenient } from 'javascript-time-ago/gradation';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
+import moment from 'moment';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
@@ -43,6 +44,19 @@ const tooltipFormatterForBests = date => (
     <div>дата записи: {date.toLocaleDateString()}</div>
   </div>
 );
+
+const nowDate = new Date();
+const getTimeAgo = date => {
+  const strTimeAgo = timeAgo.format(date, timeStyle);
+  if (!strTimeAgo) {
+    const dayDiff = moment(nowDate)
+      .startOf('day')
+      .diff(moment(date).startOf('day'), 'days');
+    return dayDiff === 0 ? 'сегодня' : dayDiff === 1 ? 'вчера' : '';
+  } else {
+    return strTimeAgo;
+  }
+};
 
 const filterCharts = (filter, rows) => {
   const range = _.getOr(chartMinMax, 'range', filter);
@@ -487,7 +501,7 @@ class TopScores extends Component {
                                       }
                                       tooltipClassName="timeago-tooltip"
                                     >
-                                      {timeAgo.format(res.dateObject, timeStyle)}
+                                      {getTimeAgo(res.dateObject)}
                                       {res.isExactDate ? '' : '?'}
                                     </Tooltip>
                                   </td>
