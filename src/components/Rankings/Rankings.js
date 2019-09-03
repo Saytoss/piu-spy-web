@@ -488,7 +488,24 @@ class TopScores extends Component {
                                     {res.combo ? 'x' : ''}
                                   </td>
                                   <td className={classNames('rank', { vj: res.isRank })}>
-                                    {res.isRank && 'VJ'}
+                                    {res.isRank &&
+                                      (res.isExactDate ? (
+                                        'VJ'
+                                      ) : (
+                                        <Tooltip
+                                          content={
+                                            <>
+                                              <div>
+                                                наличие ранка на этом результате было угадано,
+                                                основываясь на скоре
+                                              </div>
+                                            </>
+                                          }
+                                          tooltipClassName="timeago-tooltip"
+                                        >
+                                          VJ?
+                                        </Tooltip>
+                                      ))}
                                   </td>
                                   <td className="accuracy">
                                     {res.accuracy}

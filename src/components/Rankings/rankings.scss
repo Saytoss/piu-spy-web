@@ -178,6 +178,9 @@
                   background: #4b4b4b;
                 }
                 &.empty td {
+                  &.rank {
+                    opacity: 0.7;
+                  }
                   &.date {
                     color: #888;
                     &.latest {
@@ -260,21 +263,29 @@
 // }
 
 @media screen and (max-width: 900px) {
+  .container {
+    padding-right: 1.5vw;
+    padding-left: 1.5vw;
+  }
   .timeago-tooltip {
     font-size: 100%;
   }
   .rankings {
     .top-list > .song-block {
+      padding: 1vw;
+      border-radius: 1vw;
       > .song-name {
         > .chart-name {
           margin-right: 1vw;
           width: 5.4vw;
-          height: 2.7vw;
+          height: 3vw;
           flex: 0 0 5.4vw;
           border-radius: 0.6vw;
         }
       }
       > .charts > .chart {
+        padding: 1vw;
+        border-radius: 1vw;
         > .results {
           td,
           th {
