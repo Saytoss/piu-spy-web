@@ -55,7 +55,7 @@ const transformBackendData = _.flow(
       song.results[0].date
     ),
   })),
-  _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc']),
+  // _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc']),
   data => ({ data })
 );
 

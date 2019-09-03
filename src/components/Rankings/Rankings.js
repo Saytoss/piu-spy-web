@@ -88,6 +88,11 @@ const getFilteredData = (data, filter) => {
           _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
           _.filter(row => _.size(row.results))
         ),
+      // filter.showRank &&
+      //   _.flow(
+      //     _.map(row => ({ ...row, results: _.filter(res => res.isRank, row.results) })),
+      //     _.filter(row => _.size(row.results))
+      //   ),
       (names.length || namesOr.length || namesNot.length) &&
         _.filter(row => {
           const rowNames = _.map('nickname', row.results);
@@ -97,7 +102,8 @@ const getFilteredData = (data, filter) => {
             (!namesNot.length || !_.some(name => rowNames.includes(name), namesNot))
           );
         }),
-    ])
+    ]),
+    _.orderBy(['latestScoreDate'], ['desc'])
   )(data);
 };
 
