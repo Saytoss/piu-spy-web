@@ -82,7 +82,6 @@ const getFilteredData = (data, filter) => {
   return _.flow(
     _.compact([
       filter.chartRange && (items => filterCharts(filter.chartRange, items)),
-      filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
       !filter.showRank &&
         _.flow(
           _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
@@ -102,8 +101,9 @@ const getFilteredData = (data, filter) => {
             (!namesNot.length || !_.some(name => rowNames.includes(name), namesNot))
           );
         }),
-    ]),
-    _.orderBy(['latestScoreDate'], ['desc'])
+      _.orderBy(['latestScoreDate'], ['desc']),
+      filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
+    ])
   )(data);
 };
 
