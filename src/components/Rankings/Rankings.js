@@ -69,7 +69,7 @@ const sortingOptions = [
     value: SORT.DEFAULT,
   },
   {
-    label: 'отставанию от врагов',
+    label: 'отставанию от остальных',
     value: SORT.PROTAGONIST,
   },
 ];
@@ -513,7 +513,7 @@ class TopScores extends Component {
         {_.get('sortingType.value', filter) === SORT.PROTAGONIST && (
           <>
             <div>
-              <label className="label">протагонист (относительно кого сравнивать):</label>
+              <label className="label">протагонист (кого сравнивать с остальными):</label>
               <Select
                 className={classNames('select players', {
                   'red-border': !_.get('protagonist', filter),
@@ -526,7 +526,7 @@ class TopScores extends Component {
               />
             </div>
             <div>
-              <label className="label">не учитывать врагов:</label>
+              <label className="label">не учитывать в сравнении:</label>
               <Select
                 className="select players"
                 classNamePrefix="select"
