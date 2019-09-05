@@ -41,14 +41,23 @@ body {
     -moz-appearance: textfield;
   }
 
-  button.btn-dark {
-    background-color: #444;
-    &:hover {
-      background-color: #555;
-      color: #ddd;
+  button {
+    &.btn-dark {
+      background-color: #444;
+      &:hover {
+        background-color: #555;
+        color: #ddd;
+      }
+      &:focus {
+        color: #ccc;
+      }
     }
-    &:focus {
-      color: #ccc;
+    &.btn-icon {
+      display: flex;
+      align-items: center;
+      > svg {
+        margin-right: 0.3em;
+      }
     }
   }
 
@@ -70,6 +79,9 @@ body {
         max-height: 320px;
         text-align: left;
       }
+      .select__option--is-selected {
+        background-color: #777;
+      }
       .select__option--is-focused {
         background-color: #999;
       }
@@ -83,6 +95,9 @@ body {
         width: 22px;
         padding: 3px;
       }
+    }
+    .select__single-value {
+      color: #ddd;
     }
     .select__multi-value__label {
       font-size: 100%;

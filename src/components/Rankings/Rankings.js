@@ -14,11 +14,13 @@ import ru from 'javascript-time-ago/locale/ru';
 import { convenient } from 'javascript-time-ago/gradation';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
 import moment from 'moment';
+import { FaSyncAlt } from 'react-icons/fa';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
 import Input from 'components/Shared/Input/Input';
 import Toggle from 'components/Shared/Toggle/Toggle';
+import CollapsibleBar from 'components/Shared/CollapsibleBar';
 
 import 'react-responsive-ui/style.css';
 import './rankings.scss';
@@ -29,7 +31,6 @@ import { colorsArray } from 'utils/colors';
 
 TimeAgo.addLocale(ru);
 const timeAgo = new TimeAgo('ru-RU');
-const chartMinMax = [1, 29];
 
 const timeStyle = {
   flavour: 'long',
@@ -58,6 +59,22 @@ const getTimeAgo = date => {
   }
 };
 
+const SORT = {
+  DEFAULT: 'default',
+  PROTAGONIST: 'protagonist',
+};
+const sortingOptions = [
+  {
+    label: 'новизне скоров',
+    value: SORT.DEFAULT,
+  },
+  {
+    label: 'отставанию от врагов',
+    value: SORT.PROTAGONIST,
+  },
+];
+
+const chartMinMax = [1, 29];
 const filterCharts = (filter, rows) => {
   const range = _.getOr(chartMinMax, 'range', filter);
   const type = _.getOr(null, 'type', filter);
@@ -78,6 +95,35 @@ const getFilteredData = (data, filter) => {
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
   const namesNot = _.map('value', filter.playersNot);
+  const sortingType = _.get('value', filter.sortingType);
+  const protagonist = _.get('value', filter.protagonist);
+  const excludeAntagonists = _.map('value', filter.excludeAntagonists);
+
+  const defaultSorting = [_.orderBy(['latestScoreDate'], ['desc'])];
+  const sortingFunctions =
+    {
+      [SORT.DEFAULT]: defaultSorting,
+      [SORT.PROTAGONIST]: [
+        _.filter(row => _.map('nickname', row.results).includes(protagonist)),
+        _.map(row => {
+          const protIndex = _.findIndex({ nickname: protagonist }, row.results);
+          const protScore = row.results[protIndex].score;
+          const enemies = _.flow([
+            _.take(protIndex),
+            _.uniqBy('nickname'),
+            _.remove(res => excludeAntagonists.includes(res.nickname)),
+          ])(row.results);
+          const distance = Math.sqrt(
+            _.reduce((dist, enemy) => dist + (enemy.score / protScore - 0.99) ** 2, 0, enemies)
+          );
+          return {
+            ...row,
+            distanceFromProtagonist: distance,
+          };
+        }),
+        _.orderBy(['distanceFromProtagonist'], ['desc']),
+      ],
+    }[sortingType] || defaultSorting;
 
   return _.flow(
     _.compact([
@@ -87,11 +133,12 @@ const getFilteredData = (data, filter) => {
           _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
           _.filter(row => _.size(row.results))
         ),
-      // filter.showRank &&
-      //   _.flow(
-      //     _.map(row => ({ ...row, results: _.filter(res => res.isRank, row.results) })),
-      //     _.filter(row => _.size(row.results))
-      //   ),
+      filter.showRank &&
+        filter.showOnlyRank &&
+        _.flow(
+          _.map(row => ({ ...row, results: _.filter(res => res.isRank, row.results) })),
+          _.filter(row => _.size(row.results))
+        ),
       (names.length || namesOr.length || namesNot.length) &&
         _.filter(row => {
           const rowNames = _.map('nickname', row.results);
@@ -101,7 +148,7 @@ const getFilteredData = (data, filter) => {
             (!namesNot.length || !_.some(name => rowNames.includes(name), namesNot))
           );
         }),
-      _.orderBy(['latestScoreDate'], ['desc']),
+      ...sortingFunctions,
       filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
     ])
   )(data);
@@ -110,10 +157,11 @@ const getFilteredData = (data, filter) => {
 function ChartFilter({ filterValue, onChange }) {
   const range = _.getOr(chartMinMax, 'range', filterValue);
   const type = _.getOr(null, 'type', filterValue);
-  let buttonText = 'фильтр чартов...';
+  let buttonText = 'фильтр чартов';
   if (filterValue) {
     const t = type || '';
     buttonText = range[0] === range[1] ? `${t}${range[0]}` : `${t}${range[0]} - ${t}${range[1]}`;
+    buttonText = 'чарты: ' + buttonText;
   }
 
   return (
@@ -288,9 +336,169 @@ class TopScores extends Component {
     );
   });
 
+  onRefresh = () => {
+    const { isLoading } = this.props;
+    if (!isLoading) {
+      this.props.fetchTopScores();
+    }
+  };
+
+  renderSimpleSearch() {
+    const { isLoading } = this.props;
+    return (
+      <div className="simple-search">
+        <div className="song-name _margin-right">
+          <Input
+            value={this.state.filter.song}
+            placeholder="название песни..."
+            className="form-control"
+            onChange={this.setFilter('song')}
+          />
+        </div>
+        <div className="chart-range _margin-right">
+          <ChartFilter
+            filterValue={this.state.filter.chartRange}
+            onChange={this.setFilter('chartRange')}
+          />
+        </div>
+        <div className="_flex-fill" />
+        <div>
+          <button
+            disabled={isLoading}
+            className="btn btn-sm btn-dark btn-icon"
+            onClick={this.onRefresh}
+          >
+            <FaSyncAlt /> обновить
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  renderFilters() {
+    const { players } = this.props;
+    const { filter } = this.state;
+
+    return (
+      <div className="filters">
+        <div className="people-filters">
+          <label className="label">показывать чарты, которые сыграл:</label>
+          <div className="players-block">
+            <div className="_margin-right">
+              <label className="label">каждый из этих</label>
+              <Select
+                closeMenuOnSelect={false}
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                isMulti
+                options={players}
+                value={_.getOr(null, 'players', filter)}
+                onChange={this.setFilter('players')}
+              />
+            </div>
+            <div className="_margin-right">
+              <label className="label">и хоть один из этих</label>
+              <Select
+                closeMenuOnSelect={false}
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                isMulti
+                options={players}
+                value={_.getOr(null, 'playersOr', filter)}
+                onChange={this.setFilter('playersOr')}
+              />
+            </div>
+            <div className="_margin-right">
+              <label className="label">и никто из этих</label>
+              <Select
+                closeMenuOnSelect={false}
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                isMulti
+                options={players}
+                value={_.getOr(null, 'playersNot', filter)}
+                onChange={this.setFilter('playersNot')}
+              />
+            </div>
+          </div>
+        </div>
+        <div>
+          <Toggle
+            checked={_.getOr(false, 'showRank', filter)}
+            onChange={this.setFilter('showRank')}
+          >
+            показывать скоры на ранке
+          </Toggle>
+        </div>
+        {_.get('showRank', filter) && (
+          <div>
+            <Toggle
+              checked={_.getOr(false, 'showOnlyRank', filter)}
+              onChange={this.setFilter('showOnlyRank')}
+            >
+              <strong>только</strong> на ранке
+            </Toggle>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  renderSortings() {
+    const { filter } = this.state;
+    const { players } = this.props;
+    return (
+      <div className="sortings">
+        <div>
+          <label className="label">сортировать по</label>
+          <Select
+            placeholder="выберите сортировку"
+            className="select"
+            classNamePrefix="select"
+            clearable={false}
+            options={sortingOptions}
+            value={_.getOr(sortingOptions[0], 'sortingType', filter)}
+            onChange={this.setFilter('sortingType')}
+          />
+        </div>
+        {_.get('sortingType.value', filter) === SORT.PROTAGONIST && (
+          <>
+            <div>
+              <label className="label">протагонист (относительно кого сравнивать):</label>
+              <Select
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                options={players}
+                value={_.getOr(null, 'protagonist', filter)}
+                onChange={this.setFilter('protagonist')}
+              />
+            </div>
+            <div>
+              <label className="label">не учитывать врагов:</label>
+              <Select
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                options={players}
+                isMulti
+                value={_.getOr([], 'excludeAntagonists', filter)}
+                onChange={this.setFilter('excludeAntagonists')}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   render() {
-    const { isLoading, data, error, players } = this.props;
-    const { showItemsCount, filter, isAdvancedOpen } = this.state;
+    const { isLoading, data, error } = this.props;
+    const { showItemsCount, filter } = this.state;
+
     const filteredData = getFilteredData(data, filter);
 
     const canShowMore = filteredData.length > showItemsCount;
@@ -299,112 +507,26 @@ class TopScores extends Component {
     const uniqueSelectedNames = _.slice(
       0,
       colorsArray.length,
-      _.uniq([..._.map('value', filter.players), ..._.map('value', filter.playersOr)])
+      _.uniq(
+        _.compact([
+          _.get('sortingType.value', filter) === SORT.PROTAGONIST &&
+            _.get('protagonist.value', filter),
+          ..._.map('value', filter.players),
+          ..._.map('value', filter.playersOr),
+        ])
+      )
     );
-
-    const hasAdvancedFilters = _.size(filter.playersOr) || _.size(filter.playersNot);
 
     return (
       <div className="rankings">
         <header>leaderboard</header>
         <div className="content">
           {error && error.message}
-          <div className="filters">
-            <div className="song-name _margin-right">
-              <Input
-                value={this.state.filter.song}
-                placeholder="название песни..."
-                className="form-control"
-                onChange={this.setFilter('song')}
-              />
-            </div>
-            <div className="chart-range _margin-right">
-              <ChartFilter
-                filterValue={this.state.filter.chartRange}
-                onChange={this.setFilter('chartRange')}
-              />
-            </div>
-            {!isAdvancedOpen && (
-              <div className="players _margin-right">
-                <Select
-                  closeMenuOnSelect={false}
-                  className="select players"
-                  classNamePrefix="select"
-                  placeholder="игроки..."
-                  isMulti
-                  options={players}
-                  value={_.getOr(null, 'players', this.state.filter)}
-                  onChange={this.setFilter('players')}
-                />
-              </div>
-            )}
-            <div className="advanced-btn-holder">
-              <button
-                className={classNames('btn btn-sm btn-dark', {
-                  'red-border': !isAdvancedOpen && hasAdvancedFilters,
-                })}
-                onClick={() => this.setState({ isAdvancedOpen: !isAdvancedOpen })}
-              >
-                {isAdvancedOpen ? 'меньше опций ⯅' : 'больше опций ⯆'}
-              </button>
-            </div>
+          <div className="search-block">
+            {this.renderSimpleSearch()}
+            <CollapsibleBar title="фильтры">{this.renderFilters()}</CollapsibleBar>
+            <CollapsibleBar title="сортировка">{this.renderSortings()}</CollapsibleBar>
           </div>
-          {isAdvancedOpen && (
-            <div className="advanced-filters">
-              <div className="people-filters">
-                <label className="label">показывать чарты, которые сыграл:</label>
-                <div className="players-block">
-                  <div className="_margin-right">
-                    <label className="label">каждый из этих</label>
-                    <Select
-                      closeMenuOnSelect={false}
-                      className="select players"
-                      classNamePrefix="select"
-                      placeholder="игроки..."
-                      isMulti
-                      options={players}
-                      value={_.getOr(null, 'players', this.state.filter)}
-                      onChange={this.setFilter('players')}
-                    />
-                  </div>
-                  <div className="_margin-right">
-                    <label className="label">и хоть один из этих</label>
-                    <Select
-                      closeMenuOnSelect={false}
-                      className="select players"
-                      classNamePrefix="select"
-                      placeholder="игроки..."
-                      isMulti
-                      options={players}
-                      value={_.getOr(null, 'playersOr', this.state.filter)}
-                      onChange={this.setFilter('playersOr')}
-                    />
-                  </div>
-                  <div className="_margin-right">
-                    <label className="label">и никто из этих</label>
-                    <Select
-                      closeMenuOnSelect={false}
-                      className="select players"
-                      classNamePrefix="select"
-                      placeholder="игроки..."
-                      isMulti
-                      options={players}
-                      value={_.getOr(null, 'playersNot', this.state.filter)}
-                      onChange={this.setFilter('playersNot')}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <Toggle
-                  checked={_.getOr(false, 'showRank', this.state.filter)}
-                  onChange={this.setFilter('showRank')}
-                >
-                  показывать скоры на ранке
-                </Toggle>
-              </div>
-            </div>
-          )}
           {isLoading && 'Loading...'}
           <div className="top-list">
             {_.isEmpty(filteredData) && !isLoading && 'ничего не найдено'}
@@ -429,7 +551,6 @@ class TopScores extends Component {
                         <table>
                           {chartIndex === 0 && (
                             <thead>
-                              <tr className="header-background-block"></tr>
                               <tr>
                                 <th className="place"></th>
                                 <th className="nickname"></th>
@@ -465,6 +586,14 @@ class TopScores extends Component {
                                     }
                                   >
                                     {res.nickname}
+                                    {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
+                                      res.nickname === _.get('protagonist.value', filter) &&
+                                      chart.distanceFromProtagonist > 0 && (
+                                        <span className="protagonist-diff">
+                                          {' '}
+                                          -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
+                                        </span>
+                                      )}
                                   </td>
                                   <td className="score">{numeral(res.score).format('0,0')}</td>
                                   <td className="grade">

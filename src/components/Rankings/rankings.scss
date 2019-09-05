@@ -6,8 +6,10 @@
     font-size: 26px;
     color: #666;
   }
-  .advanced-filters {
-    padding: 0 10px 10px 10px;
+  .search-block {
+    padding: 0 10px;
+  }
+  .filters {
     .people-filters {
       margin-bottom: 5px;
     }
@@ -22,11 +24,16 @@
       }
     }
   }
-  .filters {
+  .sortings {
+    > div {
+      margin-bottom: 5px;
+    }
+  }
+  .simple-search {
     align-items: center;
     display: flex;
     flex-flow: row wrap;
-    padding: 10px;
+    padding: 10px 0;
     > .song-name > input {
       width: 190px;
     }
@@ -212,15 +219,6 @@
               tr {
                 position: absolute;
                 top: -28px;
-                &.header-background-block {
-                  width: 590px;
-                  height: 35px;
-                  left: 226px;
-                  top: -34px;
-                  border-radius: 8px;
-                  z-index: -1;
-                  background: #353535;
-                }
               }
               th {
                 padding: 0 4px 3px 4px;
@@ -296,19 +294,18 @@
           }
           thead tr {
             position: static;
-            &.header-background-block {
-              display: none;
-            }
           }
         }
       }
     }
-    .filters {
-      > * {
-        margin-bottom: 5px;
-      }
+    .collapsible-bar .header {
+      font-size: 12px;
     }
-    .advanced-filters {
+    .filters,
+    .sortings {
+      // > * {
+      //   margin-bottom: 5px;
+      // }
       label {
         font-size: 12px;
         margin: 3px 2px;
