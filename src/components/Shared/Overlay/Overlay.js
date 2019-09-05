@@ -77,7 +77,7 @@ class Overlay extends React.PureComponent {
         className={classNames(
           'inner-popper-overlay',
           `arrow-${getArrowPlacement(placement)}`,
-          // this.props.overlayClassName,
+          this.props.overlayClassName,
           { 'out-of-bounds': outOfBoundaries && hideWhenOutOfBounds }
         )}
       >

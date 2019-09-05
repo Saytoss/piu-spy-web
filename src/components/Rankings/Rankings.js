@@ -14,7 +14,7 @@ import ru from 'javascript-time-ago/locale/ru';
 import { convenient } from 'javascript-time-ago/gradation';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
 import moment from 'moment';
-import { FaSyncAlt } from 'react-icons/fa';
+import { FaSyncAlt, FaCaretLeft, FaCaretRight } from 'react-icons/fa';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
@@ -167,6 +167,7 @@ function ChartFilter({ filterValue, onChange }) {
   return (
     <div>
       <Overlay
+        overlayClassName="chart-range-overlay-outer"
         overlayItem={
           <button className="filter-charts-button btn btn-sm btn-dark">{buttonText}</button>
         }
@@ -257,6 +258,17 @@ function ChartFilter({ filterValue, onChange }) {
             )}
           />
           <div className="inputs">
+            <button
+              className="btn btn-sm btn-dark"
+              onClick={() =>
+                onChange({
+                  type,
+                  range: [Math.max(range[0] - 1, chartMinMax[0]), range[1]],
+                })
+              }
+            >
+              <FaCaretLeft />
+            </button>
             <Input
               type="number"
               className="form-control"
@@ -267,6 +279,29 @@ function ChartFilter({ filterValue, onChange }) {
                 onChange({ type, range: [value, range[1]] });
               }}
             />
+            <button
+              className="btn btn-sm btn-dark"
+              onClick={() =>
+                onChange({
+                  type,
+                  range: [Math.min(range[0] + 1, chartMinMax[1]), range[1]],
+                })
+              }
+            >
+              <FaCaretRight />
+            </button>
+            <div className="_flex-fill" />
+            <button
+              className="btn btn-sm btn-dark"
+              onClick={() =>
+                onChange({
+                  type,
+                  range: [range[0], Math.max(range[1] - 1, chartMinMax[0])],
+                })
+              }
+            >
+              <FaCaretLeft />
+            </button>
             <Input
               type="number"
               className="form-control"
@@ -275,6 +310,17 @@ function ChartFilter({ filterValue, onChange }) {
               value={range[1]}
               onBlur={value => onChange({ type, range: [range[0], value] })}
             />
+            <button
+              className="btn btn-sm btn-dark"
+              onClick={() =>
+                onChange({
+                  type,
+                  range: [range[0], Math.min(range[1] + 1, chartMinMax[1])],
+                })
+              }
+            >
+              <FaCaretRight />
+            </button>
           </div>
         </div>
       </Overlay>
@@ -469,7 +515,9 @@ class TopScores extends Component {
             <div>
               <label className="label">протагонист (относительно кого сравнивать):</label>
               <Select
-                className="select players"
+                className={classNames('select players', {
+                  'red-border': !_.get('protagonist', filter),
+                })}
                 classNamePrefix="select"
                 placeholder="игроки..."
                 options={players}
