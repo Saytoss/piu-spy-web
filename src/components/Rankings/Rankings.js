@@ -14,7 +14,7 @@ import ru from 'javascript-time-ago/locale/ru';
 import { convenient } from 'javascript-time-ago/gradation';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
 import moment from 'moment';
-import { FaSyncAlt, FaCaretLeft, FaCaretRight } from 'react-icons/fa';
+import { FaRedoAlt, FaCaretLeft, FaCaretRight, FaSearch } from 'react-icons/fa';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
@@ -74,7 +74,7 @@ const sortingOptions = [
   },
 ];
 
-const chartMinMax = [1, 29];
+const chartMinMax = [1, 28];
 const filterCharts = (filter, rows) => {
   const range = _.getOr(chartMinMax, 'range', filter);
   const type = _.getOr(null, 'type', filter);
@@ -111,7 +111,7 @@ const getFilteredData = (data, filter) => {
           const enemies = _.flow([
             _.take(protIndex),
             _.uniqBy('nickname'),
-            _.remove(res => excludeAntagonists.includes(res.nickname)),
+            _.remove(res => excludeAntagonists.includes(res.nickname) || res.score === protScore),
           ])(row.results);
           const distance = Math.sqrt(
             _.reduce((dist, enemy) => dist + (enemy.score / protScore - 0.99) ** 2, 0, enemies)
@@ -129,16 +129,24 @@ const getFilteredData = (data, filter) => {
     _.compact([
       filter.chartRange && (items => filterCharts(filter.chartRange, items)),
       !filter.showRank &&
-        _.flow(
-          _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
-          _.filter(row => _.size(row.results))
-        ),
+        _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
       filter.showRank &&
         filter.showOnlyRank &&
-        _.flow(
-          _.map(row => ({ ...row, results: _.filter(res => res.isRank, row.results) })),
-          _.filter(row => _.size(row.results))
-        ),
+        _.map(row => ({ ...row, results: _.filter(res => res.isRank, row.results) })),
+      filter.showRank &&
+        !filter.showOnlyRank &&
+        !filter.showRankAndNorank &&
+        _.map(row => {
+          const occuredNames = [];
+          return {
+            ...row,
+            results: _.filter(res => {
+              const alreadyOccured = occuredNames.includes(res.nickname);
+              occuredNames.push(res.nickname);
+              return !alreadyOccured;
+            }, row.results),
+          };
+        }),
       (names.length || namesOr.length || namesNot.length) &&
         _.filter(row => {
           const rowNames = _.map('nickname', row.results);
@@ -148,8 +156,33 @@ const getFilteredData = (data, filter) => {
             (!namesNot.length || !_.some(name => rowNames.includes(name), namesNot))
           );
         }),
+      _.filter(row => _.size(row.results)),
       ...sortingFunctions,
       filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
+      _.map(song => {
+        let topPlace = 1;
+        const occuredNicknames = [];
+        return {
+          ...song,
+          results: song.results.map((res, index) => {
+            const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
+            occuredNicknames.push(res.nickname);
+            if (index === 0) {
+              topPlace = 1;
+            } else if (
+              !isSecondOccurenceInResults &&
+              res.score !== _.get([index - 1, 'score'], song.results)
+            ) {
+              topPlace += 1;
+            }
+            return {
+              ...res,
+              topPlace,
+              isSecondOccurenceInResults,
+            };
+          }),
+        };
+      }),
     ])
   )(data);
 };
@@ -281,24 +314,26 @@ function ChartFilter({ filterValue, onChange }) {
             />
             <button
               className="btn btn-sm btn-dark"
-              onClick={() =>
+              onClick={() => {
+                const newMin = Math.min(range[0] + 1, chartMinMax[1]);
                 onChange({
                   type,
-                  range: [Math.min(range[0] + 1, chartMinMax[1]), range[1]],
-                })
-              }
+                  range: [newMin, range[1] < newMin ? newMin : range[1]],
+                });
+              }}
             >
               <FaCaretRight />
             </button>
             <div className="_flex-fill" />
             <button
               className="btn btn-sm btn-dark"
-              onClick={() =>
+              onClick={() => {
+                const newMax = Math.max(range[1] - 1, chartMinMax[0]);
                 onChange({
                   type,
-                  range: [range[0], Math.max(range[1] - 1, chartMinMax[0])],
-                })
-              }
+                  range: [range[0] > newMax ? newMax : range[0], newMax],
+                });
+              }}
             >
               <FaCaretLeft />
             </button>
@@ -339,6 +374,8 @@ const playersSelector = createSelector(
   )
 );
 
+const defaultFilter = { showRank: true };
+
 const mapStateToProps = state => {
   return {
     players: playersSelector(state),
@@ -360,7 +397,7 @@ class TopScores extends Component {
     isLoading: toBe.bool.isRequired,
   };
 
-  state = { filter: { showRank: true }, showItemsCount: 20 };
+  state = { filter: defaultFilter, showItemsCount: 20 };
 
   componentDidMount() {
     const { isLoading } = this.props;
@@ -369,7 +406,24 @@ class TopScores extends Component {
     }
     localForage
       .getItem('filter')
-      .then(filter => filter && this.setState({ filter }))
+      .then(
+        filter =>
+          filter &&
+          this.setState({
+            filter: {
+              ...filter,
+              chartRange: {
+                ...filter.chartRange,
+                range: _.every(
+                  r => r >= chartMinMax[0] && r <= chartMinMax[1],
+                  filter.chartRange.range
+                )
+                  ? filter.chartRange.range
+                  : chartMinMax,
+              },
+            },
+          })
+      )
       .catch(error => console.warn('Cannot get filter from local storage', error));
   }
 
@@ -393,28 +447,34 @@ class TopScores extends Component {
     const { isLoading } = this.props;
     return (
       <div className="simple-search">
-        <div className="song-name _margin-right">
+        <div className="song-name _margin-right _margin-bottom">
           <Input
-            value={this.state.filter.song}
+            value={this.state.filter.song || ''}
             placeholder="название песни..."
             className="form-control"
             onChange={this.setFilter('song')}
           />
         </div>
-        <div className="chart-range _margin-right">
+        <div className="chart-range _margin-right _margin-bottom">
           <ChartFilter
             filterValue={this.state.filter.chartRange}
             onChange={this.setFilter('chartRange')}
           />
         </div>
         <div className="_flex-fill" />
-        <div>
+        <div className="_flex-row _margin-bottom">
+          <button
+            className="btn btn-sm btn-dark btn-icon _margin-right"
+            onClick={() => this.setState({ filter: defaultFilter })}
+          >
+            <FaRedoAlt /> сбросить фильтры
+          </button>
           <button
             disabled={isLoading}
             className="btn btn-sm btn-dark btn-icon"
             onClick={this.onRefresh}
           >
-            <FaSyncAlt /> обновить
+            <FaSearch /> обновить
           </button>
         </div>
       </div>
@@ -480,14 +540,34 @@ class TopScores extends Component {
           </Toggle>
         </div>
         {_.get('showRank', filter) && (
-          <div>
-            <Toggle
-              checked={_.getOr(false, 'showOnlyRank', filter)}
-              onChange={this.setFilter('showOnlyRank')}
-            >
-              <strong>только</strong> на ранке
-            </Toggle>
-          </div>
+          <>
+            <div>
+              <Toggle
+                checked={_.getOr(false, 'showOnlyRank', filter)}
+                onChange={value => {
+                  this.setFilter('showOnlyRank', value);
+                  if (_.get('showRankAndNorank', filter)) {
+                    this.setFilter('showRankAndNorank', false);
+                  }
+                }}
+              >
+                <strong>только</strong> на ранке
+              </Toggle>
+            </div>
+            <div>
+              <Toggle
+                checked={_.getOr(false, 'showRankAndNorank', filter)}
+                onChange={value => {
+                  this.setFilter('showRankAndNorank', value);
+                  if (_.get('showOnlyRank', filter)) {
+                    this.setFilter('showOnlyRank', false);
+                  }
+                }}
+              >
+                показывать лучшие скоры с ранком и без
+              </Toggle>
+            </div>
+          </>
         )}
       </div>
     );
@@ -528,6 +608,7 @@ class TopScores extends Component {
             <div>
               <label className="label">не учитывать в сравнении:</label>
               <Select
+                closeMenuOnSelect={false}
                 className="select players"
                 classNamePrefix="select"
                 placeholder="игроки..."
@@ -602,6 +683,7 @@ class TopScores extends Component {
                               <tr>
                                 <th className="place"></th>
                                 <th className="nickname"></th>
+                                <th className="rank"></th>
                                 <th className="score">score</th>
                                 <th className="grade"></th>
                                 <th className="number">miss</th>
@@ -610,21 +692,22 @@ class TopScores extends Component {
                                 <th className="number">great</th>
                                 <th className="number">perfect</th>
                                 <th className="combo">combo</th>
-                                <th className="rank"></th>
                                 <th className="accuracy">accuracy</th>
                                 <th className="date"></th>
                               </tr>
                             </thead>
                           )}
                           <tbody>
-                            {chart.results.map((res, index) => {
+                            {chart.results.map(res => {
                               const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
                               return (
                                 <tr
                                   key={res.score + res.nickname}
                                   className={classNames({ empty: !res.isExactDate })}
                                 >
-                                  <td className="place">#{index + 1}</td>
+                                  <td className="place">
+                                    {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
+                                  </td>
                                   <td
                                     className="nickname"
                                     style={
@@ -642,6 +725,26 @@ class TopScores extends Component {
                                           -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
                                         </span>
                                       )}
+                                  </td>
+                                  <td className={classNames('rank', { vj: res.isRank })}>
+                                    {res.isRank &&
+                                      (res.isExactDate ? (
+                                        'VJ'
+                                      ) : (
+                                        <Tooltip
+                                          content={
+                                            <>
+                                              <div>
+                                                наличие ранка на этом результате было угадано,
+                                                основываясь на скоре
+                                              </div>
+                                            </>
+                                          }
+                                          tooltipClassName="timeago-tooltip"
+                                        >
+                                          VJ?
+                                        </Tooltip>
+                                      ))}
                                   </td>
                                   <td className="score">{numeral(res.score).format('0,0')}</td>
                                   <td className="grade">
@@ -663,26 +766,6 @@ class TopScores extends Component {
                                   <td className="combo">
                                     {res.combo}
                                     {res.combo ? 'x' : ''}
-                                  </td>
-                                  <td className={classNames('rank', { vj: res.isRank })}>
-                                    {res.isRank &&
-                                      (res.isExactDate ? (
-                                        'VJ'
-                                      ) : (
-                                        <Tooltip
-                                          content={
-                                            <>
-                                              <div>
-                                                наличие ранка на этом результате было угадано,
-                                                основываясь на скоре
-                                              </div>
-                                            </>
-                                          }
-                                          tooltipClassName="timeago-tooltip"
-                                        >
-                                          VJ?
-                                        </Tooltip>
-                                      ))}
                                   </td>
                                   <td className="accuracy">
                                     {res.accuracy}
