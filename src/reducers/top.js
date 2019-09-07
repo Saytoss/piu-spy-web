@@ -251,6 +251,7 @@ export const fetchTopScores = () => {
         url: `${HOST}/top`,
       });
       dispatch({ type: SUCCESS, data });
+      dispatch(calculateRankingChanges());
       return data;
     } catch (error) {
       dispatch({ type: ERROR, error });

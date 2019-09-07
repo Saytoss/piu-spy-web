@@ -21,10 +21,10 @@ import CollapsibleBar from 'components/Shared/CollapsibleBar';
 import ChartFilter from './ChartFilter';
 
 // constants
-import { SORT, CHART_MIN_MAX } from 'constants/leaderboard';
+import { SORT } from 'constants/leaderboard';
 
 // reducers
-import { fetchTopScores, setFilter, resetFilter, calculateRankingChanges } from 'reducers/top';
+import { fetchTopScores, setFilter, resetFilter } from 'reducers/top';
 
 // utils
 import { tooltipFormatter, tooltipFormatterForBests, getTimeAgo } from 'utils/leaderboards';
@@ -58,7 +58,6 @@ const mapDispatchToProps = {
   fetchTopScores,
   setFilter,
   resetFilter,
-  calculateRankingChanges,
 };
 
 class Leaderboard extends Component {
@@ -71,33 +70,6 @@ class Leaderboard extends Component {
 
   state = { showItemsCount: 20 };
 
-  async componentDidMount() {
-    const { isLoading } = this.props;
-    if (!isLoading) {
-      await this.props.fetchTopScores();
-      this.props.calculateRankingChanges();
-    }
-    localForage
-      .getItem('filter')
-      .then(filter => {
-        if (filter) {
-          this.props.setFilter({
-            ...filter,
-            chartRange: filter.chartRange && {
-              ...filter.chartRange,
-              range: _.every(
-                r => r >= CHART_MIN_MAX[0] && r <= CHART_MIN_MAX[1],
-                filter.chartRange.range
-              )
-                ? filter.chartRange.range
-                : CHART_MIN_MAX,
-            },
-          });
-        }
-      })
-      .catch(error => console.error('Cannot get filter from local storage', error));
-  }
-
   setFilter = _.curry((name, value) => {
     const filter = { ...this.props.filter, [name]: value };
     this.props.setFilter(filter);
@@ -106,9 +78,7 @@ class Leaderboard extends Component {
 
   onRefresh = () => {
     const { isLoading } = this.props;
-    if (!isLoading) {
-      this.props.fetchTopScores();
-    }
+    !isLoading && this.props.fetchTopScores();
   };
 
   renderSimpleSearch() {
@@ -319,150 +289,153 @@ class Leaderboard extends Component {
           {isLoading && <Loader />}
           <div className="top-list">
             {_.isEmpty(filteredData) && !isLoading && 'ничего не найдено'}
-            {visibleData.map((chart, chartIndex) => {
-              return (
-                <div className="song-block" key={chart.song + chart.chartLabel}>
-                  <div className="song-name">
-                    <div
-                      className={classNames('chart-name', {
-                        single: chart.chartType === 'S',
-                      })}
-                    >
-                      <span className="chart-letter">{chart.chartType}</span>
-                      <span className="chart-number">{chart.chartLevel}</span>
+            {!isLoading &&
+              visibleData.map((chart, chartIndex) => {
+                return (
+                  <div className="song-block" key={chart.song + chart.chartLabel}>
+                    <div className="song-name">
+                      <div
+                        className={classNames('chart-name', {
+                          single: chart.chartType === 'S',
+                        })}
+                      >
+                        <span className="chart-letter">{chart.chartType}</span>
+                        <span className="chart-number">{chart.chartLevel}</span>
+                      </div>
+                      <div>{chart.song}</div>
                     </div>
-                    <div>{chart.song}</div>
-                  </div>
-                  <div className="charts">
-                    <div className="chart">
-                      <div className="results">
-                        <table>
-                          {chartIndex === 0 && (
-                            <thead>
-                              <tr>
-                                <th className="place"></th>
-                                <th className="nickname"></th>
-                                <th className="rank"></th>
-                                <th className="score">score</th>
-                                <th className="grade"></th>
-                                <th className="number">miss</th>
-                                <th className="number">bad</th>
-                                <th className="number">good</th>
-                                <th className="number">great</th>
-                                <th className="number">perfect</th>
-                                <th className="combo">combo</th>
-                                <th className="accuracy">accuracy</th>
-                                <th className="date"></th>
-                              </tr>
-                            </thead>
-                          )}
-                          <tbody>
-                            {chart.results.map(res => {
-                              const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
-                              return (
-                                <tr
-                                  key={res.score + res.nickname}
-                                  className={classNames({ empty: !res.isExactDate })}
-                                >
-                                  <td className="place">
-                                    {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
-                                  </td>
-                                  <td
-                                    className="nickname"
-                                    style={
-                                      nameIndex > -1
-                                        ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
-                                        : {}
-                                    }
-                                  >
-                                    {res.nickname}
-                                    {/* <span>
-                                      {' '}
-                                      {Math.round(res.startingRating)}{' '}
-                                      {res.ratingDiff && Math.round(res.ratingDiff)}
-                                    </span> */}
-                                    {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
-                                      res.nickname === _.get('protagonist.value', filter) &&
-                                      chart.distanceFromProtagonist > 0 && (
-                                        <span className="protagonist-diff">
-                                          {' '}
-                                          -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
-                                        </span>
-                                      )}
-                                  </td>
-                                  <td className={classNames('rank', { vj: res.isRank })}>
-                                    {res.isRank &&
-                                      (res.isExactDate ? (
-                                        'VJ'
-                                      ) : (
-                                        <Tooltip
-                                          content={
-                                            <>
-                                              <div>
-                                                наличие ранка на этом результате было угадано,
-                                                основываясь на скоре
-                                              </div>
-                                            </>
-                                          }
-                                          tooltipClassName="timeago-tooltip"
-                                        >
-                                          VJ?
-                                        </Tooltip>
-                                      ))}
-                                  </td>
-                                  <td className="score">{numeral(res.score).format('0,0')}</td>
-                                  <td className="grade">
-                                    <div className="img-holder">
-                                      {res.grade && res.grade !== '?' && (
-                                        <img
-                                          src={`${process.env.PUBLIC_URL}/grades/${res.grade}.png`}
-                                          alt={res.grade}
-                                        />
-                                      )}
-                                      {res.grade === '?' && null}
-                                    </div>
-                                  </td>
-                                  <td className="number miss">{res.miss}</td>
-                                  <td className="number bad">{res.bad}</td>
-                                  <td className="number good">{res.good}</td>
-                                  <td className="number great">{res.great}</td>
-                                  <td className="number perfect">{res.perfect}</td>
-                                  <td className="combo">
-                                    {res.combo}
-                                    {res.combo ? 'x' : ''}
-                                  </td>
-                                  <td className="accuracy">
-                                    {res.accuracy}
-                                    {res.accuracy ? '%' : ''}
-                                  </td>
-                                  <td
-                                    className={classNames('date', {
-                                      latest: res.date === chart.latestScoreDate,
-                                    })}
-                                  >
-                                    <Tooltip
-                                      content={
-                                        res.isExactDate
-                                          ? tooltipFormatter(res.dateObject)
-                                          : tooltipFormatterForBests(res.dateObject)
-                                      }
-                                      tooltipClassName="timeago-tooltip"
-                                    >
-                                      {getTimeAgo(res.dateObject)}
-                                      {res.isExactDate ? '' : '?'}
-                                    </Tooltip>
-                                  </td>
+                    <div className="charts">
+                      <div className="chart">
+                        <div className="results">
+                          <table>
+                            {chartIndex === 0 && (
+                              <thead>
+                                <tr>
+                                  <th className="place"></th>
+                                  <th className="nickname"></th>
+                                  <th className="rank"></th>
+                                  <th className="score">score</th>
+                                  <th className="grade"></th>
+                                  <th className="number">miss</th>
+                                  <th className="number">bad</th>
+                                  <th className="number">good</th>
+                                  <th className="number">great</th>
+                                  <th className="number">perfect</th>
+                                  <th className="combo">combo</th>
+                                  <th className="accuracy">accuracy</th>
+                                  <th className="date"></th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                              </thead>
+                            )}
+                            <tbody>
+                              {chart.results.map(res => {
+                                const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
+                                return (
+                                  <tr
+                                    key={res.score + res.nickname}
+                                    className={classNames({ empty: !res.isExactDate })}
+                                  >
+                                    <td className="place">
+                                      {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
+                                    </td>
+                                    <td
+                                      className="nickname"
+                                      style={
+                                        nameIndex > -1
+                                          ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
+                                          : {}
+                                      }
+                                    >
+                                      {res.nickname}
+                                      {/*
+                                        <span>
+                                          {' '}
+                                          {Math.round(res.startingRating)}{' '}
+                                          {res.ratingDiff && Math.round(res.ratingDiff)}
+                                        </span>
+                                      */}
+                                      {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
+                                        res.nickname === _.get('protagonist.value', filter) &&
+                                        chart.distanceFromProtagonist > 0 && (
+                                          <span className="protagonist-diff">
+                                            {' '}
+                                            -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
+                                          </span>
+                                        )}
+                                    </td>
+                                    <td className={classNames('rank', { vj: res.isRank })}>
+                                      {res.isRank &&
+                                        (res.isExactDate ? (
+                                          'VJ'
+                                        ) : (
+                                          <Tooltip
+                                            content={
+                                              <>
+                                                <div>
+                                                  наличие ранка на этом результате было угадано,
+                                                  основываясь на скоре
+                                                </div>
+                                              </>
+                                            }
+                                            tooltipClassName="timeago-tooltip"
+                                          >
+                                            VJ?
+                                          </Tooltip>
+                                        ))}
+                                    </td>
+                                    <td className="score">{numeral(res.score).format('0,0')}</td>
+                                    <td className="grade">
+                                      <div className="img-holder">
+                                        {res.grade && res.grade !== '?' && (
+                                          <img
+                                            src={`${process.env.PUBLIC_URL}/grades/${res.grade}.png`}
+                                            alt={res.grade}
+                                          />
+                                        )}
+                                        {res.grade === '?' && null}
+                                      </div>
+                                    </td>
+                                    <td className="number miss">{res.miss}</td>
+                                    <td className="number bad">{res.bad}</td>
+                                    <td className="number good">{res.good}</td>
+                                    <td className="number great">{res.great}</td>
+                                    <td className="number perfect">{res.perfect}</td>
+                                    <td className="combo">
+                                      {res.combo}
+                                      {res.combo ? 'x' : ''}
+                                    </td>
+                                    <td className="accuracy">
+                                      {res.accuracy}
+                                      {res.accuracy ? '%' : ''}
+                                    </td>
+                                    <td
+                                      className={classNames('date', {
+                                        latest: res.date === chart.latestScoreDate,
+                                      })}
+                                    >
+                                      <Tooltip
+                                        content={
+                                          res.isExactDate
+                                            ? tooltipFormatter(res.dateObject)
+                                            : tooltipFormatterForBests(res.dateObject)
+                                        }
+                                        tooltipClassName="timeago-tooltip"
+                                      >
+                                        {getTimeAgo(res.dateObject)}
+                                        {res.isExactDate ? '' : '?'}
+                                      </Tooltip>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
             {!isLoading && canShowMore && (
               <button
                 className="btn btn-sm btn-primary"

@@ -1,5 +1,5 @@
 .leaderboard-page {
-  width: auto;
+  width: 100%;
   max-width: 940px;
   header {
     padding: 10px 10px 0 10px;
@@ -62,7 +62,6 @@
 
       > .song-name {
         z-index: 2;
-        height: 25px;
         border-radius: 5px;
         margin-left: 0;
         font-size: 100%;

@@ -16,7 +16,7 @@ import RankingFaq from './RankingFaq';
 import { routes } from 'constants/routes';
 
 // reducers
-import { fetchTopScores, calculateRankingChanges } from 'reducers/top';
+import { fetchTopScores } from 'reducers/top';
 
 // utils
 
@@ -32,7 +32,6 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = {
   fetchTopScores,
-  calculateRankingChanges,
 };
 
 class Ranking extends Component {
@@ -46,20 +45,9 @@ class Ranking extends Component {
     ranking: [],
   };
 
-  async componentDidMount() {
+  onRefresh = () => {
     const { isLoading } = this.props;
-    if (!isLoading) {
-      await this.props.fetchTopScores();
-      this.props.calculateRankingChanges();
-    }
-  }
-
-  onRefresh = async () => {
-    const { isLoading } = this.props;
-    if (!isLoading) {
-      await this.props.fetchTopScores();
-      this.props.calculateRankingChanges();
-    }
+    !isLoading && this.props.fetchTopScores();
   };
 
   render() {
@@ -76,18 +64,18 @@ class Ranking extends Component {
               path={routes.ranking.path}
               render={() => (
                 <>
+                  <Link to={routes.ranking.faq.path}>
+                    <button className="btn btn-sm btn-dark btn-icon _margin-right">
+                      <FaQuestionCircle /> faq
+                    </button>
+                  </Link>
                   <button
                     disabled={isLoading}
-                    className="btn btn-sm btn-dark btn-icon _margin-right"
+                    className="btn btn-sm btn-dark btn-icon"
                     onClick={this.onRefresh}
                   >
                     <FaSearch /> обновить
                   </button>
-                  <Link to={routes.ranking.faq.path}>
-                    <button className="btn btn-sm btn-dark btn-icon">
-                      <FaQuestionCircle /> faq
-                    </button>
-                  </Link>
                 </>
               )}
             />
