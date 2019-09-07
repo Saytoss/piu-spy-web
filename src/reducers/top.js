@@ -219,6 +219,9 @@ export default function reducer(state = initialState, action) {
         filter: defaultFilter,
       };
     case RANKING_CHANGE_SET:
+      if (_.isEmpty(action.listPrev)) {
+        return state; // First time opening this thing and we didn't have any previous data
+      }
       return {
         ...state,
         ranking: _.map(player => {
