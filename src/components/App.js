@@ -1,15 +1,22 @@
 import React, { Component } from 'react';
-import { Route } from 'react-router-dom';
+import { Route, Redirect } from 'react-router-dom';
 
 import './App.scss';
 
-import Rankings from 'components/Rankings/Rankings';
+import { routes } from 'constants/routes';
+
+import Leaderboard from 'components/Leaderboard/Leaderboard';
+import Ranking from 'components/Ranking/Ranking';
+import TopBar from 'components/Shared/TopBar/TopBar';
 
 class App extends Component {
   render() {
     return (
       <div className="container">
-        <Route exact path="/" component={Rankings} />
+        <TopBar />
+        <Route exact path="/" render={() => <Redirect to={routes.leaderboard.path} />} />
+        <Route path={routes.leaderboard.path} component={Leaderboard} />
+        <Route path={routes.ranking.path} component={Ranking} />
       </div>
     );
   }

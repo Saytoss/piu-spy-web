@@ -1,0 +1,156 @@
+.ranking-page {
+  width: 100%;
+  max-width: 940px;
+
+  > .content {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+    > .top-controls {
+      align-self: stretch;
+      display: flex;
+      flex-direction: row;
+      padding: 8px;
+    }
+  }
+
+  .faq {
+    font-size: 14px;
+    .question-answer {
+      padding: 8px;
+    }
+    .question {
+      font-style: italic;
+      margin-bottom: 5px;
+    }
+  }
+
+  td,
+  th {
+    padding: 9px 5px 6px 5px;
+    font-size: 14px;
+    &.rating {
+      text-align: center;
+      width: 80px;
+    }
+    &.playcount {
+      text-align: center;
+    }
+  }
+  th {
+    color: #888;
+    font-weight: normal;
+    padding: 0 5px;
+    &.grades {
+      text-align: center;
+      img {
+        height: 12px;
+      }
+    }
+  }
+  table {
+    border-spacing: 0 5px;
+    border-collapse: separate;
+    vertical-align: middle;
+  }
+  tr {
+    &:hover {
+      td {
+        background: #424242;
+      }
+    }
+  }
+  td {
+    color: #888;
+    background: #353535;
+    margin-bottom: 5px;
+    line-height: 120%;
+    &:first-child {
+      padding-left: 15px;
+      border-top-left-radius: 5px;
+      border-bottom-left-radius: 5px;
+    }
+    &:last-child {
+      border-top-right-radius: 5px;
+      border-bottom-right-radius: 5px;
+    }
+    &.total-score {
+      padding: 6px 5px 5px 5px;
+      div {
+        white-space: nowrap;
+      }
+    }
+    &.place {
+      color: #c9c9c9;
+      font-size: 17px;
+      font-weight: bold;
+      > svg {
+        margin-top: 2px;
+        font-size: 22px;
+      }
+    }
+    &.name {
+      color: #c9c9c9;
+      font-size: 17px;
+      font-weight: bold;
+      width: 230px;
+    }
+    &.rating {
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+    }
+    &.grades {
+      text-align: center;
+    }
+    &.change {
+      > .change-holder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        &.up {
+          color: #4ebb4e;
+        }
+        &.down {
+          color: #d66161;
+        }
+        &.text {
+          color: #5cb8e6;
+        }
+        > span {
+          padding-top: 3px;
+        }
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .ranking-page {
+    font-size: 2vw;
+    td,
+    th {
+      padding: 0.5vw;
+      font-size: 80%;
+      &.grades {
+        img {
+          height: 1.5vw;
+        }
+      }
+    }
+    td {
+      &.place {
+        font-size: 100%;
+        > svg {
+          font-size: 140%;
+        }
+      }
+      &.name {
+        font-size: 100%;
+      }
+      &.rating {
+        font-size: 100%;
+      }
+    }
+  }
+}
