@@ -180,25 +180,33 @@
                   &.date {
                     color: #888;
                     &.latest {
-                      color: #bef99352;
+                      color: #bef993;
                     }
                   }
                 }
-                &:not(.empty) td {
-                  &.miss {
-                    background: rgba(255, 0, 0, 0.04);
+                &:not(.empty) {
+                  &.latest {
+                    td.nickname,
+                    td.score {
+                      color: #afe488; //#bef9931d;
+                    }
                   }
-                  &.bad {
-                    background: rgba(255, 0, 255, 0.04);
-                  }
-                  &.good {
-                    background: rgba(255, 255, 0, 0.04);
-                  }
-                  &.great {
-                    background: rgba(0, 255, 0, 0.04);
-                  }
-                  &.perfect {
-                    background: rgba(0, 255, 255, 0.04);
+                  td {
+                    &.miss {
+                      background: rgba(255, 0, 0, 0.05);
+                    }
+                    &.bad {
+                      background: rgba(255, 0, 255, 0.05);
+                    }
+                    &.good {
+                      background: rgba(255, 255, 0, 0.05);
+                    }
+                    &.great {
+                      background: rgba(0, 255, 0, 0.05);
+                    }
+                    &.perfect {
+                      background: rgba(0, 255, 255, 0.05);
+                    }
                   }
                 }
               }

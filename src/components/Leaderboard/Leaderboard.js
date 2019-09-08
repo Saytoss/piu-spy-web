@@ -333,7 +333,10 @@ class Leaderboard extends Component {
                                 return (
                                   <tr
                                     key={res.score + res.nickname}
-                                    className={classNames({ empty: !res.isExactDate })}
+                                    className={classNames({
+                                      empty: !res.isExactDate,
+                                      latest: res.date === chart.latestScoreDate,
+                                    })}
                                   >
                                     <td className="place">
                                       {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
