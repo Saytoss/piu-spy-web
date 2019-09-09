@@ -72,106 +72,144 @@ const transformBackendData = _.flow(
   }),
   _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc']),
   data => {
+    const defaultInfo = {
+      count: 0,
+      battleCount: 0,
+      countAcc: 0,
+      rating: 1000,
+      grades: { F: 0, D: 0, C: 0, B: 0, A: 0, S: 0, SS: 0, SSS: 0 },
+      totalScore: { S: 0, D: 0 },
+      sumAccuracy: 0,
+    };
     const playerInfo = {};
+    const battles = [];
     data.forEach(song => {
-      const usedResults = [];
+      const validResults = [];
       _.orderBy(['score'], ['desc'], song.results).forEach(score => {
-        if (!score.nickname.includes('???') && !_.some({ nickname: score.nickname }, usedResults)) {
-          // score.ratingDiff = 0;
-          usedResults.push(score);
+        if (!score.nickname.includes('???')) {
+          validResults.push(score);
+
+          if (!playerInfo[score.nickname]) {
+            playerInfo[score.nickname] = _.cloneDeep(defaultInfo);
+          }
+
+          playerInfo[score.nickname].count++;
+          if (score.accuracy) {
+            playerInfo[score.nickname].countAcc++;
+            playerInfo[score.nickname].sumAccuracy += score.accuracy;
+          }
+          playerInfo[score.nickname].totalScore[song.chartType] += score.score;
+          playerInfo[score.nickname].grades[score.grade.replace('+', '')]++;
         }
       });
 
-      usedResults.forEach((score, scoreIndex) => {
-        const enemyScores = usedResults.length > 1 ? usedResults.slice(scoreIndex + 1) : [];
-        const defaultInfo = {
-          count: 0,
-          battleCount: 0,
-          countAcc: 0,
-          rating: 1000,
-          grades: { F: 0, D: 0, C: 0, B: 0, A: 0, S: 0, SS: 0, SSS: 0 },
-          totalScore: { S: 0, D: 0 },
-          sumAccuracy: 0,
-        };
-        if (!playerInfo[score.nickname]) {
-          playerInfo[score.nickname] = _.cloneDeep(defaultInfo);
-        }
-
-        playerInfo[score.nickname].count++;
-        score.accuracy && playerInfo[score.nickname].countAcc++;
-        playerInfo[score.nickname].sumAccuracy += score.accuracy;
-        playerInfo[score.nickname].totalScore[song.chartType] += score.score;
-        playerInfo[score.nickname].grades[score.grade.replace('+', '')]++;
-        score.startingRating = playerInfo[score.nickname].rating;
+      validResults.forEach((score, scoreIndex) => {
+        const enemyScores = validResults.length > 1 ? validResults.slice(scoreIndex + 1) : [];
 
         enemyScores.forEach(enemyScore => {
-          // This is one match between two players
-          if (!playerInfo[enemyScore.nickname]) {
-            playerInfo[enemyScore.nickname] = _.cloneDeep(defaultInfo);
+          if (score.isRank === enemyScore.isRank && score.nickname !== enemyScore.nickname) {
+            battles.push([score, enemyScore, song]);
           }
-          playerInfo[score.nickname].battleCount++;
-          playerInfo[enemyScore.nickname].battleCount++;
-
-          // Elo formula
-          const r1 = playerInfo[score.nickname].rating;
-          const r2 = playerInfo[enemyScore.nickname].rating;
-          const R1 = 10 ** (r1 / 400);
-          const R2 = 10 ** (r2 / 400);
-          const E1 = R1 / (R1 + R2);
-          const E2 = R2 / (R1 + R2);
-          const A = score.score;
-          const B = enemyScore.score;
-          // S1/S2 is the factor of winning
-          // S1 = 1  S2 = 0  -- player 1 wins
-          // S1 = 0.5  S2 = 0.5  -- draw
-          // I'm using difference in score to get this value, it ranges from 0 from 1
-          // Current formula assigns 100% win if you have at least ~15% more score than the other player
-          // 3.000 vs 3.500 score -- 0 / 1 win percentage -- clear win for player 2
-          // 3.000 vs 3.300 score -- 0.17 / 0.83 win percentage -- ranking is not affected as strongly as 0 / 1
-          // 3.000 vs 3.100 score -- 0.38 / 0.62 win percentage -- almost draw
-          let S1 = (A / (A + B) - 0.5) * 14 + 0.5;
-          let S2 = (B / (A + B) - 0.5) * 14 + 0.5;
-          S1 = Math.max(0, Math.min(1, S1)); // Set strict boundaries to [0, 1]
-          S2 = Math.max(0, Math.min(1, S2));
-          // K is the coeficient that decides how strongly this match affects rating
-          // Higher level -- affects more
-          // More playcount -- affects less (just to make first matches place people faster)
-          const k1pow = Math.min(1, playerInfo[score.nickname].battleCount / 150) * 0.5; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
-          const k2pow = Math.min(1, playerInfo[enemyScore.nickname].battleCount / 150) * 0.5; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
-          const K1 = Math.min(20, Math.max(4, song.chartLevel - 4)) ** (2.2 - k1pow) / 2;
-          const K2 = Math.min(20, Math.max(4, song.chartLevel - 4)) ** (2.2 - k2pow) / 2;
-          let dr1 = K1 * (S1 - E1);
-          let dr2 = K2 * (S2 - E2);
-          // Do not decrease rating if you have SSS - RIP zero-sum algorithm
-          dr1 = dr1 < 0 && score.grade === 'SSS' ? 0 : dr1;
-          dr2 = dr2 < 0 && enemyScore.grade === 'SSS' ? 0 : dr2;
-          // Recording this value for display
-          score.ratingDiff = (score.ratingDiff || 0) + dr1;
-          enemyScore.ratingDiff = (enemyScore.ratingDiff || 0) + dr2;
-          // if (score.nickname === 'grumd' || enemyScore.nickname === 'grumd') {
-          // console.log(
-          //   `${song.song} ${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${
-          //     score.score
-          //   } / ${enemyScore.score} - E ${E1.toFixed(2)} / ${E2.toFixed(2)} - R ${S1.toFixed(
-          //     2
-          //   )}/${S2.toFixed(2)} - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(
-          //     2
-          //   )} / ${dr2.toFixed(2)} - K ${K1.toFixed(2)} ${K2.toFixed(2)}`
-          // );
-          // }
-
-          // Change rating as a result of this battle
-          playerInfo[score.nickname].rating = r1 + dr1;
-          playerInfo[enemyScore.nickname].rating = r2 + dr2;
-          // Rating floor
-          playerInfo[score.nickname].rating = Math.max(100, playerInfo[score.nickname].rating);
-          playerInfo[enemyScore.nickname].rating = Math.max(
-            100,
-            playerInfo[enemyScore.nickname].rating
-          );
         });
       });
     });
+    _.flow([
+      // Apply battles chronologically instead of randomly
+      _.sortBy(([s1, s2]) => Math.max(s1.dateObject.getTime(), s2.dateObject.getTime())),
+      _.forEach(([score, enemyScore, song]) => {
+        if (!playerInfo[enemyScore.nickname]) {
+          playerInfo[enemyScore.nickname] = _.cloneDeep(defaultInfo);
+        }
+        // Rating at the start of battle for this score
+        score.startingRating = playerInfo[score.nickname].rating;
+        enemyScore.startingRating = playerInfo[enemyScore.nickname].rating;
+        // Counting the number of battles
+        playerInfo[score.nickname].battleCount++;
+        playerInfo[enemyScore.nickname].battleCount++;
+
+        // This is one match between two players
+        //// Elo formula
+        const r1 = playerInfo[score.nickname].rating;
+        const r2 = playerInfo[enemyScore.nickname].rating;
+        const R1 = 10 ** (r1 / 400);
+        const R2 = 10 ** (r2 / 400);
+        const E1 = R1 / (R1 + R2);
+        const E2 = R2 / (R1 + R2);
+        const A = score.score;
+        const B = enemyScore.score;
+        // S1/S2 is the factor of winning
+        // S1 = 1  S2 = 0  -- player 1 wins
+        // S1 = 0.5  S2 = 0.5  -- draw
+        // I'm using difference in score to get this value, it ranges from 0 from 1
+        // Current formula assigns 100% win if you have at least ~15% more score than the other player
+        // 3.000 vs 3.500 score -- 0 / 1 win percentage -- clear win for player 2
+        // 3.000 vs 3.300 score -- 0.17 / 0.83 win percentage -- ranking is not affected as strongly as 0 / 1
+        // 3.000 vs 3.100 score -- 0.38 / 0.62 win percentage -- almost draw
+        let S1 = (A / (A + B) - 0.5) * 10 + 0.5;
+        let S2 = (B / (A + B) - 0.5) * 10 + 0.5;
+        S1 = Math.max(0, Math.min(1, S1)); // Set strict boundaries to [0, 1]
+        S2 = Math.max(0, Math.min(1, S2));
+        // K is the coeficient that decides how strongly this match affects rating
+        // Higher level -- affects more
+        // More playcount -- affects less (just to make first matches place people faster)
+        // const k1pow = Math.min(1, playerInfo[score.nickname].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
+        // const k2pow = Math.min(1, playerInfo[enemyScore.nickname].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
+
+        const kRatingDiff = Math.abs(E1 - E2) + 0.6;
+        const kRating1 = Math.max(0, Math.min(1, (r1 - 500) / 1000));
+        const kRating2 = Math.max(0, Math.min(1, (r2 - 500) / 1000));
+        const maxK1 = 60 + 80 * kRating1;
+        const maxK2 = 60 + 80 * kRating2;
+        const kLevel1 = Math.max(
+          1,
+          Math.min(maxK1, (song.chartLevel / 25) ** ((kRating1 - 0.5) * 5 + 2.5) * maxK1)
+        );
+        const kLevel2 = Math.max(
+          1,
+          Math.min(maxK2, (song.chartLevel / 25) ** ((kRating2 - 0.5) * 5 + 2.5) * maxK2)
+        );
+        const K1 = kLevel1 / kRatingDiff;
+        const K2 = kLevel2 / kRatingDiff;
+        // const K1 = (kLevel + (1 - kRating1) * (maxK - kLevel)) / kRatingDiff;
+        // const K2 = (kLevel + (1 - kRating2) * (maxK - kLevel)) / kRatingDiff;
+        // const K1D = (Math.max(r1 - 600, 0) / 1500 + 1) ** 3 / 2;
+        // const K2D = (Math.max(r2 - 600, 0) / 1500 + 1) ** 3 / 2;
+        // const K1 = Math.min(20, Math.max(4, song.chartLevel - 4)) ** (2 - k1pow) / K1D / RD;
+        // const K2 = Math.min(20, Math.max(4, song.chartLevel - 4)) ** (2 - k2pow) / K2D / RD;
+        let dr1 = K1 * (S1 - E1);
+        let dr2 = K2 * (S2 - E2);
+        // Do not decrease rating if you have SSS - RIP zero-sum algorithm
+        dr1 = dr1 < 0 && score.grade === 'SSS' ? 0 : dr1;
+        dr2 = dr2 < 0 && enemyScore.grade === 'SSS' ? 0 : dr2;
+        // Recording this value for display
+        score.ratingDiff = (score.ratingDiff || 0) + dr1;
+        enemyScore.ratingDiff = (enemyScore.ratingDiff || 0) + dr2;
+        score.ratingDiffLast = dr1;
+        enemyScore.ratingDiffLast = dr2;
+        // if (song.song === 'BBoom BBoom')
+        // if (score.nickname === 'Beamer' || enemyScore.nickname === 'Beamer')
+        // console.log(
+        //   `${song.song} ${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${
+        //     score.score
+        //   } / ${enemyScore.score} - E ${E1.toFixed(2)} / ${E2.toFixed(2)} - R ${S1.toFixed(
+        //     2
+        //   )}/${S2.toFixed(2)} - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(
+        //     2
+        //   )} / ${dr2.toFixed(2)} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
+        // );
+
+        // Change rating as a result of this battle
+        playerInfo[score.nickname].rating = r1 + dr1;
+        playerInfo[enemyScore.nickname].rating = r2 + dr2;
+        // Rating floor
+        playerInfo[score.nickname].rating = Math.max(100, playerInfo[score.nickname].rating);
+        playerInfo[enemyScore.nickname].rating = Math.max(
+          100,
+          playerInfo[enemyScore.nickname].rating
+        );
+      }),
+    ])(battles);
+    //
     const arr = Object.keys(playerInfo).map(key => ({
       ..._.omit(['countAcc', 'sumAccuracy'], playerInfo[key]),
       name: key,

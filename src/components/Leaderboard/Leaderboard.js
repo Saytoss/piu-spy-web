@@ -32,6 +32,15 @@ import { colorsArray } from 'utils/colors';
 import { playersSelector, filteredDataSelector } from './selectors';
 
 // code
+if (localStorage) {
+  window.debugOn = () => {
+    localStorage.setItem('debug', 1);
+  };
+  window.debugOff = () => {
+    localStorage.removeItem('debug');
+  };
+}
+
 const sortingOptions = [
   {
     label: 'новизне скоров',
@@ -67,6 +76,8 @@ class Leaderboard extends Component {
     error: toBe.object,
     isLoading: toBe.bool.isRequired,
   };
+
+  debug = localStorage && localStorage.getItem('debug');
 
   state = { showItemsCount: 20 };
 
@@ -260,7 +271,6 @@ class Leaderboard extends Component {
   render() {
     const { isLoading, filteredData, error, filter } = this.props;
     const { showItemsCount } = this.state;
-
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
@@ -350,13 +360,17 @@ class Leaderboard extends Component {
                                       }
                                     >
                                       {res.nickname}
-                                      {/*
+
+                                      {this.debug && (
                                         <span>
                                           {' '}
-                                          {Math.round(res.startingRating)}{' '}
-                                          {res.ratingDiff && Math.round(res.ratingDiff)}
+                                          {res.startingRating &&
+                                            Math.round(res.startingRating)}{' '}
+                                          {res.ratingDiff && Math.round(res.ratingDiff)}{' '}
+                                          {res.ratingDiffLast && Math.round(res.ratingDiffLast)}
                                         </span>
-                                      */}
+                                      )}
+
                                       {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
                                         res.nickname === _.get('protagonist.value', filter) &&
                                         chart.distanceFromProtagonist > 0 && (
