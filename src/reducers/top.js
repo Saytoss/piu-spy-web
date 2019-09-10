@@ -12,6 +12,30 @@ const SET_FILTER = `TOP/SET_FILTER`;
 const RESET_FILTER = `TOP/RESET_FILTER`;
 const RANKING_CHANGE_SET = `TOP/RANKING_CHANGE_SET`;
 
+const isFullScore = score => {
+  return (
+    _.isInteger(score.perfect) &&
+    _.isInteger(score.great) &&
+    _.isInteger(score.good) &&
+    _.isInteger(score.bad) &&
+    _.isInteger(score.miss) &&
+    _.isInteger(score.score)
+  );
+};
+
+const getMaxScore = (score, song) => {
+  const maxCombo = score.perfect + score.great + score.good + score.bad + score.miss;
+  let maxScore = maxCombo * 1000 + (maxCombo - 50) * 1000; // all perfects + 51 combo bonus
+  if (song.chartLevel > 10) {
+    maxScore *= song.chartLevel / 10; // Level multiplier
+  }
+  if (song.chartType === 'D') {
+    maxScore *= 1.2; // Double multiplier
+  }
+  maxScore += 300000; // SSS bonus
+  return maxScore;
+};
+
 const defaultFilter = { showRank: true };
 
 const initialState = {
@@ -101,6 +125,9 @@ const transformBackendData = _.flow(
           playerInfo[score.nickname].totalScore[song.chartType] += score.score;
           playerInfo[score.nickname].grades[score.grade.replace('+', '')]++;
         }
+        if (isFullScore(score)) {
+          song.maxScore = getMaxScore(score, song);
+        }
       });
 
       validResults.forEach((score, scoreIndex) => {
@@ -120,6 +147,26 @@ const transformBackendData = _.flow(
         if (!playerInfo[enemyScore.nickname]) {
           playerInfo[enemyScore.nickname] = _.cloneDeep(defaultInfo);
         }
+
+        const scoreMultiplier = score.isRank ? 1.2 : 1;
+        let maxScore = null;
+        if (song.maxScore) {
+          maxScore = song.maxScore * scoreMultiplier;
+          if (
+            Math.max(maxScore, score.score, enemyScore.score) !== maxScore &&
+            !score.isRank &&
+            (!score.isExactDate || !enemyScore.isExactDate)
+          ) {
+            maxScore *= 1.2;
+            // Rank from machine best wasn't recognized most likely.
+            // Increasing max score by 20% is fine
+          }
+          if (Math.max(maxScore, score.score, enemyScore.score) !== maxScore) {
+            // If calculated max score isn't max score anyway, use current scores as max + cherry on top
+            maxScore = Math.max(..._.map('score', song.results));
+          }
+        }
+        // console.log(song.maxScore * scoreMultiplier, score.score, enemyScore.score);
         // Rating at the start of battle for this score
         score.startingRating = playerInfo[score.nickname].rating;
         enemyScore.startingRating = playerInfo[enemyScore.nickname].rating;
@@ -135,8 +182,6 @@ const transformBackendData = _.flow(
         const R2 = 10 ** (r2 / 400);
         const E1 = R1 / (R1 + R2);
         const E2 = R2 / (R1 + R2);
-        const A = score.score;
-        const B = enemyScore.score;
         // S1/S2 is the factor of winning
         // S1 = 1  S2 = 0  -- player 1 wins
         // S1 = 0.5  S2 = 0.5  -- draw
@@ -145,10 +190,29 @@ const transformBackendData = _.flow(
         // 3.000 vs 3.500 score -- 0 / 1 win percentage -- clear win for player 2
         // 3.000 vs 3.300 score -- 0.17 / 0.83 win percentage -- ranking is not affected as strongly as 0 / 1
         // 3.000 vs 3.100 score -- 0.38 / 0.62 win percentage -- almost draw
-        let S1 = (A / (A + B) - 0.5) * 10 + 0.5;
-        let S2 = (B / (A + B) - 0.5) * 10 + 0.5;
+        let A = score.score;
+        let B = enemyScore.score;
+        // let S1old = (A / (A + B) - 0.5) * 10 + 0.5;
+        // let S2old = (B / (A + B) - 0.5) * 10 + 0.5;
+        let S1, S2;
+        if (A === B) {
+          S1 = S2 = 0.5;
+        } else if (maxScore) {
+          A = maxScore / A - 1;
+          B = maxScore / B - 1;
+          S1 = (B / (A + B) - 0.5) * 3 + 0.5;
+          S2 = (A / (A + B) - 0.5) * 3 + 0.5;
+        } else {
+          // console.log('////////// NO MAX SCORE /////////////');
+          S1 = A > B ? 1 : B < A ? 0 : 0.5;
+          S2 = 1 - S1;
+        }
+        // S1 = A > B ? 1 : B < A ? 0 : 0.5;
+        // S2 = 1 - S1;
         S1 = Math.max(0, Math.min(1, S1)); // Set strict boundaries to [0, 1]
         S2 = Math.max(0, Math.min(1, S2));
+        // S1old = Math.max(0, Math.min(1, S1old)); // Set strict boundaries to [0, 1]
+        // S2old = Math.max(0, Math.min(1, S2old));
         // K is the coeficient that decides how strongly this match affects rating
         // Higher level -- affects more
         // More playcount -- affects less (just to make first matches place people faster)
@@ -188,15 +252,22 @@ const transformBackendData = _.flow(
         enemyScore.ratingDiffLast = dr2;
         // if (song.song === 'BBoom BBoom')
         // if (score.nickname === 'Beamer' || enemyScore.nickname === 'Beamer')
+        // if (!song.maxScore) {
         // console.log(
-        //   `${song.song} ${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${
-        //     score.score
-        //   } / ${enemyScore.score} - E ${E1.toFixed(2)} / ${E2.toFixed(2)} - R ${S1.toFixed(
-        //     2
-        //   )}/${S2.toFixed(2)} - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(
-        //     2
-        //   )} / ${dr2.toFixed(2)} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
+        //   `${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${song.song}`
         // );
+        // console.log(
+        //   `- ${score.score} / ${enemyScore.score} (${maxScore}) - R ${S1.toFixed(2)}/${S2.toFixed(
+        //     2
+        //   )} E ${E1.toFixed(2)} / ${E2.toFixed(2)}`
+        // );
+        // // console.log(`- old R ${S1old.toFixed(2)}/${S2old.toFixed(2)}`);
+        // console.log(
+        //   `- Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
+        //     2
+        //   )} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
+        // );
+        // }
 
         // Change rating as a result of this battle
         playerInfo[score.nickname].rating = r1 + dr1;

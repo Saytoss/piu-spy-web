@@ -50,6 +50,18 @@ const sortingOptions = [
     label: 'отставанию от остальных',
     value: SORT.PROTAGONIST,
   },
+  ...(localStorage && localStorage.getItem('debug')
+    ? [
+        {
+          label: 'от худших результатов',
+          value: SORT.RANK_ASC,
+        },
+        {
+          label: 'от лучших результатов',
+          value: SORT.RANK_DESC,
+        },
+      ]
+    : []),
 ];
 
 const mapStateToProps = state => {
@@ -234,35 +246,37 @@ class Leaderboard extends Component {
             onChange={this.setFilter('sortingType')}
           />
         </div>
-        {_.get('sortingType.value', filter) === SORT.PROTAGONIST && (
-          <>
-            <div>
-              <label className="label">протагонист (кого сравнивать с остальными):</label>
-              <Select
-                className={classNames('select players', {
-                  'red-border': !_.get('protagonist', filter),
-                })}
-                classNamePrefix="select"
-                placeholder="игроки..."
-                options={players}
-                value={_.getOr(null, 'protagonist', filter)}
-                onChange={this.setFilter('protagonist')}
-              />
-            </div>
-            <div>
-              <label className="label">не учитывать в сравнении:</label>
-              <Select
-                closeMenuOnSelect={false}
-                className="select players"
-                classNamePrefix="select"
-                placeholder="игроки..."
-                options={players}
-                isMulti
-                value={_.getOr([], 'excludeAntagonists', filter)}
-                onChange={this.setFilter('excludeAntagonists')}
-              />
-            </div>
-          </>
+        {[SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC].includes(
+          _.get('sortingType.value', filter)
+        ) && (
+          <div>
+            <label className="label">протагонист (кого сравнивать с остальными):</label>
+            <Select
+              className={classNames('select players', {
+                'red-border': !_.get('protagonist', filter),
+              })}
+              classNamePrefix="select"
+              placeholder="игроки..."
+              options={players}
+              value={_.getOr(null, 'protagonist', filter)}
+              onChange={this.setFilter('protagonist')}
+            />
+          </div>
+        )}
+        {[SORT.PROTAGONIST].includes(_.get('sortingType.value', filter)) && (
+          <div>
+            <label className="label">не учитывать в сравнении:</label>
+            <Select
+              closeMenuOnSelect={false}
+              className="select players"
+              classNamePrefix="select"
+              placeholder="игроки..."
+              options={players}
+              isMulti
+              value={_.getOr([], 'excludeAntagonists', filter)}
+              onChange={this.setFilter('excludeAntagonists')}
+            />
+          </div>
         )}
       </div>
     );

@@ -60,10 +60,27 @@ const getFilteredData = (data, filter) => {
     }),
     _.orderBy(['distanceFromProtagonist'], ['desc']),
   ];
+  const getScoreSorting = direction => [
+    _.filter(row => _.map('nickname', row.results).includes(protagonist)),
+    _.orderBy(
+      [
+        row => {
+          return _.getOr(
+            direction === 'asc' ? Infinity : -Infinity,
+            'ratingDiff',
+            _.find({ nickname: protagonist }, row.results)
+          );
+        },
+      ],
+      [direction]
+    ),
+  ];
   const sortingFunctions =
     {
       [SORT.DEFAULT]: defaultSorting,
       [SORT.PROTAGONIST]: protagonistSorting,
+      [SORT.RANK_ASC]: getScoreSorting('asc'),
+      [SORT.RANK_DESC]: getScoreSorting('desc'),
     }[sortingType] || defaultSorting;
 
   return _.flow(
