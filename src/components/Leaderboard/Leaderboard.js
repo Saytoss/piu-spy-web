@@ -7,7 +7,7 @@ import classNames from 'classnames';
 import numeral from 'numeral';
 import localForage from 'localforage';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
-import { FaRedoAlt, FaSearch } from 'react-icons/fa';
+import { FaRedoAlt, FaSearch, FaYoutube } from 'react-icons/fa';
 
 // styles
 import 'react-responsive-ui/style.css';
@@ -327,6 +327,18 @@ class Leaderboard extends Component {
                         <span className="chart-number">{chart.chartLevel}</span>
                       </div>
                       <div>{chart.song}</div>
+                      <div className="youtube-link">
+                        <a
+                          href={`https://youtube.com/results?search_query=${chart.song.replace(
+                            / /g,
+                            '+'
+                          )}+${chart.chartLabel}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaYoutube />
+                        </a>
+                      </div>
                     </div>
                     <div className="charts">
                       <div className="chart">

@@ -73,6 +73,16 @@
         justify-content: flex-start;
         flex: 0 0 100%;
 
+        > .youtube-link {
+          align-self: center;
+          margin-left: 0.5vw;
+          > a {
+            display: block;
+            line-height: 80%;
+            color: #ccc;
+          }
+        }
+
         > .chart-name {
           font-weight: 600;
           line-height: 100%;
