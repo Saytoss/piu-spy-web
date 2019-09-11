@@ -197,7 +197,7 @@ const transformBackendData = _.flow(
         let S1, S2;
         if (A === B) {
           S1 = S2 = 0.5;
-        } else if (maxScore) {
+        } else if (maxScore && A !== 0 && B !== 0) {
           A = maxScore / A - 1;
           B = maxScore / B - 1;
           S1 = (B / (A + B) - 0.5) * 3 + 0.5;
