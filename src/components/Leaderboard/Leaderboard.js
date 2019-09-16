@@ -24,7 +24,7 @@ import ChartFilter from './ChartFilter';
 import { SORT } from 'constants/leaderboard';
 
 // reducers
-import { fetchTopScores, setFilter, resetFilter } from 'reducers/top';
+import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/top';
 
 // utils
 import { tooltipFormatter, tooltipFormatterForBests, getTimeAgo } from 'utils/leaderboards';
@@ -99,6 +99,11 @@ class Leaderboard extends Component {
     localForage.setItem('filter', filter);
   });
 
+  resetFilter = () => {
+    this.props.resetFilter();
+    localForage.setItem('filter', defaultFilter);
+  };
+
   onRefresh = () => {
     const { isLoading } = this.props;
     !isLoading && this.props.fetchTopScores();
@@ -121,10 +126,7 @@ class Leaderboard extends Component {
         </div>
         <div className="_flex-fill" />
         <div className="_flex-row _margin-bottom">
-          <button
-            className="btn btn-sm btn-dark btn-icon _margin-right"
-            onClick={this.props.resetFilter}
-          >
+          <button className="btn btn-sm btn-dark btn-icon _margin-right" onClick={this.resetFilter}>
             <FaRedoAlt /> сбросить фильтры
           </button>
           <button

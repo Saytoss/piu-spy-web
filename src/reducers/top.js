@@ -36,7 +36,7 @@ const getMaxScore = (score, song) => {
   return maxScore;
 };
 
-const defaultFilter = { showRank: true };
+export const defaultFilter = { showRank: true };
 
 const initialState = {
   isLoading: false,
