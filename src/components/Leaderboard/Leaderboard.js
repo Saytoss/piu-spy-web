@@ -22,6 +22,7 @@ import ChartFilter from './ChartFilter';
 
 // constants
 import { SORT } from 'constants/leaderboard';
+import { DEBUG } from 'constants/env';
 
 // reducers
 import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/top';
@@ -32,15 +33,6 @@ import { colorsArray } from 'utils/colors';
 import { playersSelector, filteredDataSelector } from './selectors';
 
 // code
-if (localStorage) {
-  window.debugOn = () => {
-    localStorage.setItem('debug', 1);
-  };
-  window.debugOff = () => {
-    localStorage.removeItem('debug');
-  };
-}
-
 const sortingOptions = [
   {
     label: 'новизне скоров',
@@ -50,7 +42,7 @@ const sortingOptions = [
     label: 'отставанию от остальных',
     value: SORT.PROTAGONIST,
   },
-  ...(localStorage && localStorage.getItem('debug')
+  ...(DEBUG
     ? [
         {
           label: 'от худших результатов',
@@ -88,8 +80,6 @@ class Leaderboard extends Component {
     error: toBe.object,
     isLoading: toBe.bool.isRequired,
   };
-
-  debug = localStorage && localStorage.getItem('debug');
 
   state = { showItemsCount: 20 };
 
@@ -389,7 +379,7 @@ class Leaderboard extends Component {
                                     >
                                       {res.nickname}
 
-                                      {this.debug && (
+                                      {DEBUG && (
                                         <span>
                                           {' '}
                                           {res.startingRating &&

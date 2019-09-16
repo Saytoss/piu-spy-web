@@ -4,6 +4,7 @@ import localForage from 'localforage';
 import { fetchJson } from 'utils/fetch';
 
 import { HOST } from 'constants/backend';
+import { DEBUG } from 'constants/env';
 
 const LOADING = `TOP/LOADING`;
 const SUCCESS = `TOP/SUCCESS`;
@@ -219,11 +220,15 @@ const transformBackendData = _.flow(
         // const k1pow = Math.min(1, playerInfo[score.nickname].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
         // const k2pow = Math.min(1, playerInfo[enemyScore.nickname].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
 
-        const kRatingDiff = Math.abs(E1 - E2) + 0.6;
+        let kRatingDiff = Math.abs(E1 - E2) + 0.6;
+        // prettier-ignore
+        if ((S1 - E1 > 0) === (E1 < 0.5)) {
+          kRatingDiff *= 0.6; // When someone with lower rank wins against someone with higher rank
+        }
         const kRating1 = Math.max(0, Math.min(1, (r1 - 500) / 1000));
         const kRating2 = Math.max(0, Math.min(1, (r2 - 500) / 1000));
-        const maxK1 = 60 + 80 * kRating1;
-        const maxK2 = 60 + 80 * kRating2;
+        const maxK1 = 50 + 40 * kRating1;
+        const maxK2 = 50 + 40 * kRating2;
         const kLevel1 = Math.max(
           1,
           Math.min(maxK1, (song.chartLevel / 25) ** ((kRating1 - 0.5) * 5 + 2.5) * maxK1)
@@ -232,6 +237,7 @@ const transformBackendData = _.flow(
           1,
           Math.min(maxK2, (song.chartLevel / 25) ** ((kRating2 - 0.5) * 5 + 2.5) * maxK2)
         );
+
         const K1 = kLevel1 / kRatingDiff;
         const K2 = kLevel2 / kRatingDiff;
         // const K1 = (kLevel + (1 - kRating1) * (maxK - kLevel)) / kRatingDiff;
@@ -250,24 +256,27 @@ const transformBackendData = _.flow(
         enemyScore.ratingDiff = (enemyScore.ratingDiff || 0) + dr2;
         score.ratingDiffLast = dr1;
         enemyScore.ratingDiffLast = dr2;
-        // if (song.song === 'BBoom BBoom')
-        // if (score.nickname === 'Beamer' || enemyScore.nickname === 'Beamer')
-        // if (!song.maxScore) {
-        // console.log(
-        //   `${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${song.song}`
-        // );
-        // console.log(
-        //   `- ${score.score} / ${enemyScore.score} (${maxScore}) - R ${S1.toFixed(2)}/${S2.toFixed(
-        //     2
-        //   )} E ${E1.toFixed(2)} / ${E2.toFixed(2)}`
-        // );
-        // // console.log(`- old R ${S1old.toFixed(2)}/${S2old.toFixed(2)}`);
-        // console.log(
-        //   `- Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
-        //     2
-        //   )} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
-        // );
-        // }
+
+        if (DEBUG) {
+          // if (song.song === 'Club Night') {
+          // if (score.nickname === 'Beamer' || enemyScore.nickname === 'Beamer')
+          // if (!song.maxScore) {
+          console.log(
+            `${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${song.song}`
+          );
+          console.log(
+            `- ${score.score} / ${enemyScore.score} (${maxScore}) - R ${S1.toFixed(2)}/${S2.toFixed(
+              2
+            )} E ${E1.toFixed(2)} / ${E2.toFixed(2)}`
+          );
+          // console.log(`- old R ${S1old.toFixed(2)}/${S2old.toFixed(2)}`);
+          console.log(
+            `- Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
+              2
+            )} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
+          );
+          // }
+        }
 
         // Change rating as a result of this battle
         playerInfo[score.nickname].rating = r1 + dr1;
