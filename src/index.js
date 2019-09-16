@@ -1,6 +1,6 @@
-// import 'promise-polyfill';
-// import 'whatwg-fetch';
-// import 'utils/polyfills';
+import 'promise-polyfill';
+import 'whatwg-fetch';
+import 'utils/polyfills';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
