@@ -1,0 +1,21 @@
+.profile-page {
+  width: 100%;
+  max-width: 940px;
+  > .content {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+    > .top-controls {
+      align-self: stretch;
+      display: flex;
+      flex-direction: row;
+      padding: 10px 10px 0 10px;
+    }
+    > .profile {
+      width: 100%;
+    }
+  }
+}
+
+@media screen and (max-width: 900px) {
+}

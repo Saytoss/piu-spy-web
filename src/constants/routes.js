@@ -8,4 +8,8 @@ export const routes = {
       path: '/ranking/faq',
     },
   },
+  profile: {
+    path: `/profiles/:name`,
+    getPath: params => `/profiles/${params.name}`,
+  },
 };

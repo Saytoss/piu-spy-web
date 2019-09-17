@@ -24,7 +24,7 @@ import { fetchTopScores } from 'reducers/top';
 
 const mapStateToProps = state => {
   return {
-    ranking: state.top.ranking,
+    ranking: state.ranking.data,
     error: state.top.error,
     isLoading: state.top.isLoading,
   };
