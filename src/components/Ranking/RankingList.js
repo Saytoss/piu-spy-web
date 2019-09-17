@@ -1,6 +1,7 @@
 import React from 'react';
 import _ from 'lodash/fp';
 import numeral from 'numeral';
+import classNames from 'classnames';
 import { GiQueenCrown } from 'react-icons/gi';
 import { FaAngleDoubleUp, FaAngleDoubleDown } from 'react-icons/fa';
 
@@ -63,7 +64,20 @@ export default function RankingList({ ranking, isLoading }) {
                     )}
                   </td>
                   <td className="name">{player.name}</td>
-                  <td className="rating">{player.rating}</td>
+                  <td className="rating">
+                    {player.rating}{' '}
+                    {!!player.prevRating && player.prevRating !== player.rating && (
+                      <span
+                        className={classNames('rating-change', {
+                          down: player.prevRating > player.rating,
+                          up: player.prevRating < player.rating,
+                        })}
+                      >
+                        {player.prevRating < player.rating ? '+' : ''}
+                        {player.rating - player.prevRating}
+                      </span>
+                    )}
+                  </td>
                   <td className="total-score">
                     <div>S: {numeral(player.totalScore.S).format('0,0')}</div>
                     <div>D: {numeral(player.totalScore.D).format('0,0')}</div>

@@ -193,23 +193,19 @@ const transformBackendData = _.flow(
         // 3.000 vs 3.100 score -- 0.38 / 0.62 win percentage -- almost draw
         let A = score.score;
         let B = enemyScore.score;
-        // let S1old = (A / (A + B) - 0.5) * 10 + 0.5;
-        // let S2old = (B / (A + B) - 0.5) * 10 + 0.5;
         let S1, S2;
         if (A === B) {
           S1 = S2 = 0.5;
         } else if (maxScore && A !== 0 && B !== 0) {
           A = maxScore / A - 1;
           B = maxScore / B - 1;
-          S1 = (B / (A + B) - 0.5) * 3 + 0.5;
-          S2 = (A / (A + B) - 0.5) * 3 + 0.5;
+          S1 = (B / (A + B) - 0.5) * 5 + 0.5;
+          S2 = (A / (A + B) - 0.5) * 5 + 0.5;
         } else {
           // console.log('////////// NO MAX SCORE /////////////');
           S1 = A > B ? 1 : B < A ? 0 : 0.5;
           S2 = 1 - S1;
         }
-        // S1 = A > B ? 1 : B < A ? 0 : 0.5;
-        // S2 = 1 - S1;
         S1 = Math.max(0, Math.min(1, S1)); // Set strict boundaries to [0, 1]
         S2 = Math.max(0, Math.min(1, S2));
         // S1old = Math.max(0, Math.min(1, S1old)); // Set strict boundaries to [0, 1]
@@ -337,21 +333,27 @@ export default function reducer(state = initialState, action) {
         filter: defaultFilter,
       };
     case RANKING_CHANGE_SET:
-      if (_.isEmpty(action.listPrev)) {
-        return state; // First time opening this thing and we didn't have any previous data
-      }
+      const hasPrevList = !_.isEmpty(action.listPrev);
       return {
         ...state,
-        ranking: _.map(player => {
-          if (!action.listPrev.includes(player.name)) {
+        ranking: _.map(playerOriginal => {
+          const player = {
+            ...playerOriginal,
+            prevRating: _.get(playerOriginal.name, action.rankingsPointsMap),
+          };
+          if (!hasPrevList) {
+            return player; // First time opening this thing and we didn't have any previous data
+          }
+          if (!_.includes(player.name, action.listPrev)) {
             return { ...player, change: 'NEW' };
-          } else if (!action.listNow.includes(player.name)) {
+          } else if (!_.includes(player.name, action.listNow)) {
             // Should NEVER happen, idk if this is possible
             return { ...player, change: '?' };
           } else {
             return {
               ...player,
-              change: action.listPrev.indexOf(player.name) - action.listNow.indexOf(player.name),
+              change:
+                _.indexOf(player.name, action.listPrev) - _.indexOf(player.name, action.listNow),
             };
           }
         }, state.ranking),
@@ -386,26 +388,44 @@ export const resetFilter = () => ({
 });
 
 const getListOfNames = _.map('name');
+const getMapOfRatings = _.flow(
+  _.map(q => [q.name, q.rating]),
+  _.fromPairs
+);
 export const calculateRankingChanges = () => {
   return async (dispatch, getState) => {
     const { ranking } = getState().top;
 
     try {
-      const [lastChangedRanking, lastFetchedRanking] = await Promise.all([
+      const [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking] = await Promise.all([
         localForage.getItem('lastChangedRanking'),
+        localForage.getItem('lastChangedRankingPoints'),
         localForage.getItem('lastFetchedRanking'),
       ]);
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
+      const mapPointsNow = getMapOfRatings(ranking);
+      const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
+      const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
+      let rankingsPointsMap = mapPointsLastChanged;
+      if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
+        // Between this fetch and last fetch there was a CHANGE in ranking
+        localForage.setItem('lastChangedRankingPoints', lastFetchedRanking);
+        rankingsPointsMap = mapPointsLastFetched;
+      }
+      let listPrev = listLastChanged;
       if (!_.isEqual(listNow, listLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
-        console.log('Ranking has changed, saving last one');
         localForage.setItem('lastChangedRanking', lastFetchedRanking);
-        dispatch({ type: RANKING_CHANGE_SET, listNow, listPrev: listLastFetched });
-      } else {
-        dispatch({ type: RANKING_CHANGE_SET, listNow, listPrev: listLastChanged });
+        listPrev = listLastFetched;
       }
+      dispatch({
+        type: RANKING_CHANGE_SET,
+        listNow,
+        listPrev,
+        rankingsPointsMap,
+      });
       // console.log(listNow, listLastFetched, listLastChanged);
     } catch (error) {
       console.warn('Cannot get ranking from local storage', error);

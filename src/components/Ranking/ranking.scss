@@ -31,7 +31,18 @@
     font-size: 14px;
     &.rating {
       text-align: center;
-      width: 80px;
+      white-space: nowrap;
+      width: 90px;
+      > .rating-change {
+        font-size: 80%;
+        color: #888;
+        &.up {
+          color: #4ebb4e;
+        }
+        &.down {
+          color: #d66161;
+        }
+      }
     }
     &.playcount {
       text-align: center;
