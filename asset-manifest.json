@@ -1,17 +1,17 @@
 {
   "files": {
-    "main.css": "/piu-spy-web/static/css/main.3d51df49.chunk.css",
-    "main.js": "/piu-spy-web/static/js/main.b42f3567.chunk.js",
-    "main.js.map": "/piu-spy-web/static/js/main.b42f3567.chunk.js.map",
+    "main.css": "/piu-spy-web/static/css/main.f1871ae2.chunk.css",
+    "main.js": "/piu-spy-web/static/js/main.129331bf.chunk.js",
+    "main.js.map": "/piu-spy-web/static/js/main.129331bf.chunk.js.map",
     "runtime~main.js": "/piu-spy-web/static/js/runtime~main.43c989ce.js",
     "runtime~main.js.map": "/piu-spy-web/static/js/runtime~main.43c989ce.js.map",
     "static/css/2.1bda2a1b.chunk.css": "/piu-spy-web/static/css/2.1bda2a1b.chunk.css",
-    "static/js/2.b2ca3c88.chunk.js": "/piu-spy-web/static/js/2.b2ca3c88.chunk.js",
-    "static/js/2.b2ca3c88.chunk.js.map": "/piu-spy-web/static/js/2.b2ca3c88.chunk.js.map",
+    "static/js/2.2eda3803.chunk.js": "/piu-spy-web/static/js/2.2eda3803.chunk.js",
+    "static/js/2.2eda3803.chunk.js.map": "/piu-spy-web/static/js/2.2eda3803.chunk.js.map",
     "index.html": "/piu-spy-web/index.html",
-    "precache-manifest.e7afd7f2e46d7c34593641b9c50d796d.js": "/piu-spy-web/precache-manifest.e7afd7f2e46d7c34593641b9c50d796d.js",
+    "precache-manifest.ebccac6dc4a1fff4766d857fde1df11f.js": "/piu-spy-web/precache-manifest.ebccac6dc4a1fff4766d857fde1df11f.js",
     "service-worker.js": "/piu-spy-web/service-worker.js",
     "static/css/2.1bda2a1b.chunk.css.map": "/piu-spy-web/static/css/2.1bda2a1b.chunk.css.map",
-    "static/css/main.3d51df49.chunk.css.map": "/piu-spy-web/static/css/main.3d51df49.chunk.css.map"
+    "static/css/main.f1871ae2.chunk.css.map": "/piu-spy-web/static/css/main.f1871ae2.chunk.css.map"
   }
 }
