@@ -119,7 +119,7 @@ export const fetchTopScores = () => {
       dispatch({ type: SUCCESS, data: processedData });
       const rankings = getRankings(processedData);
       dispatch(setRankings(rankings));
-      const profiles = getProfiles(processedData);
+      const profiles = getProfiles(processedData, rankings);
       dispatch(setProfiles(profiles));
       return processedData;
     } catch (error) {

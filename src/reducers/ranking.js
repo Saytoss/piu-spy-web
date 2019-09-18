@@ -77,6 +77,8 @@ export const getRankings = data => {
     grades: { F: 0, D: 0, C: 0, B: 0, A: 0, S: 0, SS: 0, SSS: 0 },
     totalScore: { S: 0, D: 0 },
     sumAccuracy: 0,
+    history: [],
+    lastPlace: null,
   };
   const playerInfo = {};
   const battles = [];
@@ -117,6 +119,7 @@ export const getRankings = data => {
     // Apply battles chronologically instead of randomly
     _.sortBy(([s1, s2]) => Math.max(s1.dateObject.getTime(), s2.dateObject.getTime())),
     _.forEach(([score, enemyScore, song]) => {
+      // For each battle
       if (!playerInfo[enemyScore.nickname]) {
         playerInfo[enemyScore.nickname] = _.cloneDeep(defaultInfo);
       }
@@ -255,20 +258,56 @@ export const getRankings = data => {
         100,
         playerInfo[enemyScore.nickname].rating
       );
+
+      const namesSorted = _.flow(
+        _.keys,
+        _.map(name => ({ name, rating: playerInfo[name].rating })),
+        _.orderBy(['rating'], ['desc']),
+        _.map('name')
+      )(playerInfo);
+      const p1Place = namesSorted.indexOf(score.nickname) + 1;
+      const p2Place = namesSorted.indexOf(enemyScore.nickname) + 1;
+      const battleDate =
+        score.dateObject > enemyScore.dateObject ? score.dateObject : enemyScore.dateObject;
+      if (
+        playerInfo[score.nickname].lastPlace !== p1Place &&
+        playerInfo[score.nickname].battleCount > 20
+      ) {
+        // Place in rankings changed!
+        playerInfo[score.nickname].history.push({
+          place: p1Place,
+          date: battleDate.getTime(),
+        });
+      }
+      if (
+        playerInfo[enemyScore.nickname].lastPlace !== p2Place &&
+        playerInfo[enemyScore.nickname].battleCount > 20
+      ) {
+        playerInfo[enemyScore.nickname].history.push({
+          place: p2Place,
+          date: battleDate.getTime(),
+        });
+      }
+      playerInfo[score.nickname].lastPlace = p1Place;
+      playerInfo[enemyScore.nickname].lastPlace = p2Place;
     }),
   ])(battles);
 
-  const arr = Object.keys(playerInfo).map(key => ({
-    ..._.omit(['countAcc', 'sumAccuracy'], playerInfo[key]),
-    name: key,
-    accuracy:
-      playerInfo[key].countAcc > 0
-        ? Math.round((playerInfo[key].sumAccuracy / playerInfo[key].countAcc) * 100) / 100
-        : null,
-    rating: Math.round(playerInfo[key].rating),
-  }));
-  const ranking = _.orderBy(['rating'], ['desc'], _.remove(i => i.battleCount < 20, arr));
-
+  const ranking = _.flow(
+    _.keys,
+    _.map(key => ({
+      ..._.omit(['countAcc', 'sumAccuracy'], playerInfo[key]),
+      name: key,
+      accuracy:
+        playerInfo[key].countAcc > 0
+          ? Math.round((playerInfo[key].sumAccuracy / playerInfo[key].countAcc) * 100) / 100
+          : null,
+      rating: Math.round(playerInfo[key].rating),
+      ratingRaw: playerInfo[key].rating,
+    })),
+    _.remove(i => i.battleCount < 20),
+    _.orderBy(['ratingRaw'], ['desc'])
+  )(playerInfo);
   return ranking;
 };
 

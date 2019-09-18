@@ -1,4 +1,4 @@
-// import _ from 'lodash/fp';
+import _ from 'lodash/fp';
 // import localForage from 'localforage';
 //
 // import { DEBUG } from 'constants/env';
@@ -17,10 +17,16 @@ export default function reducer(state = { data: {} }, action) {
   }
 }
 
-export const getProfiles = data => {
+export const getProfiles = (data, ranking) => {
   const profiles = {};
   const initializeProfile = nickname => {
-    profiles[nickname] = { resultsByGrade: {}, resultsByLevel: {} };
+    const rankingHistory = _.flow(
+      _.find({ name: nickname }),
+      _.get('history'),
+      history =>
+        history && [...history, { place: _.get('place', _.last(history)), date: Date.now() }]
+    )(ranking);
+    profiles[nickname] = { resultsByGrade: {}, resultsByLevel: {}, rankingHistory };
   };
   const addResultData = (chart, result) => {
     if (!profiles[result.nickname]) {
