@@ -194,7 +194,7 @@ export const getRankings = data => {
       let kRatingDiff = Math.abs(E1 - E2) + 0.6;
       // prettier-ignore
       if ((S1 - E1 > 0) === (E1 < 0.5) && Math.abs(E1 - E2) > 0.1) {
-        const difference = Math.abs(E1 - E2) / 3.5;
+        const difference = Math.abs(E1 - E2) / 2.6;
         kRatingDiff *= 1 - difference; // When someone with lower rank wins against someone with higher rank
       }
       const kRating1 = Math.max(0, Math.min(1, (r1 - 500) / 1000));
@@ -271,8 +271,10 @@ export const getRankings = data => {
       const battleDate =
         score.dateObject > enemyScore.dateObject ? score.dateObject : enemyScore.dateObject;
       if (
-        playerInfo[score.nickname].lastPlace !== p1Place &&
-        playerInfo[score.nickname].battleCount > 20
+        (playerInfo[score.nickname].lastPlace !== p1Place &&
+          playerInfo[score.nickname].battleCount > 20) ||
+        (playerInfo[score.nickname].battleCount === 21 &&
+          !playerInfo[score.nickname].history.length)
       ) {
         // Place in rankings changed!
         playerInfo[score.nickname].history.push({
@@ -281,8 +283,10 @@ export const getRankings = data => {
         });
       }
       if (
-        playerInfo[enemyScore.nickname].lastPlace !== p2Place &&
-        playerInfo[enemyScore.nickname].battleCount > 20
+        (playerInfo[enemyScore.nickname].lastPlace !== p2Place &&
+          playerInfo[enemyScore.nickname].battleCount > 20) ||
+        (playerInfo[enemyScore.nickname].battleCount === 21 &&
+          !playerInfo[enemyScore.nickname].history.length)
       ) {
         playerInfo[enemyScore.nickname].history.push({
           place: p2Place,
