@@ -193,8 +193,9 @@ export const getRankings = data => {
 
       let kRatingDiff = Math.abs(E1 - E2) + 0.6;
       // prettier-ignore
-      if ((S1 - E1 > 0) === (E1 < 0.5)) {
-        kRatingDiff *= 0.6; // When someone with lower rank wins against someone with higher rank
+      if ((S1 - E1 > 0) === (E1 < 0.5) && Math.abs(E1 - E2) > 0.1) {
+        const difference = Math.abs(E1 - E2) / 3.5;
+        kRatingDiff *= 1 - difference; // When someone with lower rank wins against someone with higher rank
       }
       const kRating1 = Math.max(0, Math.min(1, (r1 - 500) / 1000));
       const kRating2 = Math.max(0, Math.min(1, (r2 - 500) / 1000));
@@ -230,7 +231,7 @@ export const getRankings = data => {
 
       if (DEBUG) {
         // if (song.song === 'Club Night') {
-        // if (score.nickname === 'Beamer' || enemyScore.nickname === 'Beamer')
+        // if (score.nickname === 'Liza' || enemyScore.nickname === 'Liza') {
         // if (!song.maxScore) {
         // console.log(
         //   `${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${song.song}`

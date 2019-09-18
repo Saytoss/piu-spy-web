@@ -47,7 +47,7 @@ export const getProfiles = (data, ranking) => {
       addResultData(chart, result);
     });
   });
-  console.log(profiles);
+  // console.log(profiles);
   return profiles;
 };
 
