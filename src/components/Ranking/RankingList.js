@@ -4,6 +4,9 @@ import numeral from 'numeral';
 import classNames from 'classnames';
 import { GiQueenCrown } from 'react-icons/gi';
 import { FaAngleDoubleUp, FaAngleDoubleDown } from 'react-icons/fa';
+import { NavLink } from 'react-router-dom';
+
+import { routes } from 'constants/routes';
 
 import Loader from 'components/Shared/Loader';
 
@@ -63,7 +66,11 @@ export default function RankingList({ ranking, isLoading }) {
                       </div>
                     )}
                   </td>
-                  <td className="name">{player.name}</td>
+                  <td className="name">
+                    <NavLink exact to={routes.profile.getPath({ name: player.name })}>
+                      {player.name}
+                    </NavLink>
+                  </td>
                   <td className="rating">
                     {player.rating}{' '}
                     {!!player.prevRating && player.prevRating !== player.rating && (

@@ -7,6 +7,7 @@ import { routes } from 'constants/routes';
 
 import Leaderboard from 'components/Leaderboard/Leaderboard';
 import Ranking from 'components/Ranking/Ranking';
+import Profile from 'components/Profile/Profile';
 import TopBar from 'components/Shared/TopBar/TopBar';
 
 class App extends Component {
@@ -17,6 +18,7 @@ class App extends Component {
         <Route exact path="/" render={() => <Redirect to={routes.leaderboard.path} />} />
         <Route path={routes.leaderboard.path} component={Leaderboard} />
         <Route path={routes.ranking.path} component={Ranking} />
+        <Route path={routes.profile.path} component={Profile} />
       </div>
     );
   }
