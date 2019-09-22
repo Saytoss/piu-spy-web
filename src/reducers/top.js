@@ -60,7 +60,7 @@ const preprocessData = data =>
           combo: res.max_combo,
           mods: res.mods_list,
           isRank: !!res.rank_mode,
-          accuracy: acc < 0 ? 0 : acc,
+          accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && acc.toFixed(2),
         };
       }),
     })),

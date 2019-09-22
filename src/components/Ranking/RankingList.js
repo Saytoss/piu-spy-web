@@ -26,6 +26,7 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="place"></th>
               <th className="change"></th>
               <th className="name">name</th>
+              <th className="name2">piu name</th>
               <th className="rating">elo</th>
               <th className="total-score">total score</th>
               <th className="grades sss">{getGradeImg('SSS')}</th>
@@ -69,6 +70,11 @@ export default function RankingList({ ranking, isLoading }) {
                   <td className="name">
                     <NavLink exact to={routes.profile.getPath({ name: player.name })}>
                       {player.name}
+                    </NavLink>
+                  </td>
+                  <td className="name">
+                    <NavLink exact to={routes.profile.getPath({ name: player.name })}>
+                      {player.nameArcade}
                     </NavLink>
                   </td>
                   <td className="rating">

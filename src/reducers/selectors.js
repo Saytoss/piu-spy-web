@@ -5,13 +5,14 @@ import matchSorter from 'match-sorter';
 import { SORT, CHART_MIN_MAX } from 'constants/leaderboard';
 
 export const playersSelector = createSelector(
-  state => state.top.data,
+  state => state.top.players,
   _.flow(
-    _.flatMap(_.get('results')),
-    _.map('nickname'),
-    _.uniq,
-    _.sortBy(_.toLower),
-    _.map(name => ({ label: name, value: name }))
+    _.toPairs,
+    _.map(([id, { nickname, arcade_name }]) => ({
+      label: `${nickname} (${arcade_name})`,
+      value: nickname,
+    })),
+    _.sortBy(it => _.toLower(it.label))
   )
 );
 
@@ -32,6 +33,7 @@ const filterCharts = (filter, rows) => {
 };
 
 const getFilteredData = (data, filter) => {
+  // const start = performance.now();
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
   const namesNot = _.map('value', filter.playersNot);
@@ -60,13 +62,30 @@ const getFilteredData = (data, filter) => {
     }),
     _.orderBy(['distanceFromProtagonist'], ['desc']),
   ];
+  const getScoreSorting = direction => [
+    _.filter(row => _.map('nickname', row.results).includes(protagonist)),
+    _.orderBy(
+      [
+        row => {
+          return _.getOr(
+            direction === 'asc' ? Infinity : -Infinity,
+            'ratingDiff',
+            _.find({ nickname: protagonist }, row.results)
+          );
+        },
+      ],
+      [direction]
+    ),
+  ];
   const sortingFunctions =
     {
       [SORT.DEFAULT]: defaultSorting,
       [SORT.PROTAGONIST]: protagonistSorting,
+      [SORT.RANK_ASC]: getScoreSorting('asc'),
+      [SORT.RANK_DESC]: getScoreSorting('desc'),
     }[sortingType] || defaultSorting;
 
-  return _.flow(
+  const result = _.flow(
     _.compact([
       filter.chartRange && (items => filterCharts(filter.chartRange, items)),
       !filter.showRank &&
@@ -126,6 +145,8 @@ const getFilteredData = (data, filter) => {
       }),
     ])
   )(data);
+  // console.log('Elapsed:', performance.now() - start);
+  return result;
 };
 
 export const filteredDataSelector = createSelector(

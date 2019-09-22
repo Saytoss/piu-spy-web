@@ -33,7 +33,7 @@ import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/
 // utils
 import { tooltipFormatter, tooltipFormatterForBests, getTimeAgo } from 'utils/leaderboards';
 import { colorsArray } from 'utils/colors';
-import { playersSelector, filteredDataSelector } from './selectors';
+import { playersSelector, filteredDataSelector } from 'reducers/selectors';
 
 // code
 const sortingOptions = [
@@ -380,7 +380,12 @@ class Leaderboard extends Component {
                                           : {}
                                       }
                                     >
-                                      {res.nickname}
+                                      <Tooltip
+                                        content={<div>{res.nicknameArcade}</div>}
+                                        tooltipClassName="timeago-tooltip"
+                                      >
+                                        {res.nickname}
+                                      </Tooltip>
 
                                       {DEBUG && (
                                         <span>
@@ -409,12 +414,10 @@ class Leaderboard extends Component {
                                           ) : (
                                             <Tooltip
                                               content={
-                                                <>
-                                                  <div>
-                                                    наличие ранка на этом результате было угадано,
-                                                    основываясь на скоре
-                                                  </div>
-                                                </>
+                                                <div>
+                                                  наличие ранка на этом результате было угадано,
+                                                  основываясь на скоре
+                                                </div>
                                               }
                                               tooltipClassName="timeago-tooltip"
                                             >
