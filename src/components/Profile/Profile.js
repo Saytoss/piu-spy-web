@@ -65,7 +65,7 @@ class Profile extends Component {
     if (_.isEmpty(profile)) {
       return null;
     }
-    console.log(match, profile);
+    // console.log(match, profile);
     const levelsData = _.flow(
       _.get('resultsByLevel'),
       _.toPairs,

@@ -21,58 +21,64 @@ const initialState = {
   filter: defaultFilter,
 };
 
-const preprocessData = _.flow(
-  _.get('top'),
-  _.values,
-  _.map(item => ({
-    song: item.track,
-    chartLabel: item.chart_label,
-    chartLevel: item.chart_label.slice(1),
-    chartType: item.chart_label.slice(0, 1),
-    mix: item.mix,
-    results: item.results.map((res, index) => {
-      const perfects = (Math.sqrt(res.perfects) * _.toInteger(item.chart_label.slice(1))) / 2;
-      const acc = perfects
-        ? Math.floor(
-            ((perfects * 100 + res.greats * 60 + res.goods * 30 + res.misses * -20) /
-              (perfects + res.greats + res.goods + res.bads + res.misses)) *
-              100
-          ) / 100
-        : null;
+const preprocessData = data =>
+  _.flow(
+    _.get('top'),
+    _.values,
+    _.map(item => ({
+      song: item.track,
+      chartLabel: item.chart_label,
+      chartLevel: item.chart_label.slice(1),
+      chartType: item.chart_label.slice(0, 1),
+      mix: item.mix,
+      results: item.results.map((res, index) => {
+        const perfects = (Math.sqrt(res.perfects) * _.toInteger(item.chart_label.slice(1))) / 2;
+        const acc = perfects
+          ? Math.floor(
+              ((perfects * 100 + res.greats * 60 + res.goods * 30 + res.misses * -20) /
+                (perfects + res.greats + res.goods + res.bads + res.misses)) *
+                100
+            ) / 100
+          : null;
+        return {
+          playerId: res.player,
+          nickname: data.players[res.player].nickname,
+          nicknameArcade: data.players[res.player].arcade_name,
+          originalChartMix: res.originalChartMix,
+          originalChartLabel: res.originalChartLabel,
+          originalScore: res.originalScore,
+          date: res.gained,
+          dateObject: new Date(res.gained),
+          grade: res.grade,
+          isExactDate: !!res.exact_gain_date,
+          score: res.score,
+          perfect: res.perfects,
+          great: res.greats,
+          good: res.goods,
+          bad: res.bads,
+          miss: res.misses,
+          combo: res.max_combo,
+          mods: res.mods_list,
+          isRank: !!res.rank_mode,
+          accuracy: acc < 0 ? 0 : acc,
+        };
+      }),
+    })),
+    _.map(song => {
       return {
-        nickname: res.nickname,
-        date: res.gained,
-        dateObject: new Date(res.gained),
-        grade: res.grade,
-        isExactDate: !!res.exact_gain_date,
-        score: res.score,
-        perfect: res.perfects,
-        great: res.greats,
-        good: res.goods,
-        bad: res.bads,
-        miss: res.misses,
-        combo: res.max_combo,
-        mods: res.mods_list,
-        isRank: !!res.rank_mode,
-        accuracy: acc < 0 ? 0 : acc,
+        ...song,
+        latestScoreDate: song.results.reduce(
+          (latest, current) => (current.date > latest ? current.date : latest),
+          song.results[0].date
+        ),
+        results: song.results.map(res => ({
+          ...res,
+          hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
+        })),
       };
     }),
-  })),
-  _.map(song => {
-    return {
-      ...song,
-      latestScoreDate: song.results.reduce(
-        (latest, current) => (current.date > latest ? current.date : latest),
-        song.results[0].date
-      ),
-      results: song.results.map(res => ({
-        ...res,
-        hasRankScore: _.some({ nickname: res.nickname, isRank: true }, song.results),
-      })),
-    };
-  }),
-  _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc'])
-);
+    _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc'])
+  )(data);
 
 export default function reducer(state = initialState, action) {
   switch (action.type) {
@@ -92,6 +98,7 @@ export default function reducer(state = initialState, action) {
         ...state,
         isLoading: false,
         data: action.data,
+        players: action.players,
       };
     case SET_FILTER:
       return {
@@ -113,11 +120,12 @@ export const fetchTopScores = () => {
     dispatch({ type: LOADING });
     try {
       const data = await fetchJson({
-        url: `${HOST}/top`,
+        url: `${HOST}/top/v2`,
       });
+      // const data = jsonData;
       const processedData = preprocessData(data);
-      dispatch({ type: SUCCESS, data: processedData });
-      const rankings = getRankings(processedData);
+      dispatch({ type: SUCCESS, data: processedData, players: _.values(data.players) });
+      const rankings = getRankings(processedData, data);
       dispatch(setRankings(rankings));
       const profiles = getProfiles(processedData, rankings);
       dispatch(setProfiles(profiles));

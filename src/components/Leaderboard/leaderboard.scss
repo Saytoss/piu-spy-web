@@ -145,9 +145,6 @@
                 font-size: 65%;
                 width: 110px;
                 text-align: right;
-                &.latest {
-                  color: #bef993;
-                }
               }
               &.nickname {
                 width: 200px;
@@ -160,6 +157,10 @@
               &.score {
                 width: 110px;
                 text-align: right;
+                cursor: pointer;
+                &:hover {
+                  background: #555;
+                }
               }
               &.number {
                 width: 54px;
@@ -174,8 +175,18 @@
                 text-align: center;
               }
               &.rank.vj {
-                background: rgba(255, 0, 0, 0.18);
-                font-weight: 600;
+                padding: 0;
+                > .inner-vj {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  padding: 5px;
+                  background: rgba(255, 0, 0, 0.18);
+                  font-weight: 600;
+                  border-radius: 6px;
+                  line-height: 100%;
+                  margin: 1px;
+                }
               }
             }
             tbody {
@@ -189,17 +200,17 @@
                   }
                   &.date {
                     color: #888;
-                    &.latest {
-                      color: #bef993;
+                  }
+                }
+                &.latest {
+                  td {
+                    &.score,
+                    &.date {
+                      color: #afe488; //#bef9931d;
                     }
                   }
                 }
                 &:not(.empty) {
-                  &.latest {
-                    td.score {
-                      color: #afe488; //#bef9931d;
-                    }
-                  }
                   td {
                     &.miss {
                       background: rgba(255, 0, 0, 0.05);
@@ -283,6 +294,12 @@
             &.grade .img-holder img {
               height: 1.8vw;
             }
+            &.rank.vj {
+              > .inner-vj {
+                padding: 0.5vw;
+                border-radius: 0.5vw;
+              }
+            }
           }
           thead {
             tr {
@@ -311,6 +328,7 @@
 
 .chart-range-overlay-outer {
   width: 300px;
+  margin-top: 10px;
   max-width: 100%;
 
   .chart-range-overlay {
@@ -346,6 +364,23 @@
         width: 30px;
         padding: 6px 0 0 0;
         font-size: 16px;
+      }
+    }
+  }
+}
+
+.score-overlay-outer {
+  margin-bottom: 10px;
+  .score-overlay {
+    padding: 8px;
+    ._grey {
+      color: #aaa;
+    }
+    .warning {
+      display: flex;
+      align-items: center;
+      > svg {
+        margin-right: 0.5em;
       }
     }
   }

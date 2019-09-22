@@ -19,6 +19,7 @@ export default function reducer(state = { data: {} }, action) {
 
 export const getProfiles = (data, ranking) => {
   const profiles = {};
+  console.log(data, ranking);
   const initializeProfile = nickname => {
     const rankingHistory = _.flow(
       _.find({ name: nickname }),

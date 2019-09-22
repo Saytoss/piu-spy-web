@@ -68,7 +68,7 @@ export default function reducer(state = {}, action) {
   }
 }
 
-export const getRankings = data => {
+export const getRankings = (data, { players }) => {
   const defaultInfo = {
     count: 0,
     battleCount: 0,
@@ -88,17 +88,17 @@ export const getRankings = data => {
       if (!score.nickname.includes('???')) {
         validResults.push(score);
 
-        if (!playerInfo[score.nickname]) {
-          playerInfo[score.nickname] = _.cloneDeep(defaultInfo);
+        if (!playerInfo[score.playerId]) {
+          playerInfo[score.playerId] = _.cloneDeep(defaultInfo);
         }
 
-        playerInfo[score.nickname].count++;
+        playerInfo[score.playerId].count++;
         if (score.accuracy) {
-          playerInfo[score.nickname].countAcc++;
-          playerInfo[score.nickname].sumAccuracy += score.accuracy;
+          playerInfo[score.playerId].countAcc++;
+          playerInfo[score.playerId].sumAccuracy += score.accuracy;
         }
-        playerInfo[score.nickname].totalScore[song.chartType] += score.score;
-        playerInfo[score.nickname].grades[score.grade.replace('+', '')]++;
+        playerInfo[score.playerId].totalScore[song.chartType] += score.score;
+        playerInfo[score.playerId].grades[score.grade.replace('+', '')]++;
       }
       if (isFullScore(score)) {
         song.maxScore = getMaxScore(score, song);
@@ -109,7 +109,7 @@ export const getRankings = data => {
       const enemyScores = validResults.length > 1 ? validResults.slice(scoreIndex + 1) : [];
 
       enemyScores.forEach(enemyScore => {
-        if (score.isRank === enemyScore.isRank && score.nickname !== enemyScore.nickname) {
+        if (score.isRank === enemyScore.isRank && score.playerId !== enemyScore.playerId) {
           battles.push([score, enemyScore, song]);
         }
       });
@@ -120,8 +120,8 @@ export const getRankings = data => {
     _.sortBy(([s1, s2]) => Math.max(s1.dateObject.getTime(), s2.dateObject.getTime())),
     _.forEach(([score, enemyScore, song]) => {
       // For each battle
-      if (!playerInfo[enemyScore.nickname]) {
-        playerInfo[enemyScore.nickname] = _.cloneDeep(defaultInfo);
+      if (!playerInfo[enemyScore.playerId]) {
+        playerInfo[enemyScore.playerId] = _.cloneDeep(defaultInfo);
       }
 
       const scoreMultiplier = score.isRank ? 1.2 : 1;
@@ -144,16 +144,16 @@ export const getRankings = data => {
       }
       // console.log(song.maxScore * scoreMultiplier, score.score, enemyScore.score);
       // Rating at the start of battle for this score
-      score.startingRating = playerInfo[score.nickname].rating;
-      enemyScore.startingRating = playerInfo[enemyScore.nickname].rating;
+      score.startingRating = playerInfo[score.playerId].rating;
+      enemyScore.startingRating = playerInfo[enemyScore.playerId].rating;
       // Counting the number of battles
-      playerInfo[score.nickname].battleCount++;
-      playerInfo[enemyScore.nickname].battleCount++;
+      playerInfo[score.playerId].battleCount++;
+      playerInfo[enemyScore.playerId].battleCount++;
 
       // This is one match between two players
       //// Elo formula
-      const r1 = playerInfo[score.nickname].rating;
-      const r2 = playerInfo[enemyScore.nickname].rating;
+      const r1 = playerInfo[score.playerId].rating;
+      const r2 = playerInfo[enemyScore.playerId].rating;
       const R1 = 10 ** (r1 / 400);
       const R2 = 10 ** (r2 / 400);
       const E1 = R1 / (R1 + R2);
@@ -188,19 +188,19 @@ export const getRankings = data => {
       // K is the coeficient that decides how strongly this match affects rating
       // Higher level -- affects more
       // More playcount -- affects less (just to make first matches place people faster)
-      // const k1pow = Math.min(1, playerInfo[score.nickname].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
-      // const k2pow = Math.min(1, playerInfo[enemyScore.nickname].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
+      // const k1pow = Math.min(1, playerInfo[score.playerId].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
+      // const k2pow = Math.min(1, playerInfo[enemyScore.playerId].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
 
       let kRatingDiff = Math.abs(E1 - E2) + 0.6;
       // prettier-ignore
       if ((S1 - E1 > 0) === (E1 < 0.5) && Math.abs(E1 - E2) > 0.1) {
-        const difference = Math.abs(E1 - E2) / 2.6;
+        const difference = Math.abs(E1 - E2) / 3;
         kRatingDiff *= 1 - difference; // When someone with lower rank wins against someone with higher rank
       }
-      const kRating1 = Math.max(0, Math.min(1, (r1 - 500) / 1000));
-      const kRating2 = Math.max(0, Math.min(1, (r2 - 500) / 1000));
-      const maxK1 = 50 + 40 * kRating1;
-      const maxK2 = 50 + 40 * kRating2;
+      const kRating1 = Math.max(0, Math.min(1, (r1 - 700) / 800));
+      const kRating2 = Math.max(0, Math.min(1, (r2 - 700) / 800));
+      const maxK1 = 60 + 20 * kRating1;
+      const maxK2 = 60 + 20 * kRating2;
       const kLevel1 = Math.max(
         1,
         Math.min(maxK1, (song.chartLevel / 25) ** ((kRating1 - 0.5) * 5 + 2.5) * maxK1)
@@ -233,68 +233,68 @@ export const getRankings = data => {
         // if (song.song === 'Club Night') {
         // if (score.nickname === 'Liza' || enemyScore.nickname === 'Liza') {
         // if (!song.maxScore) {
-        // console.log(
-        //   `${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${song.song}`
-        // );
-        // console.log(
-        //   `- ${score.score} / ${enemyScore.score} (${maxScore}) - R ${S1.toFixed(2)}/${S2.toFixed(
-        //     2
-        //   )} E ${E1.toFixed(2)} / ${E2.toFixed(2)}`
-        // );
-        // // console.log(`- old R ${S1old.toFixed(2)}/${S2old.toFixed(2)}`);
-        // console.log(
-        //   `- Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
-        //     2
-        //   )} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
-        // );
+        console.log(
+          `${song.chartLabel} - ${score.nickname} / ${enemyScore.nickname} - ${song.song}`
+        );
+        console.log(
+          `- ${score.score} / ${enemyScore.score} (${maxScore}) - R ${S1.toFixed(2)}/${S2.toFixed(
+            2
+          )} E ${E1.toFixed(2)} / ${E2.toFixed(2)}`
+        );
+        // console.log(`- old R ${S1old.toFixed(2)}/${S2old.toFixed(2)}`);
+        console.log(
+          `- Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
+            2
+          )} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
+        );
         // }
       }
 
       // Change rating as a result of this battle
-      playerInfo[score.nickname].rating = r1 + dr1;
-      playerInfo[enemyScore.nickname].rating = r2 + dr2;
+      playerInfo[score.playerId].rating = r1 + dr1;
+      playerInfo[enemyScore.playerId].rating = r2 + dr2;
       // Rating floor
-      playerInfo[score.nickname].rating = Math.max(100, playerInfo[score.nickname].rating);
-      playerInfo[enemyScore.nickname].rating = Math.max(
+      playerInfo[score.playerId].rating = Math.max(100, playerInfo[score.playerId].rating);
+      playerInfo[enemyScore.playerId].rating = Math.max(
         100,
-        playerInfo[enemyScore.nickname].rating
+        playerInfo[enemyScore.playerId].rating
       );
-
-      const namesSorted = _.flow(
+      // console.log(playerInfo);
+      const idsSorted = _.flow(
         _.keys,
-        _.map(name => ({ name, rating: playerInfo[name].rating })),
+        _.map(id => ({ id, rating: playerInfo[id].rating })),
         _.orderBy(['rating'], ['desc']),
-        _.map('name')
+        _.map(x => _.toInteger(x.id))
       )(playerInfo);
-      const p1Place = namesSorted.indexOf(score.nickname) + 1;
-      const p2Place = namesSorted.indexOf(enemyScore.nickname) + 1;
+      const p1Place = idsSorted.indexOf(score.playerId) + 1;
+      const p2Place = idsSorted.indexOf(enemyScore.playerId) + 1;
       const battleDate =
         score.dateObject > enemyScore.dateObject ? score.dateObject : enemyScore.dateObject;
       if (
-        (playerInfo[score.nickname].lastPlace !== p1Place &&
-          playerInfo[score.nickname].battleCount > 20) ||
-        (playerInfo[score.nickname].battleCount === 21 &&
-          !playerInfo[score.nickname].history.length)
+        (playerInfo[score.playerId].lastPlace !== p1Place &&
+          playerInfo[score.playerId].battleCount > 20) ||
+        (playerInfo[score.playerId].battleCount === 21 &&
+          !playerInfo[score.playerId].history.length)
       ) {
         // Place in rankings changed!
-        playerInfo[score.nickname].history.push({
+        playerInfo[score.playerId].history.push({
           place: p1Place,
           date: battleDate.getTime(),
         });
       }
       if (
-        (playerInfo[enemyScore.nickname].lastPlace !== p2Place &&
-          playerInfo[enemyScore.nickname].battleCount > 20) ||
-        (playerInfo[enemyScore.nickname].battleCount === 21 &&
-          !playerInfo[enemyScore.nickname].history.length)
+        (playerInfo[enemyScore.playerId].lastPlace !== p2Place &&
+          playerInfo[enemyScore.playerId].battleCount > 20) ||
+        (playerInfo[enemyScore.playerId].battleCount === 21 &&
+          !playerInfo[enemyScore.playerId].history.length)
       ) {
-        playerInfo[enemyScore.nickname].history.push({
+        playerInfo[enemyScore.playerId].history.push({
           place: p2Place,
           date: battleDate.getTime(),
         });
       }
-      playerInfo[score.nickname].lastPlace = p1Place;
-      playerInfo[enemyScore.nickname].lastPlace = p2Place;
+      playerInfo[score.playerId].lastPlace = p1Place;
+      playerInfo[enemyScore.playerId].lastPlace = p2Place;
     }),
   ])(battles);
 
@@ -302,7 +302,9 @@ export const getRankings = data => {
     _.keys,
     _.map(key => ({
       ..._.omit(['countAcc', 'sumAccuracy'], playerInfo[key]),
-      name: key,
+      id: key,
+      name: players[key].nickname,
+      nameArcade: players[key].arcade_name,
       accuracy:
         playerInfo[key].countAcc > 0
           ? Math.round((playerInfo[key].sumAccuracy / playerInfo[key].countAcc) * 100) / 100
@@ -331,10 +333,11 @@ export const setRankings = ranking => {
     dispatch(setRankingsAction(ranking));
     try {
       const [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking] = await Promise.all([
-        localForage.getItem('lastChangedRanking'),
-        localForage.getItem('lastChangedRankingPoints'),
-        localForage.getItem('lastFetchedRanking'),
+        localForage.getItem('lastChangedRanking_v2'),
+        localForage.getItem('lastChangedRankingPoints_v2'),
+        localForage.getItem('lastFetchedRanking_v2'),
       ]);
+      console.log(ranking);
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
@@ -342,15 +345,16 @@ export const setRankings = ranking => {
       const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
       const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
       let rankingsPointsMap = mapPointsLastChanged;
+      console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
       if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
-        localForage.setItem('lastChangedRankingPoints', lastFetchedRanking);
+        localForage.setItem('lastChangedRankingPoints_v2', lastFetchedRanking);
         rankingsPointsMap = mapPointsLastFetched;
       }
       let listPrev = listLastChanged;
       if (!_.isEqual(listNow, listLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
-        localForage.setItem('lastChangedRanking', lastFetchedRanking);
+        localForage.setItem('lastChangedRanking_v2', lastFetchedRanking);
         listPrev = listLastFetched;
       }
       dispatch({
@@ -359,6 +363,7 @@ export const setRankings = ranking => {
         listPrev,
         rankingsPointsMap,
       });
+      localForage.setItem('lastFetchedRanking_v2', ranking);
       // console.log(listNow, listLastFetched, listLastChanged);
     } catch (error) {
       console.warn('Cannot get ranking from local storage', error);

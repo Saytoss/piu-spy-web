@@ -6,14 +6,16 @@ import Select from 'react-select';
 import classNames from 'classnames';
 import numeral from 'numeral';
 import localForage from 'localforage';
+import { NavLink } from 'react-router-dom';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
-import { FaRedoAlt, FaSearch, FaYoutube } from 'react-icons/fa';
+import { FaRedoAlt, FaExclamationTriangle, FaSearch, FaYoutube } from 'react-icons/fa';
 
 // styles
 import 'react-responsive-ui/style.css';
 import './leaderboard.scss';
 
 // components
+import Overlay from 'components/Shared/Overlay/Overlay';
 import Loader from 'components/Shared/Loader';
 import Input from 'components/Shared/Input/Input';
 import Toggle from 'components/Shared/Toggle/Toggle';
@@ -21,6 +23,7 @@ import CollapsibleBar from 'components/Shared/CollapsibleBar';
 import ChartFilter from './ChartFilter';
 
 // constants
+import { routes } from 'constants/routes';
 import { SORT } from 'constants/leaderboard';
 import { DEBUG } from 'constants/env';
 
@@ -399,26 +402,87 @@ class Leaderboard extends Component {
                                         )}
                                     </td>
                                     <td className={classNames('rank', { vj: res.isRank })}>
-                                      {res.isRank &&
-                                        (res.isExactDate ? (
-                                          'VJ'
-                                        ) : (
-                                          <Tooltip
-                                            content={
-                                              <>
-                                                <div>
-                                                  наличие ранка на этом результате было угадано,
-                                                  основываясь на скоре
-                                                </div>
-                                              </>
-                                            }
-                                            tooltipClassName="timeago-tooltip"
-                                          >
-                                            VJ?
-                                          </Tooltip>
-                                        ))}
+                                      {res.isRank && (
+                                        <div className="inner-vj">
+                                          {res.isExactDate ? (
+                                            'VJ'
+                                          ) : (
+                                            <Tooltip
+                                              content={
+                                                <>
+                                                  <div>
+                                                    наличие ранка на этом результате было угадано,
+                                                    основываясь на скоре
+                                                  </div>
+                                                </>
+                                              }
+                                              tooltipClassName="timeago-tooltip"
+                                            >
+                                              VJ?
+                                            </Tooltip>
+                                          )}
+                                        </div>
+                                      )}
                                     </td>
-                                    <td className="score">{numeral(res.score).format('0,0')}</td>
+                                    <td className="score">
+                                      <Overlay
+                                        overlayClassName="score-overlay-outer"
+                                        overlayItem={
+                                          <span>{numeral(res.score).format('0,0')}</span>
+                                        }
+                                        placement="top"
+                                      >
+                                        <div className="score-overlay">
+                                          <div>
+                                            <span className="_grey">игрок: </span>
+                                            <NavLink
+                                              exact
+                                              to={routes.profile.getPath({ name: res.nickname })}
+                                            >
+                                              {res.nickname} ({res.nicknameArcade})
+                                            </NavLink>
+                                          </div>
+                                          {!res.isExactDate && (
+                                            <div className="warning">
+                                              <FaExclamationTriangle />
+                                              рекорд взят с my best. часть данных недоступна
+                                            </div>
+                                          )}
+                                          {res.isExactDate && (
+                                            <>
+                                              <div>
+                                                <span className="_grey">моды: </span>
+                                                {res.mods || '—'}
+                                              </div>
+                                              {res.originalChartMix && (
+                                                <div>
+                                                  <div className="warning">
+                                                    <FaExclamationTriangle />
+                                                    было сыграно на {res.originalChartMix}
+                                                  </div>
+                                                  {res.originalChartLabel && (
+                                                    <div>
+                                                      <span className="_grey">
+                                                        оригинальный чарт:{' '}
+                                                      </span>
+                                                      {res.originalChartLabel}
+                                                    </div>
+                                                  )}
+                                                  {res.originalScore && (
+                                                    <div>
+                                                      <span className="_grey">
+                                                        оригинальный скор:{' '}
+                                                      </span>
+                                                      {res.originalScore}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </>
+                                          )}
+                                        </div>
+                                      </Overlay>
+                                    </td>
                                     <td className="grade">
                                       <div className="img-holder">
                                         {res.grade && res.grade !== '?' && (
