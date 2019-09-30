@@ -16,6 +16,7 @@ import './leaderboard.scss';
 
 // components
 import Overlay from 'components/Shared/Overlay/Overlay';
+import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
 import Loader from 'components/Shared/Loader';
 import Input from 'components/Shared/Input/Input';
 import Toggle from 'components/Shared/Toggle/Toggle';
@@ -30,6 +31,7 @@ import { DEBUG } from 'constants/env';
 
 // reducers
 import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/top';
+import { selectPreset, openPreset } from 'reducers/presets';
 
 // utils
 import { tooltipFormatter, tooltipFormatterForBests, getTimeAgo } from 'utils/leaderboards';
@@ -68,6 +70,8 @@ const mapStateToProps = state => {
     filter: state.top.filter,
     error: state.top.error,
     isLoading: state.top.isLoading,
+    presets: state.presets.presets,
+    currentPreset: state.presets.currentPreset,
   };
 };
 
@@ -75,6 +79,8 @@ const mapDispatchToProps = {
   fetchTopScores,
   setFilter,
   resetFilter,
+  selectPreset,
+  openPreset,
 };
 
 class Leaderboard extends Component {
@@ -308,6 +314,22 @@ class Leaderboard extends Component {
             <CollapsibleBar title="сортировка">{this.renderSortings()}</CollapsibleBar>
           </div>
           {isLoading && <Loader />}
+          {!!this.props.presets.length && (
+            <div className="presets-buttons">
+              <span>пресеты:</span>
+              {this.props.presets.map(preset => (
+                <ToggleButton
+                  text={preset.name}
+                  className="btn btn-sm btn-dark _margin-right"
+                  active={_.get('filter', preset) === this.props.filter}
+                  onToggle={() => {
+                    this.props.selectPreset(preset);
+                    this.props.openPreset();
+                  }}
+                ></ToggleButton>
+              ))}
+            </div>
+          )}
           <div className="top-list">
             {_.isEmpty(filteredData) && !isLoading && 'ничего не найдено'}
             {!isLoading &&

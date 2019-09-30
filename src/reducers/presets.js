@@ -95,12 +95,13 @@ export const savePreset = name => (dispatch, getState) => {
 
 export const openPreset = () => (dispatch, getState) => {
   dispatch(startLoading());
-  const name = _.get('name', getState().presets.currentPreset);
+  const currentPreset = getState().presets.currentPreset;
+  const name = _.get('name', currentPreset);
   return localForage.getItem('filterPresets').then(presets => {
     const preset = name && _.find({ name }, presets);
     if (preset) {
-      dispatch(selectPreset(preset));
-      dispatch(setFilter(preset.filter));
+      dispatch(selectPreset(currentPreset));
+      dispatch(setFilter(currentPreset.filter));
     } else {
       // Preset not found for some reason, update list
       dispatch(reloadPresets(presets));

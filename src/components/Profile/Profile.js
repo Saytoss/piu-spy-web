@@ -33,6 +33,7 @@ import { fetchTopScores } from 'reducers/top';
 import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 
 // utils
+import { getTimeAgo } from 'utils/leaderboards';
 
 // code
 const defaultGradesDistribution = {
@@ -182,7 +183,7 @@ class Profile extends Component {
 
   render() {
     const { isLoading, profile, error, filter } = this.props;
-    // console.log(profile);
+
     if (_.isEmpty(profile)) {
       return null;
     }
@@ -216,7 +217,12 @@ class Profile extends Component {
                 <div className="text-header">эло</div>
                 <div>{profile.player.ranking.rating}</div>
               </div>
+              <div className="text-with-header">
+                <div className="text-header">последняя игра</div>
+                <div>{getTimeAgo(profile.player.ranking.lastBattleDate)}</div>
+              </div>
             </div>
+            <div className="profile-header">чарты</div>
             <div className="levels-chart">
               <ResponsiveContainer>
                 <BarChart
@@ -246,7 +252,7 @@ class Profile extends Component {
                     }}
                   />
                   <XAxis dataKey="x" />
-                  <YAxis />
+                  <YAxis tickFormatter={Math.abs} />
                   <Tooltip />
                   <ReferenceLine y={0} stroke="#555" />
                   <Legend />
@@ -255,6 +261,7 @@ class Profile extends Component {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <div className="profile-header">оценки</div>
             <div className="levels-chart">
               <ResponsiveContainer>
                 <BarChart

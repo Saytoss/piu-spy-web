@@ -1,17 +1,20 @@
 .toggle-button {
   padding: 4px 0;
+  display: Flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   text-align: center;
   user-select: none;
 
-  background: #666;
-  border-radius: 4px;
+  background: #353535;
+  border-radius: 6px;
   color: white;
-  border: 1px solid #999;
+  border: none;
   &.active {
-    background: #337ab7;
-    border-radius: 4px;
+    background: #454545;
     color: white;
     border: 1px solid #95cdff;
+    border-bottom: 3px solid #95cdff;
   }
 }

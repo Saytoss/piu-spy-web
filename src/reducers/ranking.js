@@ -80,6 +80,7 @@ export const getRankings = (data, { players }) => {
     history: [],
     ratingHistory: [],
     lastPlace: null,
+    lastBattleDate: 0,
   };
   const playerInfo = {};
   const battles = [];
@@ -92,14 +93,14 @@ export const getRankings = (data, { players }) => {
         if (!playerInfo[score.playerId]) {
           playerInfo[score.playerId] = _.cloneDeep(defaultInfo);
         }
-
-        playerInfo[score.playerId].count++;
+        const p1 = playerInfo[score.playerId];
+        p1.count++;
         if (score.accuracy) {
-          playerInfo[score.playerId].countAcc++;
-          playerInfo[score.playerId].sumAccuracy += score.accuracy;
+          p1.countAcc++;
+          p1.sumAccuracy += score.accuracy;
         }
-        playerInfo[score.playerId].totalScore[song.chartType] += score.score;
-        playerInfo[score.playerId].grades[score.grade.replace('+', '')]++;
+        p1.totalScore[song.chartType] += score.score;
+        p1.grades[score.grade.replace('+', '')]++;
       }
       if (isFullScore(score)) {
         song.maxScore = getMaxScore(score, song);
@@ -124,6 +125,8 @@ export const getRankings = (data, { players }) => {
       if (!playerInfo[enemyScore.playerId]) {
         playerInfo[enemyScore.playerId] = _.cloneDeep(defaultInfo);
       }
+      const p1 = playerInfo[score.playerId];
+      const p2 = playerInfo[enemyScore.playerId];
 
       const scoreMultiplier = score.isRank ? 1.2 : 1;
       let maxScore = null;
@@ -145,16 +148,16 @@ export const getRankings = (data, { players }) => {
       }
       // console.log(song.maxScore * scoreMultiplier, score.score, enemyScore.score);
       // Rating at the start of battle for this score
-      score.startingRating = playerInfo[score.playerId].rating;
-      enemyScore.startingRating = playerInfo[enemyScore.playerId].rating;
+      score.startingRating = p1.rating;
+      enemyScore.startingRating = p2.rating;
       // Counting the number of battles
-      playerInfo[score.playerId].battleCount++;
-      playerInfo[enemyScore.playerId].battleCount++;
+      p1.battleCount++;
+      p2.battleCount++;
 
       // This is one match between two players
       //// Elo formula
-      const r1 = playerInfo[score.playerId].rating;
-      const r2 = playerInfo[enemyScore.playerId].rating;
+      const r1 = p1.rating;
+      const r2 = p2.rating;
       const R1 = 10 ** (r1 / 400);
       const R2 = 10 ** (r2 / 400);
       const E1 = R1 / (R1 + R2);
@@ -252,14 +255,11 @@ export const getRankings = (data, { players }) => {
       }
 
       // Change rating as a result of this battle
-      playerInfo[score.playerId].rating = r1 + dr1;
-      playerInfo[enemyScore.playerId].rating = r2 + dr2;
+      p1.rating = r1 + dr1;
+      p2.rating = r2 + dr2;
       // Rating floor
-      playerInfo[score.playerId].rating = Math.max(100, playerInfo[score.playerId].rating);
-      playerInfo[enemyScore.playerId].rating = Math.max(
-        100,
-        playerInfo[enemyScore.playerId].rating
-      );
+      p1.rating = Math.max(100, p1.rating);
+      p2.rating = Math.max(100, p2.rating);
       // console.log(playerInfo);
       const idsSorted = _.flow(
         _.keys,
@@ -272,44 +272,40 @@ export const getRankings = (data, { players }) => {
       const battleDate =
         score.dateObject > enemyScore.dateObject ? score.dateObject : enemyScore.dateObject;
       if (
-        (playerInfo[score.playerId].lastPlace !== p1Place &&
-          playerInfo[score.playerId].battleCount > 20) ||
-        (playerInfo[score.playerId].battleCount === 21 &&
-          !playerInfo[score.playerId].history.length)
+        (p1.lastPlace !== p1Place && p1.battleCount > 20) ||
+        (p1.battleCount === 21 && !p1.history.length)
       ) {
         // Place in rankings changed!
-        playerInfo[score.playerId].history.push({
+        p1.history.push({
           place: p1Place,
           date: battleDate.getTime(),
         });
       }
       if (
-        (playerInfo[enemyScore.playerId].lastPlace !== p2Place &&
-          playerInfo[enemyScore.playerId].battleCount > 20) ||
-        (playerInfo[enemyScore.playerId].battleCount === 21 &&
-          !playerInfo[enemyScore.playerId].history.length)
+        (p2.lastPlace !== p2Place && p2.battleCount > 20) ||
+        (p2.battleCount === 21 && !p2.history.length)
       ) {
-        playerInfo[enemyScore.playerId].history.push({
+        p2.history.push({
           place: p2Place,
           date: battleDate.getTime(),
         });
       }
-      playerInfo[score.playerId].lastPlace = p1Place;
-      playerInfo[enemyScore.playerId].lastPlace = p2Place;
+      p1.lastPlace = p1Place;
+      p2.lastPlace = p2Place;
 
-      let lastPointsHistoryEntry = _.last(playerInfo[score.playerId].ratingHistory);
+      const p1LastHistory = _.last(p1.ratingHistory);
       // Recording at least every hour of data here
-      if (!lastPointsHistoryEntry || lastPointsHistoryEntry.date < battleDate.getTime() - 3600000) {
-        playerInfo[score.playerId].ratingHistory.push({
-          rating: playerInfo[score.playerId].rating,
+      if (!p1LastHistory || p1LastHistory.date < battleDate.getTime() - 3600000) {
+        p1.ratingHistory.push({
+          rating: p1.rating,
           date: battleDate.getTime(),
         });
       }
-      lastPointsHistoryEntry = _.last(playerInfo[enemyScore.playerId].ratingHistory);
+      const p2LastHistory = _.last(p2.ratingHistory);
       // Recording at least every hour of data here
-      if (!lastPointsHistoryEntry || lastPointsHistoryEntry.date < battleDate.getTime() - 3600000) {
-        playerInfo[enemyScore.playerId].ratingHistory.push({
-          rating: playerInfo[enemyScore.playerId].rating,
+      if (!p2LastHistory || p2LastHistory.date < battleDate.getTime() - 3600000) {
+        p2.ratingHistory.push({
+          rating: p2.rating,
           date: battleDate.getTime(),
         });
       }

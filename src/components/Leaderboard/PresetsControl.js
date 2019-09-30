@@ -132,6 +132,16 @@ class PresetsControl extends React.Component {
                 </button>
               </div>
             )}
+            {/* <div>
+              <Toggle
+                checked={false}
+                onToggle={active => {
+                  localForage.setItem('showTabs', active);
+                }}
+              >
+                показывать табы с пресетами
+              </Toggle>
+            </div> */}
           </div>
         </Overlay>
       </div>

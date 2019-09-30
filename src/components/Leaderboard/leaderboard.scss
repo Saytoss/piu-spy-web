@@ -50,8 +50,41 @@
       width: 120px;
     }
   }
+  .search-block {
+    margin-bottom: 10px;
+  }
+  .presets-buttons {
+    padding: 0 15px;
+    // border-bottom: 1px solid #444;
+    > span {
+      font-size: 12px;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    > .toggle-button {
+      // border: 1px solid #444;
+      border: none;
+      background: #353535;
+      display: inline-block;
+      font-size: 12px;
+      // border-radius: 8px;
+      // border-bottom-left-radius: 0;
+      // border-bottom-right-radius: 0;
+      padding: 4px 7px;
+      &.active {
+        // border: 1px solid #bbb;
+        border-bottom: 2px solid #95cdff;
+        background: #454545;
+      }
+      + .toggle-button {
+        margin-left: 5px;
+      }
+    }
+  }
   .top-list {
-    margin-top: 14px;
+    padding: 7px;
+    border-radius: 10px;
+    // border: 1px solid #444;
     > .song-block {
       background: #353535;
       border-radius: 10px;
@@ -275,6 +308,13 @@
     font-size: 100%;
   }
   .leaderboard-page {
+    .search-block {
+      margin-bottom: 1vw;
+    }
+    .top-list {
+      padding: 1vw;
+      border-radius: 1vw;
+    }
     .top-list > .song-block {
       padding: 1vw;
       border-radius: 1vw;
