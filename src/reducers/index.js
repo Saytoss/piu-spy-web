@@ -4,11 +4,13 @@ import thunk from 'redux-thunk';
 import top from 'reducers/top';
 import ranking from 'reducers/ranking';
 import profiles from 'reducers/profiles';
+import presets from 'reducers/presets';
 
 const rootReducer = combineReducers({
-  top,
-  ranking,
+  presets,
   profiles,
+  ranking,
+  top,
 });
 
 export const store = createStore(

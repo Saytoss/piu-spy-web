@@ -31,6 +31,9 @@ body {
   input {
     background-color: #555 !important;
     color: #fff;
+    &.form-control {
+      height: 30px;
+    }
   }
   input[type='number']::-webkit-outer-spin-button,
   input[type='number']::-webkit-inner-spin-button {

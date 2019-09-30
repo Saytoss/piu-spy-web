@@ -5,6 +5,14 @@
     display: flex;
     flex-flow: column nowrap;
     align-items: center;
+    .text-with-header {
+      line-height: 1.1;
+      > .text-header {
+        color: #888;
+        font-size: 60%;
+        margin-bottom: 3px;
+      }
+    }
     > .top-controls {
       align-self: stretch;
       display: flex;
@@ -17,10 +25,23 @@
     }
     > .profile {
       width: 100%;
+      padding: 0 15px;
       > .profile-header {
+        display: flex;
+        flex-flow: row wrap;
         font-size: 150%;
-        padding: 20px;
+        padding: 10px;
         padding-left: 40px;
+        border-bottom: 1px solid #ccc;
+        > div + div {
+          margin-left: 40px;
+        }
+      }
+      > .levels-chart {
+        height: 400px;
+      }
+      > .history-chart {
+        height: 300px;
       }
     }
   }

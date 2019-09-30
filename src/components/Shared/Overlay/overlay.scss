@@ -16,16 +16,6 @@ $overlay-arrow-top-width: 10px;
     display: none;
   }
 
-  > .inner-popper-content {
-    overflow: hidden;
-
-    .drag-handle-popper {
-      background: $overlay-top-border;
-      cursor: move;
-      height: 18px;
-    }
-  }
-
   &.arrow-top,
   &.arrow-bottom,
   &.arrow-left,
@@ -83,6 +73,7 @@ $overlay-arrow-top-width: 10px;
   }
 
   &.arrow-top {
+    margin-top: 10px;
     .inner-popper-content {
       border-radius: 0 0 5px 5px;
     }

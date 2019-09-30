@@ -1,11 +1,11 @@
 import React from 'react';
 import _ from 'lodash/fp';
 import { FaCaretLeft, FaCaretRight } from 'react-icons/fa';
-import { Range, getTrackBackground } from 'react-range';
 
 import Overlay from 'components/Shared/Overlay/Overlay';
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
 import Input from 'components/Shared/Input/Input';
+import Range from 'components/Shared/Range';
 
 import { CHART_MIN_MAX } from 'constants/leaderboard';
 
@@ -51,66 +51,10 @@ export default function ChartFilter({ filterValue, onChange }) {
             />
           </div>
           <Range
-            values={range}
-            step={1}
+            range={range}
             min={CHART_MIN_MAX[0]}
             max={CHART_MIN_MAX[1]}
             onChange={r => onChange({ type, range: r })}
-            renderTrack={({ props, children }) => (
-              <div
-                onMouseDown={props.onMouseDown}
-                onTouchStart={props.onTouchStart}
-                style={{
-                  ...props.style,
-                  height: '10px',
-                  display: 'flex',
-                  width: '100%',
-                }}
-              >
-                <div
-                  ref={props.ref}
-                  style={{
-                    height: '6px',
-                    width: '100%',
-                    borderRadius: '3px',
-                    background: getTrackBackground({
-                      values: range,
-                      colors: ['#ccc', '#337ab7', '#ccc'],
-                      min: CHART_MIN_MAX[0],
-                      max: CHART_MIN_MAX[1],
-                    }),
-                    alignSelf: 'center',
-                  }}
-                >
-                  {children}
-                </div>
-              </div>
-            )}
-            renderThumb={({ props, isDragged }) => (
-              <div
-                {...props}
-                style={{
-                  ...props.style,
-                  height: '12px',
-                  width: '12px',
-                  borderRadius: '6px',
-                  backgroundColor: '#FFF',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  boxShadow: '0px 2px 3px #AAA',
-                }}
-              >
-                <div
-                  style={{
-                    height: '6px',
-                    width: '6px',
-                    borderRadius: '3px',
-                    backgroundColor: isDragged ? '#337ab7' : '#CCC',
-                  }}
-                />
-              </div>
-            )}
           />
           <div className="inputs">
             <button

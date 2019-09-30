@@ -21,6 +21,7 @@ import Input from 'components/Shared/Input/Input';
 import Toggle from 'components/Shared/Toggle/Toggle';
 import CollapsibleBar from 'components/Shared/CollapsibleBar';
 import ChartFilter from './ChartFilter';
+import PresetsControl from './PresetsControl';
 
 // constants
 import { routes } from 'constants/routes';
@@ -119,6 +120,7 @@ class Leaderboard extends Component {
         </div>
         <div className="_flex-fill" />
         <div className="_flex-row _margin-bottom">
+          <PresetsControl />
           <button className="btn btn-sm btn-dark btn-icon _margin-right" onClick={this.resetFilter}>
             <FaRedoAlt /> сбросить фильтры
           </button>
@@ -406,9 +408,14 @@ class Leaderboard extends Component {
                                           </span>
                                         )}
                                     </td>
-                                    <td className={classNames('rank', { vj: res.isRank })}>
+                                    <td
+                                      className={classNames('judge', {
+                                        vj: res.isRank,
+                                        hj: res.isHJ,
+                                      })}
+                                    >
                                       {res.isRank && (
-                                        <div className="inner-vj">
+                                        <div className="inner">
                                           {res.isExactDate ? (
                                             'VJ'
                                           ) : (
@@ -426,6 +433,7 @@ class Leaderboard extends Component {
                                           )}
                                         </div>
                                       )}
+                                      {res.isHJ && <div className="inner">HJ</div>}
                                     </td>
                                     <td className="score">
                                       <Overlay

@@ -68,12 +68,12 @@ export default function RankingList({ ranking, isLoading }) {
                     )}
                   </td>
                   <td className="name">
-                    <NavLink exact to={routes.profile.getPath({ name: player.name })}>
+                    <NavLink exact to={routes.profile.getPath({ id: player.id })}>
                       {player.name}
                     </NavLink>
                   </td>
                   <td className="name">
-                    <NavLink exact to={routes.profile.getPath({ name: player.name })}>
+                    <NavLink exact to={routes.profile.getPath({ id: player.id })}>
                       {player.nameArcade}
                     </NavLink>
                   </td>

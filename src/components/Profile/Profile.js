@@ -13,28 +13,134 @@ import {
   ReferenceLine,
   CartesianGrid,
   Line,
-  Brush,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
+import { createSelector } from 'reselect';
 import _ from 'lodash/fp';
-import moment from 'moment';
 
 // styles
 import 'react-responsive-ui/style.css';
 import './profile.scss';
-// import 'react-vis/dist/style.css';
 
 // constants
 
+// components
+import Range from 'components/Shared/Range';
+
 // reducers
 import { fetchTopScores } from 'reducers/top';
+import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 
 // utils
 
 // code
+const defaultGradesDistribution = {
+  SSS: 0,
+  SS: 0,
+  S: 0,
+  'A+': 0,
+  A: 0,
+  B: 0,
+  C: 0,
+  D: 0,
+  F: 0,
+};
+const profileSelector = createSelector(
+  (state, props) => _.toInteger(props.match.params.id),
+  state => state.profiles.data,
+  state => state.profiles.filter,
+  state => state.top.players,
+  state => state.ranking.data,
+  (id, data, filter, players, ranking) => {
+    const profile = data[id];
+    if (_.isEmpty(profile)) {
+      return null;
+    }
+    const levelsDistribution = _.flow(
+      _.get('resultsByLevel'),
+      _.toPairs,
+      _.map(([x, y]) => ({
+        x: _.toInteger(x),
+        S: _.size(_.filter(res => res.chart.chartType === 'S', y)),
+        D: -_.size(_.filter(res => res.chart.chartType === 'D', y)),
+      }))
+    )(profile);
+    const gradesDistribution = _.flow(
+      _.get('resultsByLevel'),
+      _.toPairs,
+      _.map(
+        _.update('[1].result.grade', grade =>
+          grade && grade.includes('+') && grade !== 'A+' ? grade.replace('+', '') : grade
+        )
+      ),
+      _.map(([x, y]) => ({
+        x: _.toInteger(x),
+        ...defaultGradesDistribution,
+        ..._.omit('?', _.mapValues(_.size, _.groupBy('result.grade', y))),
+      })),
+      _.map(item => {
+        const grades = _.pick(Object.keys(defaultGradesDistribution), item);
+        const sum = _.sum(_.values(grades));
+        return {
+          ...item,
+          gradesValues: grades,
+          ...(sum === 0 ? grades : _.mapValues(value => (100 * value) / sum, grades)),
+        };
+      })
+    )(profile);
+
+    const lastTick = _.last(profile.rankingHistory).date;
+    const firstTick = _.first(profile.rankingHistory).date;
+    const minMaxRange = [firstTick / 1000 / 60 / 60 / 24, lastTick / 1000 / 60 / 60 / 24];
+    let placesChanges = [];
+    let ratingChanges = [];
+    if (filter.dayRange) {
+      const dayRangeMs = [
+        filter.dayRange[0] * 1000 * 60 * 60 * 24,
+        filter.dayRange[1] * 1000 * 60 * 60 * 24,
+      ];
+      placesChanges = profile.rankingHistory.filter(
+        item => item.date >= dayRangeMs[0] && item.date <= dayRangeMs[1]
+      );
+      ratingChanges = profile.ratingHistory.filter(
+        item => item.date >= dayRangeMs[0] && item.date <= dayRangeMs[1]
+      );
+      if (filter.dayRange[0] > minMaxRange[0]) {
+        placesChanges.unshift({ ..._.first(placesChanges), date: dayRangeMs[0] });
+        ratingChanges.unshift({ ..._.first(ratingChanges), date: dayRangeMs[0] });
+      }
+      if (filter.dayRange[1] < minMaxRange[1]) {
+        placesChanges.push({ ..._.last(placesChanges), date: dayRangeMs[1] });
+        ratingChanges.push({ ..._.last(ratingChanges), date: dayRangeMs[1] });
+      }
+    } else {
+      placesChanges = profile.rankingHistory;
+      ratingChanges = profile.ratingHistory.filter(
+        item => item.date >= firstTick && item.date <= lastTick
+      );
+    }
+    const rankingIndex = _.findIndex({ id }, ranking);
+    return {
+      ...profile,
+      minMaxRange,
+      levelsDistribution,
+      gradesDistribution,
+      placesChanges,
+      ratingChanges,
+      player: {
+        ..._.find({ id }, players),
+        rank: rankingIndex + 1,
+        ranking: ranking[rankingIndex],
+      },
+    };
+  }
+);
 
 const mapStateToProps = (state, props) => {
   return {
-    profile: state.profiles.data[props.match.params.name],
+    profile: profileSelector(state, props),
+    filter: state.profiles.filter,
     error: state.top.error,
     isLoading: state.top.isLoading,
   };
@@ -42,6 +148,8 @@ const mapStateToProps = (state, props) => {
 
 const mapDispatchToProps = {
   fetchTopScores,
+  setProfilesFilter,
+  resetProfilesFilter,
 };
 
 class Profile extends Component {
@@ -55,61 +163,30 @@ class Profile extends Component {
     profile: {},
   };
 
+  componentWillUnmount() {
+    this.props.resetProfilesFilter();
+  }
+
   onRefresh = () => {
     const { isLoading } = this.props;
     !isLoading && this.props.fetchTopScores();
   };
 
+  onChangeDayRange = range => {
+    const { filter } = this.props;
+    this.props.setProfilesFilter({
+      ...filter,
+      dayRange: range,
+    });
+  };
+
   render() {
-    const { isLoading, profile, error, match } = this.props;
+    const { isLoading, profile, error, filter } = this.props;
+    // console.log(profile);
     if (_.isEmpty(profile)) {
       return null;
     }
-    // console.log(match, profile);
-    const levelsData = _.flow(
-      _.get('resultsByLevel'),
-      _.toPairs,
-      _.map(([x, y]) => ({
-        x: _.toInteger(x),
-        S: _.size(_.filter(res => res.chart.chartType === 'S', y)),
-        D: -_.size(_.filter(res => res.chart.chartType === 'D', y)),
-      }))
-    )(profile);
 
-    let brushData = [];
-    let historyTicks = [];
-    const lastTick = _.last(profile.rankingHistory).date;
-    const firstTick = _.first(profile.rankingHistory).date;
-    for (let date = moment(firstTick); date.isBefore(lastTick); date.add(1, 'day')) {
-      brushData.push({ date: date.valueOf() });
-    }
-    for (let date = moment(lastTick); date.isAfter(firstTick); date.subtract(1, 'month')) {
-      historyTicks = [date.valueOf(), ...historyTicks];
-    }
-    const placesData = _.flow(
-      items => {
-        const newItems = items.map((item, index) => {
-          if (index > 0 && items[index - 1].date < item.date - 24 * 60 * 60 * 1000) {
-            return [
-              ..._.map(
-                it => ({ date: it.date, place: items[index - 1].place }),
-                _.filter(
-                  ({ date: tick }) => tick > items[index - 1].date && tick < item.date,
-                  brushData
-                )
-              ),
-              item,
-            ];
-          }
-          return item;
-        });
-        return _.flatten(newItems);
-      },
-      _.map(item => ({
-        ...item,
-        dateRounded: Math.round(item.date / 1000 / 60 / 60 / 24),
-      }))
-    )(profile.rankingHistory);
     return (
       <div className="profile-page">
         <div className="content">
@@ -127,88 +204,198 @@ class Profile extends Component {
           </div>
           <div className="profile">
             <div className="profile-header">
-              <div className="profile-name">{match.params.name}</div>
+              <div className="profile-name text-with-header">
+                <div className="text-header">игрок</div>
+                <div>{profile.player.nickname}</div>
+              </div>
+              <div className="text-with-header">
+                <div className="text-header">ранк</div>
+                <div>#{profile.player.rank}</div>
+              </div>
+              <div className="text-with-header">
+                <div className="text-header">эло</div>
+                <div>{profile.player.ranking.rating}</div>
+              </div>
             </div>
             <div className="levels-chart">
-              <BarChart
-                height={300}
-                width={800}
-                data={levelsData}
-                stackOffset="sign"
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <XAxis dataKey="x" />
-                <YAxis />
-                <Tooltip />
-                <ReferenceLine y={0} stroke="#555" />
-                <Bar dataKey="D" fill="#169c16" stackId="stack" />
-                <Bar dataKey="S" fill="#af2928" stackId="stack" />
-              </BarChart>
+              <ResponsiveContainer>
+                <BarChart
+                  height={300}
+                  width={900}
+                  data={profile.levelsDistribution}
+                  stackOffset="sign"
+                  margin={{ top: 5, bottom: 5, right: 15, left: 5 }}
+                >
+                  <Tooltip
+                    isAnimationActive={false}
+                    content={({ active, payload, label }) => {
+                      if (!payload || !payload[0]) {
+                        return null;
+                      }
+                      return (
+                        <div className="history-tooltip">
+                          <div>Level: {payload[0].payload.x}</div>
+                          <div style={{ fontWeight: 'bold', color: payload[1].color }}>
+                            Single: {Math.abs(payload[1].value)}
+                          </div>
+                          <div style={{ fontWeight: 'bold', color: payload[0].color }}>
+                            Double: {Math.abs(payload[0].value)}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <XAxis dataKey="x" />
+                  <YAxis />
+                  <Tooltip />
+                  <ReferenceLine y={0} stroke="#555" />
+                  <Legend />
+                  <Bar dataKey="D" fill="#169c16" stackId="stack" />
+                  <Bar dataKey="S" fill="#af2928" stackId="stack" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="levels-chart">
+              <ResponsiveContainer>
+                <BarChart
+                  height={300}
+                  width={900}
+                  data={profile.gradesDistribution}
+                  margin={{ top: 5, bottom: 5, right: 15, left: 65 }}
+                >
+                  <Tooltip
+                    isAnimationActive={false}
+                    content={({ active, payload, label }) => {
+                      if (!payload || !payload[0]) {
+                        return null;
+                      }
+                      return (
+                        <div className="history-tooltip">
+                          <div>Level: {payload[0].payload.x}</div>
+                          {_.reverse(_.filter(item => item.value > 0, payload)).map(item => (
+                            <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
+                              {item.name}: {payload[0].payload.gradesValues[item.name]}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }}
+                  />
+                  <XAxis dataKey="x" />
+                  <YAxis domain={[0, 100]} hide />
+                  <Legend />
+                  <Bar dataKey="F" fill="#774949" stackId="stack" />
+                  <Bar dataKey="D" fill="#5d4e6d" stackId="stack" />
+                  <Bar dataKey="C" fill="#6d5684" stackId="stack" />
+                  <Bar dataKey="B" fill="#7a6490" stackId="stack" />
+                  <Bar dataKey="A" fill="#828fb7" stackId="stack" />
+                  <Bar dataKey="A+" fill="#396eef" stackId="stack" />
+                  <Bar dataKey="S" fill="#b19500" stackId="stack" />
+                  <Bar dataKey="SS" fill="#dab800" stackId="stack" />
+                  <Bar dataKey="SSS" fill="#ffd700" stackId="stack" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
             <div className="history-chart">
-              <LineChart
-                height={300}
-                width={800}
-                data={placesData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="dateRounded"
-                  type="number"
-                  domain={['dataMin', 'dataMax']}
-                  tickFormatter={value =>
-                    new Date(value * 24 * 60 * 60 * 1000).toLocaleDateString()
-                  }
-                />
-                <YAxis
-                  allowDecimals={false}
-                  domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
-                  interval={0}
-                  reversed
-                />
-                <Tooltip
-                  isAnimationActive={false}
-                  content={({ active, payload, label }) => {
-                    if (!payload || !payload[0]) {
-                      return null;
-                    }
-                    return (
-                      <div className="history-tooltip">
-                        <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
-                        {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
-                      </div>
-                    );
-                  }}
-                />
-                <Line
-                  isAnimationActive={false}
-                  type="stepAfter"
-                  dataKey="place"
-                  stroke="#8884d8"
-                  strokeWidth={3}
-                  dot={false}
-                />
-                <Brush
-                  data={brushData}
-                  dataKey="date"
-                  height={40}
-                  stroke="#8884d8"
-                  travellerWidth={20}
-                  tickFormatter={value => new Date(value).toLocaleDateString()}
-                />
-              </LineChart>
+              <ResponsiveContainer>
+                <LineChart
+                  height={300}
+                  width={800}
+                  data={profile.placesChanges}
+                  margin={{ top: 5, bottom: 5, right: 15, left: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={value => new Date(value).toLocaleDateString()}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
+                    interval={0}
+                    reversed
+                  />
+                  <Tooltip
+                    isAnimationActive={false}
+                    content={({ active, payload, label }) => {
+                      if (!payload || !payload[0]) {
+                        return null;
+                      }
+                      return (
+                        <div className="history-tooltip">
+                          <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
+                          {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Line
+                    isAnimationActive={false}
+                    type="stepAfter"
+                    dataKey="place"
+                    stroke="#8884d8"
+                    strokeWidth={3}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
+            <div className="history-chart">
+              <ResponsiveContainer>
+                <LineChart
+                  height={300}
+                  width={800}
+                  data={profile.ratingChanges}
+                  margin={{ top: 5, bottom: 5, right: 15, left: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    type="number"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={value => new Date(value).toLocaleDateString()}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    domain={['dataMin - 100', 'dataMax + 100']}
+                    tickFormatter={Math.round}
+                  />
+                  <ReferenceLine y={1000} stroke="white" />
+                  <Tooltip
+                    isAnimationActive={false}
+                    content={({ active, payload, label }) => {
+                      if (!payload || !payload[0]) {
+                        return null;
+                      }
+                      return (
+                        <div className="history-tooltip">
+                          <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
+                          {payload && payload[0] && (
+                            <div>Rating: {Math.round(payload[0].value)}</div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    isAnimationActive={false}
+                    dataKey="rating"
+                    stroke="#8884d8"
+                    strokeWidth={3}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <Range
+              range={filter.dayRange || profile.minMaxRange}
+              min={profile.minMaxRange[0]}
+              max={profile.minMaxRange[1]}
+              onChange={this.onChangeDayRange}
+            />
           </div>
         </div>
       </div>

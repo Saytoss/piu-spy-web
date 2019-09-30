@@ -9,7 +9,7 @@ export const routes = {
     },
   },
   profile: {
-    path: `/profiles/:name`,
-    getPath: params => `/profiles/${params.name}`,
+    path: `/profiles/:id`,
+    getPath: params => `/profiles/${params.id}`,
   },
 };

@@ -78,6 +78,7 @@ export const getRankings = (data, { players }) => {
     totalScore: { S: 0, D: 0 },
     sumAccuracy: 0,
     history: [],
+    ratingHistory: [],
     lastPlace: null,
   };
   const playerInfo = {};
@@ -295,6 +296,23 @@ export const getRankings = (data, { players }) => {
       }
       playerInfo[score.playerId].lastPlace = p1Place;
       playerInfo[enemyScore.playerId].lastPlace = p2Place;
+
+      let lastPointsHistoryEntry = _.last(playerInfo[score.playerId].ratingHistory);
+      // Recording at least every hour of data here
+      if (!lastPointsHistoryEntry || lastPointsHistoryEntry.date < battleDate.getTime() - 3600000) {
+        playerInfo[score.playerId].ratingHistory.push({
+          rating: playerInfo[score.playerId].rating,
+          date: battleDate.getTime(),
+        });
+      }
+      lastPointsHistoryEntry = _.last(playerInfo[enemyScore.playerId].ratingHistory);
+      // Recording at least every hour of data here
+      if (!lastPointsHistoryEntry || lastPointsHistoryEntry.date < battleDate.getTime() - 3600000) {
+        playerInfo[enemyScore.playerId].ratingHistory.push({
+          rating: playerInfo[enemyScore.playerId].rating,
+          date: battleDate.getTime(),
+        });
+      }
     }),
   ])(battles);
 
@@ -302,7 +320,7 @@ export const getRankings = (data, { players }) => {
     _.keys,
     _.map(key => ({
       ..._.omit(['countAcc', 'sumAccuracy'], playerInfo[key]),
-      id: key,
+      id: _.toInteger(key),
       name: players[key].nickname,
       nameArcade: players[key].arcade_name,
       accuracy:
@@ -337,7 +355,7 @@ export const setRankings = ranking => {
         localForage.getItem('lastChangedRankingPoints_v2'),
         localForage.getItem('lastFetchedRanking_v2'),
       ]);
-      console.log(ranking);
+      // console.log(ranking);
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
@@ -345,7 +363,7 @@ export const setRankings = ranking => {
       const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
       const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
       let rankingsPointsMap = mapPointsLastChanged;
-      console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
+      // console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
       if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
         localForage.setItem('lastChangedRankingPoints_v2', lastFetchedRanking);

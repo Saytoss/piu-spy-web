@@ -170,22 +170,25 @@
                 width: 52px;
                 font-size: 80%;
               }
-              &.rank {
+              &.judge {
                 width: 30px;
                 text-align: center;
-              }
-              &.rank.vj {
                 padding: 0;
-                > .inner-vj {
+                > .inner {
                   display: flex;
                   align-items: center;
                   justify-content: center;
                   padding: 5px;
-                  background: rgba(255, 0, 0, 0.18);
                   font-weight: 600;
                   border-radius: 6px;
                   line-height: 100%;
                   margin: 1px;
+                }
+                &.vj > .inner {
+                  background: #6b3a3a;
+                }
+                &.hj > .inner {
+                  background: #735d3b;
                 }
               }
             }
@@ -195,7 +198,7 @@
                   background: #4b4b4b;
                 }
                 &.empty td {
-                  &.rank {
+                  &.judge {
                     opacity: 0.7;
                   }
                   &.date {
@@ -294,8 +297,8 @@
             &.grade .img-holder img {
               height: 1.8vw;
             }
-            &.rank.vj {
-              > .inner-vj {
+            &.judge {
+              > .inner {
                 padding: 0.5vw;
                 border-radius: 0.5vw;
               }
@@ -328,7 +331,6 @@
 
 .chart-range-overlay-outer {
   width: 300px;
-  margin-top: 10px;
   max-width: 100%;
 
   .chart-range-overlay {
@@ -382,6 +384,24 @@
       > svg {
         margin-right: 0.5em;
       }
+    }
+  }
+}
+
+.presets-control-overlay {
+  padding: 10px 10px 0 10px;
+  > .select {
+    width: 100%;
+    min-width: 303px;
+  }
+  .buttons-presets {
+    display: flex;
+  }
+  .adding-new {
+    display: flex;
+    flex-flow: row nowrap;
+    > .text-input {
+      width: 123px;
     }
   }
 }

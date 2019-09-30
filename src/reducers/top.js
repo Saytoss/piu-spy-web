@@ -13,7 +13,7 @@ const ERROR = `TOP/ERROR`;
 const SET_FILTER = `TOP/SET_FILTER`;
 const RESET_FILTER = `TOP/RESET_FILTER`;
 
-export const defaultFilter = { showRank: true };
+export const defaultFilter = { showRank: true, showRankAndNorank: true };
 
 const initialState = {
   isLoading: false,
@@ -60,6 +60,7 @@ const preprocessData = data =>
           combo: res.max_combo,
           mods: res.mods_list,
           isRank: !!res.rank_mode,
+          isHJ: (res.mods_list || '').split(' ').includes('HJ'),
           accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && acc.toFixed(2),
         };
       }),
@@ -124,7 +125,14 @@ export const fetchTopScores = () => {
       });
       // const data = jsonData;
       const processedData = preprocessData(data);
-      dispatch({ type: SUCCESS, data: processedData, players: _.values(data.players) });
+      dispatch({
+        type: SUCCESS,
+        data: processedData,
+        players: _.flow(
+          _.toPairs,
+          _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
+        )(data.players),
+      });
       const rankings = getRankings(processedData, data);
       dispatch(setRankings(rankings));
       const profiles = getProfiles(processedData, rankings);
