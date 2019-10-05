@@ -351,10 +351,9 @@ class Leaderboard extends Component {
                       <div>{chart.song}</div>
                       <div className="youtube-link">
                         <a
-                          href={`https://youtube.com/results?search_query=${chart.song.replace(
-                            / /g,
-                            '+'
-                          )}+${chart.chartLabel}`}
+                          href={`https://youtube.com/results?search_query=${chart.song
+                            .replace(/ /g, '+')
+                            .replace(/-/g, '')}+${chart.chartLabel}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
