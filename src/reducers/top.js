@@ -125,6 +125,7 @@ export const fetchTopScores = () => {
       });
       // const data = jsonData;
       const processedData = preprocessData(data);
+      const rankings = getRankings(processedData, data);
       dispatch({
         type: SUCCESS,
         data: processedData,
@@ -133,7 +134,6 @@ export const fetchTopScores = () => {
           _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
         )(data.players),
       });
-      const rankings = getRankings(processedData, data);
       dispatch(setRankings(rankings));
       const profiles = getProfiles(processedData, rankings);
       dispatch(setProfiles(profiles));

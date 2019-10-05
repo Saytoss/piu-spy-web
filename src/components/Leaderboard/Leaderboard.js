@@ -44,22 +44,22 @@ const sortingOptions = [
     label: 'новизне скоров',
     value: SORT.DEFAULT,
   },
+  // {
+  //   label: 'отставанию от остальных',
+  //   value: SORT.PROTAGONIST,
+  // },
+  // ...(DEBUG
+  //   ? [
   {
-    label: 'отставанию от остальных',
-    value: SORT.PROTAGONIST,
+    label: 'от худших результатов',
+    value: SORT.RANK_ASC,
   },
-  ...(DEBUG
-    ? [
-        {
-          label: 'от худших результатов',
-          value: SORT.RANK_ASC,
-        },
-        {
-          label: 'от лучших результатов',
-          value: SORT.RANK_DESC,
-        },
-      ]
-    : []),
+  {
+    label: 'от лучших результатов',
+    value: SORT.RANK_DESC,
+  },
+  //   ]
+  // : []),
 ];
 
 const mapStateToProps = state => {
@@ -253,7 +253,7 @@ class Leaderboard extends Component {
           _.get('sortingType.value', filter)
         ) && (
           <div>
-            <label className="label">протагонист (кого сравнивать с остальными):</label>
+            <label className="label">протагонист (чьи результаты):</label>
             <Select
               className={classNames('select players', {
                 'red-border': !_.get('protagonist', filter),
@@ -291,13 +291,16 @@ class Leaderboard extends Component {
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
+    const hasProtagonist = [SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC].includes(
+      _.get('sortingType.value', filter)
+    );
+    const protagonistName = _.get('protagonist.value', filter);
     const uniqueSelectedNames = _.slice(
       0,
       colorsArray.length,
       _.uniq(
         _.compact([
-          _.get('sortingType.value', filter) === SORT.PROTAGONIST &&
-            _.get('protagonist.value', filter),
+          hasProtagonist && protagonistName,
           ..._.map('value', filter.players),
           ..._.map('value', filter.playersOr),
         ])
@@ -420,9 +423,18 @@ class Leaderboard extends Component {
                                           {res.ratingDiffLast && Math.round(res.ratingDiffLast)}
                                         </span>
                                       )}
-
+                                      {!DEBUG &&
+                                        hasProtagonist &&
+                                        res.nickname === protagonistName &&
+                                        res.ratingDiff && (
+                                          <span>
+                                            {` (${res.ratingDiff > 0 ? '+' : ''}${Math.round(
+                                              res.ratingDiff
+                                            )})`}
+                                          </span>
+                                        )}
                                       {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
-                                        res.nickname === _.get('protagonist.value', filter) &&
+                                        res.nickname === protagonistName &&
                                         chart.distanceFromProtagonist > 0 && (
                                           <span className="protagonist-diff">
                                             {' '}
