@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "a608e3c114979c7715ae088a7942161c",
+    "revision": "b4436292b6f1d5b494e10e17885e17e3",
     "url": "/piu-spy-web/index.html"
   },
   {
@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/piu-spy-web/static/css/2.1bda2a1b.chunk.css"
   },
   {
-    "revision": "7b696d82420d8049874e",
+    "revision": "5374eedaec3f2c950347",
     "url": "/piu-spy-web/static/css/main.5a9456ad.chunk.css"
   },
   {
@@ -16,8 +16,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/piu-spy-web/static/js/2.60ca0009.chunk.js"
   },
   {
-    "revision": "7b696d82420d8049874e",
-    "url": "/piu-spy-web/static/js/main.749a1beb.chunk.js"
+    "revision": "5374eedaec3f2c950347",
+    "url": "/piu-spy-web/static/js/main.a27c5e10.chunk.js"
   },
   {
     "revision": "15a1a10d8a46dd456db9",
