@@ -1,3 +1,5 @@
+@import 'utils/css/colors';
+
 .profile-page {
   width: 100%;
   max-width: 940px;
@@ -26,9 +28,12 @@
     > .profile {
       width: 100%;
       padding: 0 15px;
+      .recharts-wrapper {
+        font-size: 70%;
+      }
       > .profile-header {
         display: flex;
-        flex-flow: row wrap;
+        flex-flow: row nowrap;
         font-size: 150%;
         padding: 10px;
         padding-left: 40px;
@@ -37,11 +42,98 @@
           margin-left: 40px;
         }
       }
-      > .levels-chart {
-        height: 400px;
+      .profile-sm-section-header {
+        padding: 0 8px 8px 8px;
+        > span {
+          padding-bottom: 3px;
+          border-bottom: 1px solid #ccc4;
+        }
       }
-      > .history-chart {
-        height: 300px;
+      .profile-section {
+        background: $background-lv-1;
+        margin: 10px 0;
+        border-radius: 10px;
+        padding: 10px;
+        .profile-section-header {
+          padding: 0 8px 8px 8px;
+          border-bottom: 1px solid #ccc7;
+        }
+        .profile-section-content {
+          display: flex;
+          flex-flow: row nowrap;
+          > div {
+            width: 50%;
+          }
+        }
+        .range-container {
+          padding: 0 15px 10px 15px;
+        }
+      }
+      .profile-section.progress-section {
+        .progress-blocks-single-double {
+          display: flex;
+          .progress-block {
+            flex: 1 1 0px;
+          }
+        }
+        .bonus-faq {
+          font-size: 70%;
+          text-align: right;
+        }
+        .achievements-grades {
+          display: flex;
+          flex-flow: row nowrap;
+          &.single .grade-level {
+            color: #eabcbc;
+          }
+          &.double .grade-level {
+            color: #bceac4;
+          }
+          .grade-block {
+            flex: 1 1 0px;
+            margin: 5px;
+            display: flex;
+            flex-flow: column nowrap;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc4;
+            border-radius: 10px;
+            position: relative;
+            height: 130px;
+            > .grade-letter {
+              margin-bottom: 10px;
+              > img {
+                height: 28px;
+              }
+            }
+            > .grade-level {
+              font-size: 150%;
+              font-weight: bold;
+            }
+            > .grade-progress {
+              font-size: 60%;
+            }
+            .progress-background {
+              border-bottom-left-radius: 10px;
+              border-bottom-right-radius: 10px;
+              position: absolute;
+              // background: #88d3ff;
+              border-bottom: 3px solid #88d3ff;
+              border-left: 3px solid #88d3ff;
+              border-right: 3px solid #88d3ff;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              &.complete {
+                border-top: 3px solid #88d3ff;
+                border-radius: 10px;
+              }
+              &.zero {
+                border: none;
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -52,6 +144,37 @@
     padding: 6px 8px 3px 8px;
   }
 }
-//
-// @media screen and (max-width: 900px) {
-// }
+
+@media screen and (max-width: 800px) {
+  .profile-page {
+    font-size: 3vw;
+    > .content > .profile > .profile-header {
+      padding: 1vw;
+      justify-content: space-between;
+      > div + div {
+        margin: 0;
+      }
+    }
+    > .content > .profile .profile-section {
+      .profile-section-content {
+        flex-flow: column nowrap;
+        > div {
+          width: 100%;
+        }
+      }
+      &.progress-section .progress-blocks-single-double {
+        display: flex;
+        flex-flow: column nowrap;
+        .achievements-grades .grade-block {
+          height: 23vw;
+          > .grade-letter {
+            margin-bottom: 1vw;
+            > img {
+              height: 5vw;
+            }
+          }
+        }
+      }
+    }
+  }
+}

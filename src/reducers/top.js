@@ -3,7 +3,7 @@ import _ from 'lodash/fp';
 import { fetchJson } from 'utils/fetch';
 
 import { getRankings, setRankings } from './ranking';
-import { getProfiles, setProfiles } from './profiles';
+import { getProfiles, getInitialProfiles, setProfiles } from './profiles';
 
 import { HOST } from 'constants/backend';
 
@@ -117,7 +117,7 @@ export default function reducer(state = initialState, action) {
 }
 
 export const fetchTopScores = () => {
-  return async dispatch => {
+  return async (dispatch, getState) => {
     dispatch({ type: LOADING });
     try {
       const data = await fetchJson({
@@ -125,7 +125,8 @@ export const fetchTopScores = () => {
       });
       // const data = jsonData;
       const processedData = preprocessData(data);
-      const rankings = getRankings(processedData, data);
+      const initialProfiles = getInitialProfiles(processedData, getState().tracklist);
+      const rankings = getRankings(processedData, data, initialProfiles);
       dispatch({
         type: SUCCESS,
         data: processedData,
@@ -135,10 +136,11 @@ export const fetchTopScores = () => {
         )(data.players),
       });
       dispatch(setRankings(rankings));
-      const profiles = getProfiles(processedData, rankings);
+      const profiles = getProfiles(initialProfiles, processedData, rankings);
       dispatch(setProfiles(profiles));
       return processedData;
     } catch (error) {
+      console.log(error);
       dispatch({ type: ERROR, error });
     }
   };

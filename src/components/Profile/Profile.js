@@ -3,6 +3,7 @@ import toBe from 'prop-types';
 import { connect } from 'react-redux';
 import { FaSearch } from 'react-icons/fa';
 import { withRouter } from 'react-router-dom';
+import classNames from 'classnames';
 import {
   BarChart,
   Bar,
@@ -91,8 +92,8 @@ const profileSelector = createSelector(
       })
     )(profile);
 
-    const lastTick = _.last(profile.rankingHistory).date;
-    const firstTick = _.first(profile.rankingHistory).date;
+    const lastTick = _.last(profile.ratingHistory).date;
+    const firstTick = _.first(profile.ratingHistory).date;
     const minMaxRange = [firstTick / 1000 / 60 / 60 / 24, lastTick / 1000 / 60 / 60 / 24];
     let placesChanges = [];
     let ratingChanges = [];
@@ -117,9 +118,7 @@ const profileSelector = createSelector(
       }
     } else {
       placesChanges = profile.rankingHistory;
-      ratingChanges = profile.ratingHistory.filter(
-        item => item.date >= firstTick && item.date <= lastTick
-      );
+      ratingChanges = profile.ratingHistory;
     }
     const rankingIndex = _.findIndex({ id }, ranking);
     return {
@@ -181,6 +180,229 @@ class Profile extends Component {
     });
   };
 
+  renderRankingHistory() {
+    const { profile } = this.props;
+    return (
+      <ResponsiveContainer aspect={2}>
+        <LineChart
+          height={300}
+          width={800}
+          data={profile.ratingChanges}
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={value => new Date(value).toLocaleDateString()}
+          />
+          <YAxis
+            allowDecimals={false}
+            domain={['dataMin - 100', 'dataMax + 100']}
+            tickFormatter={Math.round}
+            width={40}
+          />
+          <ReferenceLine y={1000} stroke="white" />
+          <Tooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!payload || !payload[0]) {
+                return null;
+              }
+              return (
+                <div className="history-tooltip">
+                  <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
+                  {payload && payload[0] && <div>Rating: {Math.round(payload[0].value)}</div>}
+                </div>
+              );
+            }}
+          />
+          <Line
+            type="monotone"
+            isAnimationActive={false}
+            dataKey="rating"
+            stroke="#8884d8"
+            strokeWidth={3}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderPlaceHistory() {
+    const { profile } = this.props;
+    return (
+      <ResponsiveContainer aspect={2}>
+        <LineChart
+          height={300}
+          width={800}
+          data={profile.placesChanges}
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={value => new Date(value).toLocaleDateString()}
+          />
+          <YAxis
+            allowDecimals={false}
+            domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
+            interval={0}
+            reversed
+            width={40}
+          />
+          <Tooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!payload || !payload[0]) {
+                return null;
+              }
+              return (
+                <div className="history-tooltip">
+                  <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
+                  {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
+                </div>
+              );
+            }}
+          />
+          <Line
+            isAnimationActive={false}
+            type="stepAfter"
+            dataKey="place"
+            stroke="#8884d8"
+            strokeWidth={3}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderLevelsGrades() {
+    const { profile } = this.props;
+    return (
+      <ResponsiveContainer aspect={2}>
+        <BarChart
+          height={300}
+          width={900}
+          data={profile.gradesDistribution}
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+        >
+          <Tooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!payload || !payload[0]) {
+                return null;
+              }
+              return (
+                <div className="history-tooltip">
+                  <div>Level: {payload[0].payload.x}</div>
+                  {_.reverse(_.filter(item => item.value > 0, payload)).map(item => (
+                    <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
+                      {item.name}: {payload[0].payload.gradesValues[item.name]}
+                    </div>
+                  ))}
+                </div>
+              );
+            }}
+          />
+          <XAxis dataKey="x" />
+          <YAxis
+            domain={[0, 100]}
+            ticks={[0, 50, 100]}
+            tickFormatter={x => `${Math.round(x)}%`}
+            width={35}
+          />
+          <Legend />
+          <Bar dataKey="F" fill="#774949" stackId="stack" />
+          <Bar dataKey="D" fill="#5d4e6d" stackId="stack" />
+          <Bar dataKey="C" fill="#6d5684" stackId="stack" />
+          <Bar dataKey="B" fill="#7a6490" stackId="stack" />
+          <Bar dataKey="A" fill="#828fb7" stackId="stack" />
+          <Bar dataKey="A+" fill="#396eef" stackId="stack" />
+          <Bar dataKey="S" fill="#b19500" stackId="stack" />
+          <Bar dataKey="SS" fill="#dab800" stackId="stack" />
+          <Bar dataKey="SSS" fill="#ffd700" stackId="stack" />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderLevels() {
+    const { profile } = this.props;
+    return (
+      <ResponsiveContainer aspect={2}>
+        <BarChart
+          height={300}
+          width={900}
+          data={profile.levelsDistribution}
+          stackOffset="sign"
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+        >
+          <Tooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!payload || !payload[0]) {
+                return null;
+              }
+              return (
+                <div className="history-tooltip">
+                  <div>Level: {payload[0].payload.x}</div>
+                  <div style={{ fontWeight: 'bold', color: payload[1].color }}>
+                    Single: {Math.abs(payload[1].value)}
+                  </div>
+                  <div style={{ fontWeight: 'bold', color: payload[0].color }}>
+                    Double: {Math.abs(payload[0].value)}
+                  </div>
+                </div>
+              );
+            }}
+          />
+          <XAxis dataKey="x" />
+          <YAxis tickFormatter={Math.abs} width={35} />
+          <Tooltip />
+          <ReferenceLine y={0} stroke="#555" />
+          <Legend />
+          <Bar dataKey="D" fill="#169c16" stackId="stack" />
+          <Bar dataKey="S" fill="#af2928" stackId="stack" />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderGradeBlock(type, grade) {
+    const { profile } = this.props;
+    const obj = profile.progress[type];
+    const typeLetter = type === 'double' ? 'D' : 'S';
+    const progr = Math.floor((obj[`${grade}-bonus-level-coef`] || 0) * 100);
+    const levelString = obj[`${grade}-bonus-level`]
+      ? `${typeLetter}${obj[`${grade}-bonus-level`]}`
+      : '?';
+    return (
+      <div className="grade-block">
+        <div className="grade-letter">
+          <img src={`${process.env.PUBLIC_URL}/grades/${grade}.png`} alt={grade} />
+        </div>
+        <div className="grade-level">{levelString}</div>
+        <div className="grade-progress">{progr}%</div>
+        <div className="grade-progress">бонус: +{Math.floor(obj[`${grade}-bonus`])}</div>
+        <div
+          className={classNames('progress-background', {
+            complete: progr === 100,
+            zero: progr === 0,
+          })}
+          style={{
+            height: `${progr}%`,
+          }}
+        />
+      </div>
+    );
+  }
+
   render() {
     const { isLoading, profile, error, filter } = this.props;
 
@@ -188,13 +410,15 @@ class Profile extends Component {
       return null;
     }
 
+    console.log(profile);
+
     return (
       <div className="profile-page">
         <div className="content">
           {error && error.message}
           <div className="top-controls">
             <div className="_flex-fill" />
-            <div className="beta">страница в бета-версии</div>
+            {/* <div className="beta">страница в бета-версии</div> */}
             <button
               disabled={isLoading}
               className="btn btn-sm btn-dark btn-icon"
@@ -219,190 +443,78 @@ class Profile extends Component {
               </div>
               <div className="text-with-header">
                 <div className="text-header">последняя игра</div>
-                <div>{getTimeAgo(profile.player.ranking.lastBattleDate)}</div>
+                <div>{profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}</div>
               </div>
             </div>
-            <div className="profile-header">чарты</div>
-            <div className="levels-chart">
-              <ResponsiveContainer>
-                <BarChart
-                  height={300}
-                  width={900}
-                  data={profile.levelsDistribution}
-                  stackOffset="sign"
-                  margin={{ top: 5, bottom: 5, right: 15, left: 5 }}
-                >
-                  <Tooltip
-                    isAnimationActive={false}
-                    content={({ active, payload, label }) => {
-                      if (!payload || !payload[0]) {
-                        return null;
-                      }
-                      return (
-                        <div className="history-tooltip">
-                          <div>Level: {payload[0].payload.x}</div>
-                          <div style={{ fontWeight: 'bold', color: payload[1].color }}>
-                            Single: {Math.abs(payload[1].value)}
-                          </div>
-                          <div style={{ fontWeight: 'bold', color: payload[0].color }}>
-                            Double: {Math.abs(payload[0].value)}
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <XAxis dataKey="x" />
-                  <YAxis tickFormatter={Math.abs} />
-                  <Tooltip />
-                  <ReferenceLine y={0} stroke="#555" />
-                  <Legend />
-                  <Bar dataKey="D" fill="#169c16" stackId="stack" />
-                  <Bar dataKey="S" fill="#af2928" stackId="stack" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="profile-section">
+              <div className="profile-section-content">
+                <div className="profile-section-2">
+                  <div className="profile-sm-section-header">
+                    <span>уровни</span>
+                  </div>
+                  <div>{this.renderLevels()}</div>
+                </div>
+                <div className="profile-section-2">
+                  <div className="profile-sm-section-header">
+                    <span>оценки</span>
+                  </div>
+                  <div>{this.renderLevelsGrades()}</div>
+                </div>
+              </div>
             </div>
-            <div className="profile-header">оценки</div>
-            <div className="levels-chart">
-              <ResponsiveContainer>
-                <BarChart
-                  height={300}
-                  width={900}
-                  data={profile.gradesDistribution}
-                  margin={{ top: 5, bottom: 5, right: 15, left: 65 }}
-                >
-                  <Tooltip
-                    isAnimationActive={false}
-                    content={({ active, payload, label }) => {
-                      if (!payload || !payload[0]) {
-                        return null;
-                      }
-                      return (
-                        <div className="history-tooltip">
-                          <div>Level: {payload[0].payload.x}</div>
-                          {_.reverse(_.filter(item => item.value > 0, payload)).map(item => (
-                            <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
-                              {item.name}: {payload[0].payload.gradesValues[item.name]}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  />
-                  <XAxis dataKey="x" />
-                  <YAxis domain={[0, 100]} hide />
-                  <Legend />
-                  <Bar dataKey="F" fill="#774949" stackId="stack" />
-                  <Bar dataKey="D" fill="#5d4e6d" stackId="stack" />
-                  <Bar dataKey="C" fill="#6d5684" stackId="stack" />
-                  <Bar dataKey="B" fill="#7a6490" stackId="stack" />
-                  <Bar dataKey="A" fill="#828fb7" stackId="stack" />
-                  <Bar dataKey="A+" fill="#396eef" stackId="stack" />
-                  <Bar dataKey="S" fill="#b19500" stackId="stack" />
-                  <Bar dataKey="SS" fill="#dab800" stackId="stack" />
-                  <Bar dataKey="SSS" fill="#ffd700" stackId="stack" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="profile-section">
+              <div className="profile-section-content">
+                <div className="profile-section-2">
+                  <div className="profile-sm-section-header">
+                    <span>эло</span>
+                  </div>
+                  <div>{this.renderRankingHistory()}</div>
+                </div>
+                <div className="profile-section-2">
+                  <div className="profile-sm-section-header">
+                    <span>место в топе</span>
+                  </div>
+                  <div>{this.renderPlaceHistory()}</div>
+                </div>
+              </div>
+              <div className="range-container">
+                <Range
+                  range={filter.dayRange || profile.minMaxRange}
+                  min={profile.minMaxRange[0]}
+                  max={profile.minMaxRange[1]}
+                  onChange={this.onChangeDayRange}
+                />
+              </div>
             </div>
-            <div className="history-chart">
-              <ResponsiveContainer>
-                <LineChart
-                  height={300}
-                  width={800}
-                  data={profile.placesChanges}
-                  margin={{ top: 5, bottom: 5, right: 15, left: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    tickFormatter={value => new Date(value).toLocaleDateString()}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
-                    interval={0}
-                    reversed
-                  />
-                  <Tooltip
-                    isAnimationActive={false}
-                    content={({ active, payload, label }) => {
-                      if (!payload || !payload[0]) {
-                        return null;
-                      }
-                      return (
-                        <div className="history-tooltip">
-                          <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
-                          {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
-                        </div>
-                      );
-                    }}
-                  />
-                  <Line
-                    isAnimationActive={false}
-                    type="stepAfter"
-                    dataKey="place"
-                    stroke="#8884d8"
-                    strokeWidth={3}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="profile-section progress-section">
+              <div className="profile-sm-section-header">
+                <span>ачивки по уровням</span>
+              </div>
+              <div className="progress-blocks-single-double">
+                <div className="progress-block">
+                  <div className="achievements-grades single">
+                    {this.renderGradeBlock('single', 'A')}
+                    {this.renderGradeBlock('single', 'A+')}
+                    {this.renderGradeBlock('single', 'S')}
+                    {this.renderGradeBlock('single', 'SS')}
+                  </div>
+                </div>
+                <div className="progress-block">
+                  <div className="achievements-grades double">
+                    {this.renderGradeBlock('double', 'A')}
+                    {this.renderGradeBlock('double', 'A+')}
+                    {this.renderGradeBlock('double', 'S')}
+                    {this.renderGradeBlock('double', 'SS')}
+                  </div>
+                </div>
+              </div>
+              <div className="bonus-faq">
+                * суммарный бонус (+{Math.round(profile.progress.bonus)}) добавляется к стартовому
+                Эло
+                <br />* для получения ачивки нужно сыграть около 10% всех чартов данного левела на
+                нужный грейд
+              </div>
             </div>
-            <div className="history-chart">
-              <ResponsiveContainer>
-                <LineChart
-                  height={300}
-                  width={800}
-                  data={profile.ratingChanges}
-                  margin={{ top: 5, bottom: 5, right: 15, left: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    tickFormatter={value => new Date(value).toLocaleDateString()}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    domain={['dataMin - 100', 'dataMax + 100']}
-                    tickFormatter={Math.round}
-                  />
-                  <ReferenceLine y={1000} stroke="white" />
-                  <Tooltip
-                    isAnimationActive={false}
-                    content={({ active, payload, label }) => {
-                      if (!payload || !payload[0]) {
-                        return null;
-                      }
-                      return (
-                        <div className="history-tooltip">
-                          <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
-                          {payload && payload[0] && (
-                            <div>Rating: {Math.round(payload[0].value)}</div>
-                          )}
-                        </div>
-                      );
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    isAnimationActive={false}
-                    dataKey="rating"
-                    stroke="#8884d8"
-                    strokeWidth={3}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <Range
-              range={filter.dayRange || profile.minMaxRange}
-              min={profile.minMaxRange[0]}
-              max={profile.minMaxRange[1]}
-              onChange={this.onChangeDayRange}
-            />
           </div>
         </div>
       </div>

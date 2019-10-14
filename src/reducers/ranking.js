@@ -68,12 +68,12 @@ export default function reducer(state = {}, action) {
   }
 }
 
-export const getRankings = (data, { players }) => {
+export const getRankings = (data, { players }, profiles) => {
   const defaultInfo = {
     count: 0,
     battleCount: 0,
     countAcc: 0,
-    rating: 1000,
+    // rating: 1000,
     grades: { F: 0, D: 0, C: 0, B: 0, A: 0, S: 0, SS: 0, SSS: 0 },
     totalScore: { S: 0, D: 0 },
     sumAccuracy: 0,
@@ -81,6 +81,12 @@ export const getRankings = (data, { players }) => {
     ratingHistory: [],
     lastPlace: null,
     lastBattleDate: 0,
+  };
+  const setupDefaultInfo = id => {
+    return {
+      ..._.cloneDeep(defaultInfo),
+      rating: 1000 + profiles[id].progress.bonus,
+    };
   };
   const playerInfo = {};
   const battles = [];
@@ -91,7 +97,7 @@ export const getRankings = (data, { players }) => {
         validResults.push(score);
 
         if (!playerInfo[score.playerId]) {
-          playerInfo[score.playerId] = _.cloneDeep(defaultInfo);
+          playerInfo[score.playerId] = setupDefaultInfo(score.playerId);
         }
         const p1 = playerInfo[score.playerId];
         p1.count++;
@@ -123,7 +129,7 @@ export const getRankings = (data, { players }) => {
     _.forEach(([score, enemyScore, song]) => {
       // For each battle
       if (!playerInfo[enemyScore.playerId]) {
-        playerInfo[enemyScore.playerId] = _.cloneDeep(defaultInfo);
+        playerInfo[enemyScore.playerId] = setupDefaultInfo(enemyScore.playerId);
       }
       const p1 = playerInfo[score.playerId];
       const p2 = playerInfo[enemyScore.playerId];
@@ -146,7 +152,6 @@ export const getRankings = (data, { players }) => {
           maxScore = Math.max(..._.map('score', song.results));
         }
       }
-      // console.log(song.maxScore * scoreMultiplier, score.score, enemyScore.score);
       // Rating at the start of battle for this score
       score.startingRating = p1.rating;
       enemyScore.startingRating = p2.rating;
@@ -162,14 +167,6 @@ export const getRankings = (data, { players }) => {
       const R2 = 10 ** (r2 / 400);
       const E1 = R1 / (R1 + R2);
       const E2 = R2 / (R1 + R2);
-      // S1/S2 is the factor of winning
-      // S1 = 1  S2 = 0  -- player 1 wins
-      // S1 = 0.5  S2 = 0.5  -- draw
-      // I'm using difference in score to get this value, it ranges from 0 from 1
-      // Current formula assigns 100% win if you have at least ~15% more score than the other player
-      // 3.000 vs 3.500 score -- 0 / 1 win percentage -- clear win for player 2
-      // 3.000 vs 3.300 score -- 0.17 / 0.83 win percentage -- ranking is not affected as strongly as 0 / 1
-      // 3.000 vs 3.100 score -- 0.38 / 0.62 win percentage -- almost draw
       let A = score.score;
       let B = enemyScore.score;
       let S1, S2;
@@ -181,30 +178,16 @@ export const getRankings = (data, { players }) => {
         S1 = (B / (A + B) - 0.5) * 5 + 0.5;
         S2 = (A / (A + B) - 0.5) * 5 + 0.5;
       } else {
-        // console.log('////////// NO MAX SCORE /////////////');
         S1 = A > B ? 1 : B < A ? 0 : 0.5;
         S2 = 1 - S1;
       }
       S1 = Math.max(0, Math.min(1, S1)); // Set strict boundaries to [0, 1]
       S2 = Math.max(0, Math.min(1, S2));
-      // S1old = Math.max(0, Math.min(1, S1old)); // Set strict boundaries to [0, 1]
-      // S2old = Math.max(0, Math.min(1, S2old));
-      // K is the coeficient that decides how strongly this match affects rating
-      // Higher level -- affects more
-      // More playcount -- affects less (just to make first matches place people faster)
-      // const k1pow = Math.min(1, playerInfo[score.playerId].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
-      // const k2pow = Math.min(1, playerInfo[enemyScore.playerId].battleCount / 100) * 0.3; // battlecount 0 -> 150 => results in 0 -> 0.5 value here
 
-      let kRatingDiff = Math.abs(E1 - E2) + 0.6;
-      // prettier-ignore
-      if ((S1 - E1 > 0) === (E1 < 0.5) && Math.abs(E1 - E2) > 0.1) {
-        const difference = Math.abs(E1 - E2) / 3;
-        kRatingDiff *= 1 - difference; // When someone with lower rank wins against someone with higher rank
-      }
       const kRating1 = Math.max(0, Math.min(1, (r1 - 700) / 800));
       const kRating2 = Math.max(0, Math.min(1, (r2 - 700) / 800));
-      const maxK1 = 60 + 20 * kRating1;
-      const maxK2 = 60 + 20 * kRating2;
+      const maxK1 = 30 + 20 * kRating1;
+      const maxK2 = 30 + 20 * kRating2;
       const kLevel1 = Math.max(
         1,
         Math.min(maxK1, (song.chartLevel / 25) ** ((kRating1 - 0.5) * 5 + 2.5) * maxK1)
@@ -213,15 +196,10 @@ export const getRankings = (data, { players }) => {
         1,
         Math.min(maxK2, (song.chartLevel / 25) ** ((kRating2 - 0.5) * 5 + 2.5) * maxK2)
       );
+      const kLevel = Math.min(kLevel1, kLevel2);
 
-      const K1 = kLevel1 / kRatingDiff;
-      const K2 = kLevel2 / kRatingDiff;
-      // const K1 = (kLevel + (1 - kRating1) * (maxK - kLevel)) / kRatingDiff;
-      // const K2 = (kLevel + (1 - kRating2) * (maxK - kLevel)) / kRatingDiff;
-      // const K1D = (Math.max(r1 - 600, 0) / 1500 + 1) ** 3 / 2;
-      // const K2D = (Math.max(r2 - 600, 0) / 1500 + 1) ** 3 / 2;
-      // const K1 = Math.min(20, Math.max(4, song.chartLevel - 4)) ** (2 - k1pow) / K1D / RD;
-      // const K2 = Math.min(20, Math.max(4, song.chartLevel - 4)) ** (2 - k2pow) / K2D / RD;
+      const K1 = kLevel;
+      const K2 = kLevel;
       let dr1 = K1 * (S1 - E1);
       let dr2 = K2 * (S2 - E2);
       // Do not decrease rating if you have SSS - RIP zero-sum algorithm
@@ -249,7 +227,7 @@ export const getRankings = (data, { players }) => {
         console.log(
           `- Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
             2
-          )} - K ${K1.toFixed(2)} ${K2.toFixed(2)} RD ${kRatingDiff.toFixed(1)}`
+          )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}`
         );
         // }
       }
@@ -260,7 +238,7 @@ export const getRankings = (data, { players }) => {
       // Rating floor
       p1.rating = Math.max(100, p1.rating);
       p2.rating = Math.max(100, p2.rating);
-      // console.log(playerInfo);
+
       const idsSorted = _.flow(
         _.keys,
         _.map(id => ({ id, rating: playerInfo[id].rating })),

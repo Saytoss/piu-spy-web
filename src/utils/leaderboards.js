@@ -21,15 +21,9 @@ export const tooltipFormatterForBests = date => (
   </div>
 );
 
-const nowDate = new Date();
 export const getTimeAgo = date => {
-  const strTimeAgo = timeAgo.format(date, timeStyle);
-  if (!strTimeAgo) {
-    const dayDiff = moment(nowDate)
-      .startOf('day')
-      .diff(moment(date).startOf('day'), 'days');
-    return dayDiff === 0 ? 'сегодня' : dayDiff === 1 ? 'вчера' : '';
-  } else {
-    return strTimeAgo;
-  }
+  const dayDiff = moment()
+    .startOf('day')
+    .diff(moment(date).startOf('day'), 'days');
+  return dayDiff === 0 ? 'сегодня' : dayDiff === 1 ? 'вчера' : timeAgo.format(date, timeStyle);
 };
