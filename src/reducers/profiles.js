@@ -98,7 +98,7 @@ export const getInitialProfiles = (data, tracklist) => {
   });
 
   const getBonusForGrade = (grade, level) =>
-    (({ A: 30, 'A+': 25, S: 20, SS: 15 }[grade] * (1 + 2 ** (level / 4))) / 15);
+    (({ A: 30, 'A+': 25, S: 20, SS: 15 }[grade] * (1 + 2 ** (level / 4))) / 10);
   const getMinimumRatio = totalCharts =>
     Math.min(totalCharts, 1 + totalCharts / 20 + Math.sqrt(Math.max(totalCharts - 1, 0)) * 0.7) /
     totalCharts;

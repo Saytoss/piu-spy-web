@@ -85,7 +85,7 @@ export const getRankings = (data, { players }, profiles) => {
   const setupDefaultInfo = id => {
     return {
       ..._.cloneDeep(defaultInfo),
-      rating: 1000 + profiles[id].progress.bonus,
+      rating: 850 + profiles[id].progress.bonus,
     };
   };
   const playerInfo = {};
