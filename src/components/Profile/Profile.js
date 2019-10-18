@@ -66,7 +66,8 @@ const profileSelector = createSelector(
   state => state.profiles.filter,
   state => state.top.players,
   state => state.ranking.data,
-  (id, data, filter, players, ranking) => {
+  state => state.tracklist.data,
+  (id, data, filter, players, ranking, tracklist) => {
     const profile = data[id];
     if (_.isEmpty(profile)) {
       return null;
@@ -76,8 +77,12 @@ const profileSelector = createSelector(
       _.toPairs,
       _.map(([x, y]) => ({
         x: _.toInteger(x),
-        S: _.size(_.filter(res => res.chart.chartType === 'S', y)),
-        D: -_.size(_.filter(res => res.chart.chartType === 'D', y)),
+        S:
+          (_.size(_.filter(res => res.chart.chartType === 'S', y)) / tracklist.singlesLevels[x]) *
+          100,
+        D:
+          (-_.size(_.filter(res => res.chart.chartType === 'D', y)) / tracklist.doublesLevels[x]) *
+          100,
       }))
     )(profile);
     const gradesDistribution = _.flow(
@@ -134,6 +139,7 @@ const profileSelector = createSelector(
 const mapStateToProps = (state, props) => {
   return {
     profile: profileSelector(state, props),
+    tracklist: state.tracklist.data,
     filter: state.profiles.filter,
     error: state.top.error,
     isLoading: state.top.isLoading,
@@ -309,7 +315,7 @@ class Profile extends Component {
             domain={[0, 100]}
             ticks={[0, 50, 100]}
             tickFormatter={x => `${Math.round(x)}%`}
-            width={35}
+            width={40}
           />
           <Legend />
           <Bar dataKey="F" fill="#774949" stackId="stack" />
@@ -327,7 +333,7 @@ class Profile extends Component {
   }
 
   renderLevels() {
-    const { profile } = this.props;
+    const { profile, tracklist } = this.props;
     return (
       <ResponsiveContainer aspect={2}>
         <BarChart
@@ -343,21 +349,29 @@ class Profile extends Component {
               if (!payload || !payload[0]) {
                 return null;
               }
+              const totalD = tracklist.doublesLevels[payload[0].payload.x];
+              const totalS = tracklist.singlesLevels[payload[0].payload.x];
               return (
                 <div className="history-tooltip">
                   <div>Level: {payload[0].payload.x}</div>
-                  <div style={{ fontWeight: 'bold', color: payload[1].color }}>
-                    Single: {Math.abs(payload[1].value)}
-                  </div>
-                  <div style={{ fontWeight: 'bold', color: payload[0].color }}>
-                    Double: {Math.abs(payload[0].value)}
-                  </div>
+                  {totalS > 0 && (
+                    <div style={{ fontWeight: 'bold', color: payload[1].color }}>
+                      Single: {Math.abs(payload[1].value).toFixed(1)}% (
+                      {Math.round((payload[1].value * totalS) / 100)}/{totalS})
+                    </div>
+                  )}
+                  {totalD > 0 && (
+                    <div style={{ fontWeight: 'bold', color: payload[0].color }}>
+                      Double: {Math.abs(payload[0].value).toFixed(1)}% (
+                      {Math.round((Math.abs(payload[0].value) * totalD) / 100)}/{totalD})
+                    </div>
+                  )}
                 </div>
               );
             }}
           />
           <XAxis dataKey="x" />
-          <YAxis tickFormatter={Math.abs} width={35} />
+          <YAxis tickFormatter={x => Math.abs(x) + '%'} width={40} />
           <Tooltip />
           <ReferenceLine y={0} stroke="#555" />
           <Legend />

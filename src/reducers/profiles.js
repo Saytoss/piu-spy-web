@@ -1,7 +1,7 @@
 import _ from 'lodash/fp';
 // import localForage from 'localforage';
 //
-// import { DEBUG } from 'constants/env';
+import { GRADES } from 'constants/grades';
 
 const SET_PROFILES = `PROFILES/SET_PROFILES`;
 const SET_FILTER = `PROFILES/SET_FILTER`;
@@ -73,10 +73,20 @@ export const getInitialProfiles = (data, tracklist) => {
       ...(profile.resultsByGrade[result.grade] || []),
       { result, chart },
     ];
-    profile.resultsByLevel[chart.chartLevel] = [
-      ...(profile.resultsByLevel[chart.chartLevel] || []),
-      { result, chart },
-    ];
+    const resultsOfThisPlayer = _.filter({ playerId: result.playerId }, chart.results);
+    if (resultsOfThisPlayer[0] === result) {
+      // Only apply one result
+      let bestGradeResult = result;
+      if (resultsOfThisPlayer.length > 1) {
+        bestGradeResult = resultsOfThisPlayer.sort(
+          (a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade)
+        )[0];
+      }
+      profile.resultsByLevel[chart.chartLevel] = [
+        ...(profile.resultsByLevel[chart.chartLevel] || []),
+        { result: bestGradeResult, chart },
+      ];
+    }
     if (result.isExactDate && profile.lastResultDate < result.dateObject) {
       profile.lastResultDate = result.dateObject;
     }
