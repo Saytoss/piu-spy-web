@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/piu-spy-web/precache-manifest.9970b35a778c18a316ada455bdc995c2.js"
+  "/piu-spy-web/precache-manifest.a3ca771b2d959654540cbcc3c0668027.js"
 );
 
 self.addEventListener('message', (event) => {
