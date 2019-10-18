@@ -119,30 +119,6 @@ const getFilteredData = (data, filter) => {
       _.filter(row => _.size(row.results)),
       ...sortingFunctions,
       filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
-      // _.map(song => {
-      //   let topPlace = 1;
-      //   const occuredNicknames = [];
-      //   return {
-      //     ...song,
-      //     results: song.results.map((res, index) => {
-      //       const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
-      //       occuredNicknames.push(res.nickname);
-      //       if (index === 0) {
-      //         topPlace = 1;
-      //       } else if (
-      //         !isSecondOccurenceInResults &&
-      //         res.score !== _.get([index - 1, 'score'], song.results)
-      //       ) {
-      //         topPlace += 1;
-      //       }
-      //       return {
-      //         ...res,
-      //         topPlace,
-      //         isSecondOccurenceInResults,
-      //       };
-      //     }),
-      //   };
-      // }),
     ])
   )(data);
   // console.log('Elapsed:', performance.now() - start);

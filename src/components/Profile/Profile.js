@@ -48,6 +48,18 @@ const defaultGradesDistribution = {
   D: 0,
   F: 0,
 };
+const cutRange = (array, range) => {
+  const startIndex = _.findIndex(item => item.date > range[0], array);
+  const endIndex = _.findLastIndex(item => item.date < range[1], array);
+  let firstElement =
+    startIndex > 0 ? array[startIndex - 1] : startIndex === 0 ? array[startIndex] : _.last(array);
+  let lastElement = endIndex > -1 ? array[endIndex] : _.first(array);
+  firstElement = { ...firstElement, date: range[0] };
+  lastElement = { ...lastElement, date: range[1] };
+  const middleElements =
+    startIndex > -1 && endIndex > -1 ? array.slice(startIndex, endIndex + 1) : [];
+  return [firstElement, ...middleElements, lastElement];
+};
 const profileSelector = createSelector(
   (state, props) => _.toInteger(props.match.params.id),
   state => state.profiles.data,
@@ -92,34 +104,16 @@ const profileSelector = createSelector(
       })
     )(profile);
 
-    const lastTick = _.last(profile.ratingHistory).date;
-    const firstTick = _.first(profile.ratingHistory).date;
+    const lastTickRating = _.last(profile.ratingHistory).date;
+    const lastTickRanking = _.last(profile.rankingHistory).date;
+    const lastTick = lastTickRating > lastTickRanking ? lastTickRating : lastTickRanking; // End graph at either point
+    const firstTick = _.first(profile.ratingHistory).date; // Start graph from the first battle of this player
+
     const minMaxRange = [firstTick / 1000 / 60 / 60 / 24, lastTick / 1000 / 60 / 60 / 24];
-    let placesChanges = [];
-    let ratingChanges = [];
-    if (filter.dayRange) {
-      const dayRangeMs = [
-        filter.dayRange[0] * 1000 * 60 * 60 * 24,
-        filter.dayRange[1] * 1000 * 60 * 60 * 24,
-      ];
-      placesChanges = profile.rankingHistory.filter(
-        item => item.date >= dayRangeMs[0] && item.date <= dayRangeMs[1]
-      );
-      ratingChanges = profile.ratingHistory.filter(
-        item => item.date >= dayRangeMs[0] && item.date <= dayRangeMs[1]
-      );
-      if (filter.dayRange[0] > minMaxRange[0]) {
-        placesChanges.unshift({ ..._.first(placesChanges), date: dayRangeMs[0] });
-        ratingChanges.unshift({ ..._.first(ratingChanges), date: dayRangeMs[0] });
-      }
-      if (filter.dayRange[1] < minMaxRange[1]) {
-        placesChanges.push({ ..._.last(placesChanges), date: dayRangeMs[1] });
-        ratingChanges.push({ ..._.last(ratingChanges), date: dayRangeMs[1] });
-      }
-    } else {
-      placesChanges = profile.rankingHistory;
-      ratingChanges = profile.ratingHistory;
-    }
+    const filterRange = filter.dayRange || minMaxRange;
+    const dayRangeMs = [filterRange[0] * 1000 * 60 * 60 * 24, filterRange[1] * 1000 * 60 * 60 * 24];
+    const placesChanges = cutRange(profile.rankingHistory, dayRangeMs);
+    const ratingChanges = cutRange(profile.ratingHistory, dayRangeMs);
     const rankingIndex = _.findIndex({ id }, ranking);
     return {
       ...profile,

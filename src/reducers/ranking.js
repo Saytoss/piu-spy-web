@@ -239,49 +239,33 @@ export const getRankings = (data, { players }, profiles) => {
       p1.rating = Math.max(100, p1.rating);
       p2.rating = Math.max(100, p2.rating);
 
-      const idsSorted = _.flow(
+      const playersSorted = _.flow(
         _.keys,
         _.map(id => ({ id, rating: playerInfo[id].rating })),
-        _.orderBy(['rating'], ['desc']),
-        _.map(x => _.toInteger(x.id))
+        _.orderBy(['rating'], ['desc'])
       )(playerInfo);
-      const p1Place = idsSorted.indexOf(score.playerId) + 1;
-      const p2Place = idsSorted.indexOf(enemyScore.playerId) + 1;
       const battleDate =
         score.dateObject > enemyScore.dateObject ? score.dateObject : enemyScore.dateObject;
-      if (
-        (p1.lastPlace !== p1Place && p1.battleCount > 20) ||
-        (p1.battleCount === 21 && !p1.history.length)
-      ) {
-        // Place in rankings changed!
-        p1.history.push({
-          place: p1Place,
-          date: battleDate.getTime(),
-        });
-      }
-      if (
-        (p2.lastPlace !== p2Place && p2.battleCount > 20) ||
-        (p2.battleCount === 21 && !p2.history.length)
-      ) {
-        p2.history.push({
-          place: p2Place,
-          date: battleDate.getTime(),
-        });
-      }
-      p1.lastPlace = p1Place;
-      p2.lastPlace = p2Place;
+      playersSorted.forEach((player, index) => {
+        const lastPlace = playerInfo[player.id].lastPlace;
+        if (lastPlace !== index + 1) {
+          playerInfo[player.id].history.push({
+            place: index + 1,
+            date: battleDate.getTime(),
+          });
+          playerInfo[player.id].lastPlace = index + 1;
+        }
+      });
 
-      const p1LastHistory = _.last(p1.ratingHistory);
-      // Recording at least every hour of data here
-      if (!p1LastHistory || p1LastHistory.date < battleDate.getTime() - 3600000) {
+      const p1LastRating = _.last(p1.ratingHistory);
+      const p2LastRating = _.last(p2.ratingHistory);
+      if (p1LastRating !== p1.rating) {
         p1.ratingHistory.push({
           rating: p1.rating,
           date: battleDate.getTime(),
         });
       }
-      const p2LastHistory = _.last(p2.ratingHistory);
-      // Recording at least every hour of data here
-      if (!p2LastHistory || p2LastHistory.date < battleDate.getTime() - 3600000) {
+      if (p2LastRating !== p2.rating) {
         p2.ratingHistory.push({
           rating: p2.rating,
           date: battleDate.getTime(),

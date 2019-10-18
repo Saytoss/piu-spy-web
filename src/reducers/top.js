@@ -44,14 +44,6 @@ const preprocessData = data =>
         chartType: item.chart_label.slice(0, 1),
         mix: item.mix,
         results: item.results.map((res, index) => {
-          const perfects = (Math.sqrt(res.perfects) * _.toInteger(item.chart_label.slice(1))) / 2;
-          const acc = perfects
-            ? Math.floor(
-                ((perfects * 100 + res.greats * 60 + res.goods * 30 + res.misses * -20) /
-                  (perfects + res.greats + res.goods + res.bads + res.misses)) *
-                  100
-              ) / 100
-            : null;
           let resultInfoOverrides = {};
           if (stepSum) {
             const infos = [res.perfects, res.greats, res.goods, res.bads, res.misses];
@@ -94,7 +86,6 @@ const preprocessData = data =>
             mods: res.mods_list,
             isRank: !!res.rank_mode,
             isHJ: (res.mods_list || '').split(' ').includes('HJ'),
-            accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && acc.toFixed(2),
             ...resultInfoOverrides,
           };
         }),
@@ -107,10 +98,21 @@ const preprocessData = data =>
           (latest, current) => (current.date > latest ? current.date : latest),
           song.results[0].date
         ),
-        results: song.results.map(res => ({
-          ...res,
-          hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
-        })),
+        results: song.results.map(res => {
+          const perfects = (Math.sqrt(res.perfect) * _.toInteger(song.chartLevel)) / 2;
+          const acc = perfects
+            ? Math.floor(
+                ((perfects * 100 + res.great * 60 + res.good * 30 + res.miss * -20) /
+                  (perfects + res.great + res.good + res.bad + res.miss)) *
+                  100
+              ) / 100
+            : null;
+          return {
+            ...res,
+            accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && +acc.toFixed(2),
+            hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
+          };
+        }),
       };
     }),
     _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc'])
