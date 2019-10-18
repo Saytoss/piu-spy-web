@@ -25,46 +25,81 @@ const preprocessData = data =>
   _.flow(
     _.get('top'),
     _.values,
-    _.map(item => ({
-      song: item.track,
-      chartLabel: item.chart_label,
-      chartLevel: item.chart_label.slice(1),
-      chartType: item.chart_label.slice(0, 1),
-      mix: item.mix,
-      results: item.results.map((res, index) => {
-        const perfects = (Math.sqrt(res.perfects) * _.toInteger(item.chart_label.slice(1))) / 2;
-        const acc = perfects
-          ? Math.floor(
-              ((perfects * 100 + res.greats * 60 + res.goods * 30 + res.misses * -20) /
-                (perfects + res.greats + res.goods + res.bads + res.misses)) *
-                100
-            ) / 100
-          : null;
-        return {
-          playerId: res.player,
-          nickname: data.players[res.player].nickname,
-          nicknameArcade: data.players[res.player].arcade_name,
-          originalChartMix: res.originalChartMix,
-          originalChartLabel: res.originalChartLabel,
-          originalScore: res.originalScore,
-          date: res.gained,
-          dateObject: new Date(res.gained),
-          grade: res.grade,
-          isExactDate: !!res.exact_gain_date,
-          score: res.score,
-          perfect: res.perfects,
-          great: res.greats,
-          good: res.goods,
-          bad: res.bads,
-          miss: res.misses,
-          combo: res.max_combo,
-          mods: res.mods_list,
-          isRank: !!res.rank_mode,
-          isHJ: (res.mods_list || '').split(' ').includes('HJ'),
-          accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && acc.toFixed(2),
-        };
-      }),
-    })),
+    _.map(item => {
+      const fullRes = _.find(
+        r => _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses]),
+        item.results
+      );
+      const stepSum =
+        fullRes &&
+        [fullRes.perfects, fullRes.greats, fullRes.goods, fullRes.bads, fullRes.misses].reduce(
+          (sum, n) => sum + n,
+          0
+        );
+
+      return {
+        song: item.track,
+        chartLabel: item.chart_label,
+        chartLevel: item.chart_label.slice(1),
+        chartType: item.chart_label.slice(0, 1),
+        mix: item.mix,
+        results: item.results.map((res, index) => {
+          const perfects = (Math.sqrt(res.perfects) * _.toInteger(item.chart_label.slice(1))) / 2;
+          const acc = perfects
+            ? Math.floor(
+                ((perfects * 100 + res.greats * 60 + res.goods * 30 + res.misses * -20) /
+                  (perfects + res.greats + res.goods + res.bads + res.misses)) *
+                  100
+              ) / 100
+            : null;
+          let resultInfoOverrides = {};
+          if (stepSum) {
+            const infos = [res.perfects, res.greats, res.goods, res.bads, res.misses];
+            let fixableIndex = -1;
+            let localStepSum = 0;
+            const canFix =
+              infos.filter((numb, index) => {
+                if (!_.isNumber(numb)) {
+                  fixableIndex = index;
+                  return true;
+                }
+                localStepSum += numb;
+                return false;
+              }).length === 1;
+            if (canFix) {
+              resultInfoOverrides[['perfect', 'great', 'good', 'bad', 'miss'][fixableIndex]] =
+                stepSum - localStepSum;
+            }
+          }
+          return {
+            playerId: res.player,
+            nickname: data.players[res.player].nickname,
+            nicknameArcade: data.players[res.player].arcade_name,
+            originalChartMix: res.originalChartMix,
+            originalChartLabel: res.originalChartLabel,
+            originalScore: res.originalScore,
+            date: res.gained,
+            dateObject: new Date(res.gained),
+            grade: res.grade,
+            isExactDate: !!res.exact_gain_date,
+            score: res.score,
+            scoreIncrease: res.score_increase,
+            calories: res.calories / 1000,
+            perfect: res.perfects,
+            great: res.greats,
+            good: res.goods,
+            bad: res.bads,
+            miss: res.misses,
+            combo: res.max_combo,
+            mods: res.mods_list,
+            isRank: !!res.rank_mode,
+            isHJ: (res.mods_list || '').split(' ').includes('HJ'),
+            accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && acc.toFixed(2),
+            ...resultInfoOverrides,
+          };
+        }),
+      };
+    }),
     _.map(song => {
       return {
         ...song,

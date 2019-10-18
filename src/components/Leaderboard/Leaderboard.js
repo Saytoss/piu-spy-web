@@ -337,6 +337,25 @@ class Leaderboard extends Component {
             {_.isEmpty(filteredData) && !isLoading && 'ничего не найдено'}
             {!isLoading &&
               visibleData.map((chart, chartIndex) => {
+                let topPlace = 1;
+                const occuredNicknames = [];
+                const results = chart.results.map((res, index) => {
+                  const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
+                  occuredNicknames.push(res.nickname);
+                  if (index === 0) {
+                    topPlace = 1;
+                  } else if (
+                    !isSecondOccurenceInResults &&
+                    res.score !== _.get([index - 1, 'score'], chart.results)
+                  ) {
+                    topPlace += 1;
+                  }
+                  return {
+                    ...res,
+                    topPlace,
+                    isSecondOccurenceInResults,
+                  };
+                });
                 return (
                   <div className="song-block" key={chart.song + chart.chartLabel}>
                     <div className="song-name">
@@ -385,7 +404,7 @@ class Leaderboard extends Component {
                               </thead>
                             )}
                             <tbody>
-                              {chart.results.map(res => {
+                              {results.map(res => {
                                 const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
                                 return (
                                   <tr
@@ -406,13 +425,7 @@ class Leaderboard extends Component {
                                           : {}
                                       }
                                     >
-                                      <Tooltip
-                                        content={<div>{res.nicknameArcade}</div>}
-                                        tooltipClassName="timeago-tooltip"
-                                      >
-                                        {res.nickname}
-                                      </Tooltip>
-
+                                      {res.nickname}
                                       {DEBUG && (
                                         <span>
                                           {' '}
@@ -497,6 +510,10 @@ class Leaderboard extends Component {
                                               <div>
                                                 <span className="_grey">моды: </span>
                                                 {res.mods || '—'}
+                                              </div>
+                                              <div>
+                                                <span className="_grey">ккал: </span>
+                                                {res.calories || '—'}
                                               </div>
                                               {res.originalChartMix && (
                                                 <div>
