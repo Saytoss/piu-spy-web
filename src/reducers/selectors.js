@@ -42,6 +42,22 @@ const getFilteredData = (data, filter) => {
   const excludeAntagonists = _.map('value', filter.excludeAntagonists);
 
   const defaultSorting = [_.orderBy(['latestScoreDate'], ['desc'])];
+  const newScoresProtagonistSorting = !protagonist
+    ? defaultSorting
+    : [
+        _.orderBy(
+          [
+            song =>
+              _.max(
+                _.map(
+                  res => (res.nickname === protagonist ? res.dateObject.getTime() : 0),
+                  song.results
+                )
+              ),
+          ],
+          ['desc']
+        ),
+      ];
   const protagonistSorting = [
     _.filter(row => _.map('nickname', row.results).includes(protagonist)),
     _.map(row => {
@@ -80,6 +96,7 @@ const getFilteredData = (data, filter) => {
   const sortingFunctions =
     {
       [SORT.DEFAULT]: defaultSorting,
+      [SORT.NEW_SCORES_PLAYER]: newScoresProtagonistSorting,
       [SORT.PROTAGONIST]: protagonistSorting,
       [SORT.RANK_ASC]: getScoreSorting('asc'),
       [SORT.RANK_DESC]: getScoreSorting('desc'),

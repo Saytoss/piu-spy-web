@@ -38,6 +38,7 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="grades d">{getGradeImg('D')}</th>
               <th className="grades f">{getGradeImg('F')}</th>
               <th className="playcount">scores</th>
+              <th className="calories">cal</th>
               <th className="accuracy">accuracy</th>
             </tr>
           </thead>
@@ -104,6 +105,7 @@ export default function RankingList({ ranking, isLoading }) {
                   <td className="grades d">{player.grades.D}</td>
                   <td className="grades f">{player.grades.F}</td>
                   <td className="playcount">{player.count}</td>
+                  <td className="calories">{numeral(player.totalScore.calories).format('0,0')}</td>
                   <td className="accuracy">{player.accuracy ? `${player.accuracy}%` : ''}</td>
                 </tr>
               );

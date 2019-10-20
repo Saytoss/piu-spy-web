@@ -8,7 +8,13 @@ import numeral from 'numeral';
 import localForage from 'localforage';
 import { NavLink } from 'react-router-dom';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
-import { FaRedoAlt, FaExclamationTriangle, FaSearch, FaYoutube } from 'react-icons/fa';
+import {
+  FaRedoAlt,
+  FaExclamationTriangle,
+  FaSearch,
+  FaYoutube,
+  FaAngleDoubleUp,
+} from 'react-icons/fa';
 
 // styles
 import 'react-responsive-ui/style.css';
@@ -41,8 +47,12 @@ import { playersSelector, filteredDataSelector } from 'reducers/selectors';
 // code
 const sortingOptions = [
   {
-    label: 'новизне скоров',
+    label: 'от новых скоров',
     value: SORT.DEFAULT,
+  },
+  {
+    label: 'от новых скоров конкретного игрока',
+    value: SORT.NEW_SCORES_PLAYER,
   },
   // {
   //   label: 'отставанию от остальных',
@@ -238,22 +248,22 @@ class Leaderboard extends Component {
     return (
       <div className="sortings">
         <div>
-          <label className="label">сортировать по</label>
+          <label className="label">сортировка:</label>
           <Select
             placeholder="выберите сортировку"
             className="select"
             classNamePrefix="select"
-            clearable={false}
+            isClearable={false}
             options={sortingOptions}
             value={_.getOr(sortingOptions[0], 'sortingType', filter)}
             onChange={this.setFilter('sortingType')}
           />
         </div>
-        {[SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC].includes(
+        {[SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC, SORT.NEW_SCORES_PLAYER].includes(
           _.get('sortingType.value', filter)
         ) && (
           <div>
-            <label className="label">протагонист (чьи результаты):</label>
+            <label className="label">игрок:</label>
             <Select
               className={classNames('select players', {
                 'red-border': !_.get('protagonist', filter),
@@ -291,16 +301,22 @@ class Leaderboard extends Component {
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
-    const hasProtagonist = [SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC].includes(
+    const showProtagonistRatingChange = [SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC].includes(
       _.get('sortingType.value', filter)
     );
+    const highlightProtagonist = [
+      SORT.PROTAGONIST,
+      SORT.RANK_ASC,
+      SORT.RANK_DESC,
+      SORT.NEW_SCORES_PLAYER,
+    ].includes(_.get('sortingType.value', filter));
     const protagonistName = _.get('protagonist.value', filter);
     const uniqueSelectedNames = _.slice(
       0,
       colorsArray.length,
       _.uniq(
         _.compact([
-          hasProtagonist && protagonistName,
+          highlightProtagonist && protagonistName,
           ..._.map('value', filter.players),
           ..._.map('value', filter.playersOr),
         ])
@@ -310,7 +326,6 @@ class Leaderboard extends Component {
     return (
       <div className="leaderboard-page">
         <div className="content">
-          {error && error.message}
           <div className="search-block">
             {this.renderSimpleSearch()}
             <CollapsibleBar title="фильтры">{this.renderFilters()}</CollapsibleBar>
@@ -334,7 +349,7 @@ class Leaderboard extends Component {
             </div>
           )}
           <div className="top-list">
-            {_.isEmpty(filteredData) && !isLoading && 'ничего не найдено'}
+            {_.isEmpty(filteredData) && !isLoading && (error ? error.message : 'ничего не найдено')}
             {!isLoading &&
               visibleData.map((chart, chartIndex) => {
                 let topPlace = 1;
@@ -404,8 +419,14 @@ class Leaderboard extends Component {
                               </thead>
                             )}
                             <tbody>
-                              {results.map(res => {
+                              {results.map((res, index) => {
                                 const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
+                                let placeDifference, newIndex;
+                                if (res.scoreIncrease && res.date === chart.latestScoreDate) {
+                                  const prevScore = res.score - res.scoreIncrease;
+                                  newIndex = _.findLastIndex(res => res.score > prevScore, results);
+                                  placeDifference = newIndex - index;
+                                }
                                 return (
                                   <tr
                                     key={res.score + res.nickname}
@@ -426,6 +447,12 @@ class Leaderboard extends Component {
                                       }
                                     >
                                       {res.nickname}
+                                      {!!placeDifference && (
+                                        <span className="change-holder up">
+                                          <span>{placeDifference}</span>
+                                          <FaAngleDoubleUp />
+                                        </span>
+                                      )}
                                       {DEBUG && (
                                         <span>
                                           {' '}
@@ -436,7 +463,7 @@ class Leaderboard extends Component {
                                         </span>
                                       )}
                                       {!DEBUG &&
-                                        hasProtagonist &&
+                                        showProtagonistRatingChange &&
                                         res.nickname === protagonistName &&
                                         res.ratingDiff && (
                                           <span>
@@ -485,7 +512,11 @@ class Leaderboard extends Component {
                                       <Overlay
                                         overlayClassName="score-overlay-outer"
                                         overlayItem={
-                                          <span>{numeral(res.score).format('0,0')}</span>
+                                          <span className="score-span">
+                                            {/* {res.scoreIncrease > res.score * 0.8 && <FaPlus />} */}
+                                            {res.scoreIncrease > res.score * 0.8 && '*'}
+                                            {numeral(res.score).format('0,0')}
+                                          </span>
                                         }
                                         placement="top"
                                       >
@@ -494,7 +525,7 @@ class Leaderboard extends Component {
                                             <span className="_grey">игрок: </span>
                                             <NavLink
                                               exact
-                                              to={routes.profile.getPath({ name: res.nickname })}
+                                              to={routes.profile.getPath({ id: res.playerId })}
                                             >
                                               {res.nickname} ({res.nicknameArcade})
                                             </NavLink>
@@ -507,14 +538,24 @@ class Leaderboard extends Component {
                                           )}
                                           {res.isExactDate && (
                                             <>
-                                              <div>
-                                                <span className="_grey">моды: </span>
-                                                {res.mods || '—'}
-                                              </div>
-                                              <div>
-                                                <span className="_grey">ккал: </span>
-                                                {res.calories || '—'}
-                                              </div>
+                                              {res.mods && (
+                                                <div>
+                                                  <span className="_grey">моды: </span>
+                                                  {res.mods}
+                                                </div>
+                                              )}
+                                              {res.calories && (
+                                                <div>
+                                                  <span className="_grey">ккал: </span>
+                                                  {res.calories}
+                                                </div>
+                                              )}
+                                              {res.scoreIncrease && (
+                                                <div>
+                                                  <span className="_grey">прирост: </span>+
+                                                  {numeral(res.scoreIncrease).format('0,0')}
+                                                </div>
+                                              )}
                                               {res.originalChartMix && (
                                                 <div>
                                                   <div className="warning">
@@ -539,6 +580,7 @@ class Leaderboard extends Component {
                                                   )}
                                                 </div>
                                               )}
+                                              {res.scoreIncrease > res.score * 0.8 && '* сайтрид'}
                                             </>
                                           )}
                                         </div>

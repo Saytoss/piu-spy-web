@@ -97,11 +97,11 @@ export const getInitialProfiles = (data, tracklist) => {
     });
   });
 
-  const getBonusForGrade = (grade, level) =>
-    (({ A: 30, 'A+': 25, S: 20, SS: 15 }[grade] * (1 + 2 ** (level / 4))) / 10);
-  const getMinimumRatio = totalCharts =>
-    Math.min(totalCharts, 1 + totalCharts / 20 + Math.sqrt(Math.max(totalCharts - 1, 0)) * 0.7) /
-    totalCharts;
+  const getBonusForLevel = level => (30 * (1 + 2 ** (level / 4))) / 11;
+  const getMinimumNumber = totalCharts =>
+    Math.round(
+      Math.min(totalCharts, 1 + totalCharts / 20 + Math.sqrt(Math.max(totalCharts - 1, 0)) * 0.7)
+    );
 
   profiles = _.mapValues(profile => {
     const neededGrades = ['A', 'A+', 'S', 'SS', 'SSS'];
@@ -127,10 +127,8 @@ export const getInitialProfiles = (data, tracklist) => {
       A: ['A'],
     };
     const incrementLevel = (l, g, isS) => {
-      const oneChartValue =
-        1 / (isS ? tracklist.data.singlesLevels[l] : tracklist.data.doublesLevels[l]);
       const prog = isS ? profile.progress.single : profile.progress.double;
-      prog[g][l] = prog[g][l] ? prog[g][l] + oneChartValue : oneChartValue;
+      prog[g][l] = prog[g][l] ? prog[g][l] + 1 : 1;
     };
     _.keys(profile.resultsByLevel).forEach(level => {
       profile.resultsByLevel[level].forEach(res => {
@@ -159,18 +157,22 @@ export const getInitialProfiles = (data, tracklist) => {
       _.keys(profile.progress[chartType]).forEach(grade => {
         profile.progress[chartType][`${grade}-bonus`] = 0;
         _.keys(profile.progress[chartType][grade]).forEach(level => {
-          const ratio = profile.progress[chartType][grade][level];
+          const number = profile.progress[chartType][grade][level];
           const totalCharts = tracklist.data[`${chartType}sLevels`][level];
-          const minimumRatio = getMinimumRatio(totalCharts);
-          const bonusCoefficient = Math.min(1, ratio / minimumRatio);
-          const rawBonus = getBonusForGrade(grade, level);
-          const bonus = rawBonus * bonusCoefficient;
+          const minimumNumber = getMinimumNumber(totalCharts);
+          const bonusCoefficientNumber = Math.min(1, number / minimumNumber);
+          const rawBonus = getBonusForLevel(level);
+          const bonus = rawBonus * bonusCoefficientNumber;
           profile.progress[chartType][grade][`${level}-bonus`] = bonus;
-          profile.progress[chartType][grade][`${level}-bonus-coef`] = bonusCoefficient;
+          profile.progress[chartType][grade][`${level}-bonus-coef`] = bonusCoefficientNumber;
+          profile.progress[chartType][grade][`${level}-min-number`] = minimumNumber;
+          profile.progress[chartType][grade][`${level}-achieved-number`] = number;
           if (bonus >= profile.progress[chartType][`${grade}-bonus`]) {
             profile.progress[chartType][`${grade}-bonus`] = bonus;
             profile.progress[chartType][`${grade}-bonus-level`] = level;
-            profile.progress[chartType][`${grade}-bonus-level-coef`] = bonusCoefficient;
+            profile.progress[chartType][`${grade}-bonus-level-coef`] = bonusCoefficientNumber;
+            profile.progress[chartType][`${grade}-bonus-level-min-number`] = minimumNumber;
+            profile.progress[chartType][`${grade}-bonus-level-achieved-number`] = number;
           }
         });
         profile.progress[`${chartType}-bonus`] += profile.progress[chartType][`${grade}-bonus`];

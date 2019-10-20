@@ -141,7 +141,7 @@
     font-size: 2vw;
     td,
     th {
-      padding: 0.5vw;
+      padding: 0.3vw 0.25vw;
       font-size: 80%;
       &.grades {
         img {
@@ -151,10 +151,15 @@
     }
     td {
       &.place {
+        padding-left: 1.5vw;
+        padding-right: 0;
         font-size: 100%;
         > svg {
           font-size: 140%;
         }
+      }
+      &.total-score {
+        padding: 1vw 0.5vw;
       }
       &.name {
         font-size: 100%;

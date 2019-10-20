@@ -181,6 +181,18 @@
               }
               &.nickname {
                 width: 200px;
+                > .change-holder {
+                  font-size: 80%;
+                  margin-left: 0.5em;
+                  font-weight: normal;
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: #afe488;
+                  > span {
+                    padding-top: 0.2em;
+                  }
+                }
               }
               &.accuracy {
                 width: 62px;
@@ -191,6 +203,14 @@
                 width: 110px;
                 text-align: right;
                 cursor: pointer;
+                .score-span {
+                  white-space: nowrap;
+                  > svg {
+                    font-size: 70%;
+                    margin-right: 3px;
+                    margin-bottom: 1px;
+                  }
+                }
                 &:hover {
                   background: #555;
                 }
@@ -334,6 +354,9 @@
           td,
           th {
             padding: 1.5px;
+            &.score .score-span > svg {
+              margin-right: 0.5vw;
+            }
             &.grade .img-holder img {
               height: 1.8vw;
             }

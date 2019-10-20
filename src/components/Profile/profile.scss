@@ -38,12 +38,17 @@
         padding: 10px;
         padding-left: 40px;
         border-bottom: 1px solid #ccc;
+        margin-bottom: 10px;
         > div + div {
           margin-left: 40px;
         }
       }
       .profile-sm-section-header {
         padding: 0 8px 8px 8px;
+        &.flex {
+          display: flex;
+          justify-content: space-between;
+        }
         > span {
           padding-bottom: 3px;
           border-bottom: 1px solid #ccc4;
@@ -54,19 +59,71 @@
         margin: 10px 0;
         border-radius: 10px;
         padding: 10px;
+        display: flex;
+        flex-flow: column nowrap;
+        .single-double-labels {
+          .recharts-wrapper {
+            &::before {
+              color: #777;
+              position: absolute;
+              display: block;
+              content: 'Single';
+              top: 10px;
+              left: 50px;
+            }
+            &::after {
+              color: #777;
+              position: absolute;
+              display: block;
+              content: 'Double';
+              bottom: 42px;
+              left: 50px;
+            }
+          }
+        }
         .profile-section-header {
           padding: 0 8px 8px 8px;
           border-bottom: 1px solid #ccc7;
         }
         .profile-section-content {
+          flex: 1 1 auto;
           display: flex;
-          flex-flow: row nowrap;
-          > div {
-            width: 50%;
+          flex-flow: column nowrap;
+          > .toggle-holder {
+            display: flex;
+            justify-content: flex-end;
+            > .toggle-checkbox {
+              flex: 0 0 auto;
+            }
+          }
+          > .profile-section-2 {
+            width: 100%;
+            flex: 1 1 auto;
+            display: flex;
+            flex-flow: column nowrap;
+            > .chart-container {
+              flex: 1 1 auto;
+            }
           }
         }
         .range-container {
           padding: 0 15px 10px 15px;
+        }
+      }
+      .profile-section-horizontal-container {
+        display: flex;
+        flex-flow: row nowrap;
+        > .profile-section {
+          width: 49.5%;
+          margin: 0;
+          margin-right: 0.5%;
+          + .profile-section {
+            margin-right: 0;
+            margin-left: 0.5%;
+          }
+          .profile-section-content > div {
+            width: 100%;
+          }
         }
       }
       .profile-section.progress-section {
@@ -148,29 +205,42 @@
 @media screen and (max-width: 800px) {
   .profile-page {
     font-size: 3vw;
-    > .content > .profile > .profile-header {
-      padding: 1vw;
-      justify-content: space-between;
-      > div + div {
-        margin: 0;
+    > .content > .profile {
+      .chart-container {
+        font-size: 16px;
       }
-    }
-    > .content > .profile .profile-section {
-      .profile-section-content {
-        flex-flow: column nowrap;
-        > div {
-          width: 100%;
+      > .profile-header {
+        padding: 1vw;
+        justify-content: space-between;
+        > div + div {
+          margin: 0;
         }
       }
-      &.progress-section .progress-blocks-single-double {
-        display: flex;
-        flex-flow: column nowrap;
-        .achievements-grades .grade-block {
-          height: 23vw;
-          > .grade-letter {
-            margin-bottom: 1vw;
-            > img {
-              height: 5vw;
+      .profile-section-horizontal-container {
+        display: block;
+        > .profile-section {
+          width: 100%;
+          margin: 0;
+          margin-bottom: 10px;
+        }
+      }
+      .profile-section {
+        .profile-section-content {
+          flex-flow: column nowrap;
+          > div {
+            width: 100%;
+          }
+        }
+        &.progress-section .progress-blocks-single-double {
+          display: flex;
+          flex-flow: column nowrap;
+          .achievements-grades .grade-block {
+            height: 23vw;
+            > .grade-letter {
+              margin-bottom: 1vw;
+              > img {
+                height: 5vw;
+              }
             }
           }
         }

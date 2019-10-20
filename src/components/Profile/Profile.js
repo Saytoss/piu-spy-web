@@ -16,6 +16,7 @@ import {
   Line,
   Legend,
   ResponsiveContainer,
+  Label,
 } from 'recharts';
 import { createSelector } from 'reselect';
 import _ from 'lodash/fp';
@@ -28,6 +29,8 @@ import './profile.scss';
 
 // components
 import Range from 'components/Shared/Range';
+import Loader from 'components/Shared/Loader';
+import Toggle from 'components/Shared/Toggle/Toggle';
 
 // reducers
 import { fetchTopScores } from 'reducers/top';
@@ -37,6 +40,7 @@ import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 import { getTimeAgo } from 'utils/leaderboards';
 
 // code
+const MIN_GRAPH_HEIGHT = undefined;
 const defaultGradesDistribution = {
   SSS: 0,
   SS: 0,
@@ -48,6 +52,16 @@ const defaultGradesDistribution = {
   D: 0,
   F: 0,
 };
+const defaultGradesWithLevelsDistribution = _.flow(
+  _.flatMap(type => {
+    return _.flow(
+      _.toPairs,
+      _.map(([grade, value]) => [`${type}-${grade}`, value])
+    )(defaultGradesDistribution);
+  }),
+  _.fromPairs
+)(['S', 'D']);
+
 const cutRange = (array, range) => {
   const startIndex = _.findIndex(item => item.date > range[0], array);
   const endIndex = _.findLastIndex(item => item.date < range[1], array);
@@ -85,14 +99,16 @@ const profileSelector = createSelector(
           100,
       }))
     )(profile);
-    const gradesDistribution = _.flow(
+    const gradesData = _.flow(
       _.get('resultsByLevel'),
       _.toPairs,
       _.map(
         _.update('[1].result.grade', grade =>
           grade && grade.includes('+') && grade !== 'A+' ? grade.replace('+', '') : grade
         )
-      ),
+      )
+    )(profile);
+    const gradesDistribution = _.flow(
       _.map(([x, y]) => ({
         x: _.toInteger(x),
         ...defaultGradesDistribution,
@@ -107,8 +123,36 @@ const profileSelector = createSelector(
           ...(sum === 0 ? grades : _.mapValues(value => (100 * value) / sum, grades)),
         };
       })
-    )(profile);
+    )(gradesData);
+    const gradesAndLevelsDistribution = _.flow(
+      _.map(([x, y]) => {
+        const groupedResults = _.groupBy('result.grade', y);
+        const counts = _.omit('?', _.mapValues(_.countBy('chart.chartType'), groupedResults));
+        const reduced = _.reduce(
+          (acc, [grade, levelsData]) => {
+            const accData = _.flow(
+              _.toPairs,
+              _.map(([type, count]) => [
+                `${type}-${grade}`,
+                type === 'S'
+                  ? (count / tracklist.singlesLevels[x]) * 100
+                  : (-count / tracklist.doublesLevels[x]) * 100,
+              ]),
+              _.fromPairs
+            )(levelsData);
+            return { ...acc, ...accData };
+          },
+          {},
+          _.toPairs(counts)
+        );
 
+        return {
+          x: _.toInteger(x),
+          ...defaultGradesWithLevelsDistribution,
+          ...reduced,
+        };
+      })
+    )(gradesData);
     const lastTickRating = _.last(profile.ratingHistory).date;
     const lastTickRanking = _.last(profile.rankingHistory).date;
     const lastTick = lastTickRating > lastTickRanking ? lastTickRating : lastTickRanking; // End graph at either point
@@ -125,6 +169,7 @@ const profileSelector = createSelector(
       minMaxRange,
       levelsDistribution,
       gradesDistribution,
+      gradesAndLevelsDistribution,
       placesChanges,
       ratingChanges,
       player: {
@@ -163,6 +208,10 @@ class Profile extends Component {
     profile: {},
   };
 
+  state = {
+    isLevelGraphCombined: false,
+  };
+
   componentWillUnmount() {
     this.props.resetProfilesFilter();
   }
@@ -183,13 +232,8 @@ class Profile extends Component {
   renderRankingHistory() {
     const { profile } = this.props;
     return (
-      <ResponsiveContainer aspect={2}>
-        <LineChart
-          height={300}
-          width={800}
-          data={profile.ratingChanges}
-          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
-        >
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
+        <LineChart data={profile.ratingChanges} margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -234,13 +278,8 @@ class Profile extends Component {
   renderPlaceHistory() {
     const { profile } = this.props;
     return (
-      <ResponsiveContainer aspect={2}>
-        <LineChart
-          height={300}
-          width={800}
-          data={profile.placesChanges}
-          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
-        >
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
+        <LineChart data={profile.placesChanges} margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -282,13 +321,11 @@ class Profile extends Component {
     );
   }
 
-  renderLevelsGrades() {
+  renderGrades() {
     const { profile } = this.props;
     return (
-      <ResponsiveContainer aspect={2}>
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
         <BarChart
-          height={300}
-          width={900}
           data={profile.gradesDistribution}
           margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
         >
@@ -301,7 +338,7 @@ class Profile extends Component {
               return (
                 <div className="history-tooltip">
                   <div>Level: {payload[0].payload.x}</div>
-                  {_.reverse(_.filter(item => item.value > 0, payload)).map(item => (
+                  {_.filter(item => item.value > 0, payload).map(item => (
                     <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
                       {item.name}: {payload[0].payload.gradesValues[item.name]}
                     </div>
@@ -318,15 +355,99 @@ class Profile extends Component {
             width={40}
           />
           <Legend />
-          <Bar dataKey="F" fill="#774949" stackId="stack" />
-          <Bar dataKey="D" fill="#5d4e6d" stackId="stack" />
-          <Bar dataKey="C" fill="#6d5684" stackId="stack" />
-          <Bar dataKey="B" fill="#7a6490" stackId="stack" />
-          <Bar dataKey="A" fill="#828fb7" stackId="stack" />
-          <Bar dataKey="A+" fill="#396eef" stackId="stack" />
-          <Bar dataKey="S" fill="#b19500" stackId="stack" />
-          <Bar dataKey="SS" fill="#dab800" stackId="stack" />
           <Bar dataKey="SSS" fill="#ffd700" stackId="stack" />
+          <Bar dataKey="SS" fill="#dab800" stackId="stack" />
+          <Bar dataKey="S" fill="#b19500" stackId="stack" />
+          <Bar dataKey="A+" fill="#396eef" stackId="stack" />
+          <Bar dataKey="A" fill="#828fb7" stackId="stack" />
+          <Bar dataKey="B" fill="#7a6490" stackId="stack" />
+          <Bar dataKey="C" fill="#6d5684" stackId="stack" />
+          <Bar dataKey="D" fill="#5d4e6d" stackId="stack" />
+          <Bar dataKey="F" fill="#774949" stackId="stack" />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderGradesWithLevels() {
+    const { profile, tracklist } = this.props;
+    return (
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={0.74}>
+        <BarChart
+          data={profile.gradesAndLevelsDistribution}
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+          stackOffset="sign"
+        >
+          <Tooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!payload || !payload[0]) {
+                return null;
+              }
+              const doubleItems = _.filter(
+                item => item.value !== 0 && item.dataKey.startsWith('D'),
+                payload
+              );
+              const singleItems = _.filter(
+                item => item.value !== 0 && item.dataKey.startsWith('S'),
+                payload
+              );
+              return (
+                <div className="history-tooltip">
+                  <div>Level: {payload[0].payload.x}</div>
+                  {!!singleItems.length && (
+                    <>
+                      <div>Single:</div>
+                      {singleItems.map(item => (
+                        <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
+                          {item.name.slice(2)}: {Math.round(Math.abs(item.value))}% (
+                          {Math.round((tracklist.singlesLevels[item.payload.x] * item.value) / 100)}
+                          /{tracklist.singlesLevels[item.payload.x]})
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {!!doubleItems.length && (
+                    <>
+                      <div>Double:</div>
+                      {doubleItems.map(item => (
+                        <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
+                          {item.name.slice(2)}: {Math.round(Math.abs(item.value))}% (
+                          {Math.round(
+                            (tracklist.doublesLevels[item.payload.x] * -item.value) / 100
+                          )}
+                          /{tracklist.doublesLevels[item.payload.x]})
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              );
+            }}
+          />
+          <XAxis dataKey="x" />
+          <YAxis tickFormatter={x => `${Math.round(x)}%`} width={40} />
+          <Bar dataKey="S-SSS" fill="#ffd700" stackId="stack" />
+          <Bar dataKey="S-SS" fill="#dab800" stackId="stack" />
+          <Bar dataKey="S-S" fill="#b19500" stackId="stack" />
+          <Bar dataKey="S-A+" fill="#396eef" stackId="stack" />
+          <Bar dataKey="S-A" fill="#828fb7" stackId="stack" />
+          <Bar dataKey="S-B" fill="#7a6490" stackId="stack" />
+          <Bar dataKey="S-C" fill="#6d5684" stackId="stack" />
+          <Bar dataKey="S-D" fill="#5d4e6d" stackId="stack" />
+          <Bar dataKey="S-F" fill="#774949" stackId="stack" />
+          <Bar dataKey="D-SSS" fill="#ffd700" stackId="stack" />
+          <Bar dataKey="D-SS" fill="#dab800" stackId="stack" />
+          <Bar dataKey="D-S" fill="#b19500" stackId="stack" />
+          <Bar dataKey="D-A+" fill="#396eef" stackId="stack" />
+          <Bar dataKey="D-A" fill="#828fb7" stackId="stack" />
+          <Bar dataKey="D-B" fill="#7a6490" stackId="stack" />
+          <Bar dataKey="D-C" fill="#6d5684" stackId="stack" />
+          <Bar dataKey="D-D" fill="#5d4e6d" stackId="stack" />
+          <Bar dataKey="D-F" fill="#774949" stackId="stack" />
+          <Label value="Double" offset={0} position="insideBottomLeft" />
+          <Label value="Single" offset={0} position="insideTopLeft" />
+          <ReferenceLine y={0} stroke="#bbb" />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -335,10 +456,8 @@ class Profile extends Component {
   renderLevels() {
     const { profile, tracklist } = this.props;
     return (
-      <ResponsiveContainer aspect={2}>
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
         <BarChart
-          height={300}
-          width={900}
           data={profile.levelsDistribution}
           stackOffset="sign"
           margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
@@ -387,6 +506,8 @@ class Profile extends Component {
     const obj = profile.progress[type];
     const typeLetter = type === 'double' ? 'D' : 'S';
     const progr = Math.floor((obj[`${grade}-bonus-level-coef`] || 0) * 100);
+    const minNumber = obj[`${grade}-bonus-level-min-number`];
+    const currentNumber = obj[`${grade}-bonus-level-achieved-number`];
     const levelString = obj[`${grade}-bonus-level`]
       ? `${typeLetter}${obj[`${grade}-bonus-level`]}`
       : '?';
@@ -396,7 +517,9 @@ class Profile extends Component {
           <img src={`${process.env.PUBLIC_URL}/grades/${grade}.png`} alt={grade} />
         </div>
         <div className="grade-level">{levelString}</div>
-        <div className="grade-progress">{progr}%</div>
+        <div className="grade-progress">
+          {progr}% ({currentNumber}/{minNumber})
+        </div>
         <div className="grade-progress">бонус: +{Math.floor(obj[`${grade}-bonus`])}</div>
         <div
           className={classNames('progress-background', {
@@ -413,6 +536,7 @@ class Profile extends Component {
 
   render() {
     const { isLoading, profile, error, filter } = this.props;
+    const { isLevelGraphCombined } = this.state;
 
     if (_.isEmpty(profile)) {
       return null;
@@ -433,95 +557,141 @@ class Profile extends Component {
               <FaSearch /> обновить
             </button>
           </div>
-          <div className="profile">
-            <div className="profile-header">
-              <div className="profile-name text-with-header">
-                <div className="text-header">игрок</div>
-                <div>{profile.player.nickname}</div>
+          {isLoading && <Loader />}
+          {!isLoading && (
+            <div className="profile">
+              <div className="profile-header">
+                <div className="profile-name text-with-header">
+                  <div className="text-header">игрок</div>
+                  <div>{profile.player.nickname}</div>
+                </div>
+                <div className="text-with-header">
+                  <div className="text-header">ранк</div>
+                  <div>#{profile.player.rank}</div>
+                </div>
+                <div className="text-with-header">
+                  <div className="text-header">эло</div>
+                  <div>{profile.player.ranking.rating}</div>
+                </div>
+                <div className="text-with-header">
+                  <div className="text-header">последняя игра</div>
+                  <div>
+                    {profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}
+                  </div>
+                </div>
               </div>
-              <div className="text-with-header">
-                <div className="text-header">ранк</div>
-                <div>#{profile.player.rank}</div>
+              <div className="profile-section-horizontal-container">
+                <div className="profile-section">
+                  <div className="profile-section-content">
+                    {!isLevelGraphCombined ? (
+                      <>
+                        <div className="profile-section-2">
+                          <div className="profile-sm-section-header flex">
+                            <span>уровни</span>
+                            <div className="toggle-holder">
+                              <Toggle
+                                className="combine-toggle"
+                                checked={isLevelGraphCombined}
+                                onChange={() =>
+                                  this.setState(state => ({
+                                    isLevelGraphCombined: !state.isLevelGraphCombined,
+                                  }))
+                                }
+                              >
+                                объединить графики
+                              </Toggle>
+                            </div>
+                          </div>
+                          <div className="chart-container">{this.renderLevels()}</div>
+                        </div>
+                        <div className="profile-section-2">
+                          <div className="profile-sm-section-header">
+                            <span>оценки</span>
+                          </div>
+                          <div className="chart-container">{this.renderGrades()}</div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="profile-section-2">
+                        <div className="profile-sm-section-header flex">
+                          <span>оценки</span>
+                          <div className="toggle-holder">
+                            <Toggle
+                              className="combine-toggle"
+                              checked={isLevelGraphCombined}
+                              onChange={() =>
+                                this.setState(state => ({
+                                  isLevelGraphCombined: !state.isLevelGraphCombined,
+                                }))
+                              }
+                            >
+                              объединить графики
+                            </Toggle>
+                          </div>
+                        </div>
+                        <div className="chart-container single-double-labels">
+                          {this.renderGradesWithLevels()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="profile-section">
+                  <div className="profile-section-content">
+                    <div className="profile-section-2">
+                      <div className="profile-sm-section-header">
+                        <span>эло</span>
+                      </div>
+                      <div className="chart-container">{this.renderRankingHistory()}</div>
+                    </div>
+                    <div className="profile-section-2">
+                      <div className="profile-sm-section-header">
+                        <span>место в топе</span>
+                      </div>
+                      <div className="chart-container">{this.renderPlaceHistory()}</div>
+                    </div>
+                  </div>
+                  <div className="range-container">
+                    <Range
+                      range={filter.dayRange || profile.minMaxRange}
+                      min={profile.minMaxRange[0]}
+                      max={profile.minMaxRange[1]}
+                      onChange={this.onChangeDayRange}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="text-with-header">
-                <div className="text-header">эло</div>
-                <div>{profile.player.ranking.rating}</div>
-              </div>
-              <div className="text-with-header">
-                <div className="text-header">последняя игра</div>
-                <div>{profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}</div>
+              <div className="profile-section progress-section">
+                <div className="profile-sm-section-header">
+                  <span>ачивки по уровням</span>
+                </div>
+                <div className="progress-blocks-single-double">
+                  <div className="progress-block">
+                    <div className="achievements-grades single">
+                      {this.renderGradeBlock('single', 'A')}
+                      {this.renderGradeBlock('single', 'A+')}
+                      {this.renderGradeBlock('single', 'S')}
+                      {this.renderGradeBlock('single', 'SS')}
+                    </div>
+                  </div>
+                  <div className="progress-block">
+                    <div className="achievements-grades double">
+                      {this.renderGradeBlock('double', 'A')}
+                      {this.renderGradeBlock('double', 'A+')}
+                      {this.renderGradeBlock('double', 'S')}
+                      {this.renderGradeBlock('double', 'SS')}
+                    </div>
+                  </div>
+                </div>
+                <div className="bonus-faq">
+                  * суммарный бонус (+{Math.round(profile.progress.bonus)}) добавляется к стартовому
+                  Эло
+                  <br />* для получения ачивки нужно сыграть около 10% всех чартов данного левела на
+                  нужный грейд
+                </div>
               </div>
             </div>
-            <div className="profile-section">
-              <div className="profile-section-content">
-                <div className="profile-section-2">
-                  <div className="profile-sm-section-header">
-                    <span>уровни</span>
-                  </div>
-                  <div>{this.renderLevels()}</div>
-                </div>
-                <div className="profile-section-2">
-                  <div className="profile-sm-section-header">
-                    <span>оценки</span>
-                  </div>
-                  <div>{this.renderLevelsGrades()}</div>
-                </div>
-              </div>
-            </div>
-            <div className="profile-section">
-              <div className="profile-section-content">
-                <div className="profile-section-2">
-                  <div className="profile-sm-section-header">
-                    <span>эло</span>
-                  </div>
-                  <div>{this.renderRankingHistory()}</div>
-                </div>
-                <div className="profile-section-2">
-                  <div className="profile-sm-section-header">
-                    <span>место в топе</span>
-                  </div>
-                  <div>{this.renderPlaceHistory()}</div>
-                </div>
-              </div>
-              <div className="range-container">
-                <Range
-                  range={filter.dayRange || profile.minMaxRange}
-                  min={profile.minMaxRange[0]}
-                  max={profile.minMaxRange[1]}
-                  onChange={this.onChangeDayRange}
-                />
-              </div>
-            </div>
-            <div className="profile-section progress-section">
-              <div className="profile-sm-section-header">
-                <span>ачивки по уровням</span>
-              </div>
-              <div className="progress-blocks-single-double">
-                <div className="progress-block">
-                  <div className="achievements-grades single">
-                    {this.renderGradeBlock('single', 'A')}
-                    {this.renderGradeBlock('single', 'A+')}
-                    {this.renderGradeBlock('single', 'S')}
-                    {this.renderGradeBlock('single', 'SS')}
-                  </div>
-                </div>
-                <div className="progress-block">
-                  <div className="achievements-grades double">
-                    {this.renderGradeBlock('double', 'A')}
-                    {this.renderGradeBlock('double', 'A+')}
-                    {this.renderGradeBlock('double', 'S')}
-                    {this.renderGradeBlock('double', 'SS')}
-                  </div>
-                </div>
-              </div>
-              <div className="bonus-faq">
-                * суммарный бонус (+{Math.round(profile.progress.bonus)}) добавляется к стартовому
-                Эло
-                <br />* для получения ачивки нужно сыграть около 10% всех чартов данного левела на
-                нужный грейд
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     );

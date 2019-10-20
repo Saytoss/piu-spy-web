@@ -17,17 +17,10 @@ const isFullScore = score => {
   );
 };
 
-const getMaxScore = (score, song) => {
-  const maxCombo = score.perfect + score.great + score.good + score.bad + score.miss;
-  let maxScore = maxCombo * 1000 + (maxCombo - 50) * 1000; // all perfects + 51 combo bonus
-  if (song.chartLevel > 10) {
-    maxScore *= song.chartLevel / 10; // Level multiplier
-  }
-  if (song.chartType === 'D') {
-    maxScore *= 1.2; // Double multiplier
-  }
-  maxScore += 300000; // SSS bonus
-  return maxScore;
+const getMaxScore = score => {
+  const maxScoreAccuracy = ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
+
+  return maxScoreAccuracy;
 };
 
 export default function reducer(state = {}, action) {
@@ -75,7 +68,7 @@ export const getRankings = (data, { players }, profiles) => {
     countAcc: 0,
     // rating: 1000,
     grades: { F: 0, D: 0, C: 0, B: 0, A: 0, S: 0, SS: 0, SSS: 0 },
-    totalScore: { S: 0, D: 0 },
+    totalScore: { S: 0, D: 0, calories: 0 },
     sumAccuracy: 0,
     history: [],
     ratingHistory: [],
@@ -106,9 +99,10 @@ export const getRankings = (data, { players }, profiles) => {
           p1.sumAccuracy += score.accuracy;
         }
         p1.totalScore[song.chartType] += score.score;
+        score.calories && (p1.totalScore.calories += score.calories);
         p1.grades[score.grade.replace('+', '')]++;
       }
-      if (isFullScore(score)) {
+      if (!song.maxScore && isFullScore(score)) {
         song.maxScore = getMaxScore(score, song);
       }
     });

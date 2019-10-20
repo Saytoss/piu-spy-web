@@ -76,7 +76,7 @@ const preprocessData = data =>
             isExactDate: !!res.exact_gain_date,
             score: res.score,
             scoreIncrease: res.score_increase,
-            calories: res.calories / 1000,
+            calories: res.calories && res.calories / 1000,
             perfect: res.perfects,
             great: res.greats,
             good: res.goods,
@@ -107,9 +107,17 @@ const preprocessData = data =>
                   100
               ) / 100
             : null;
+          const accRaw = res.perfect
+            ? Math.floor(
+                ((res.perfect * 100 + res.great * 60 + res.good * 30 + res.miss * -20) /
+                  (res.perfect + res.great + res.good + res.bad + res.miss)) *
+                  100
+              ) / 100
+            : null;
           return {
             ...res,
             accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && +acc.toFixed(2),
+            accuracyRaw: accRaw,
             hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
           };
         }),
