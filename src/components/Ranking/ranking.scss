@@ -72,11 +72,12 @@
     }
   }
   table {
-    border-spacing: 0 0.5vw;
+    border-spacing: 0 6px;
     border-collapse: separate;
     vertical-align: middle;
   }
   tr.player {
+    height: 40px;
     &:hover {
       td {
         background: #424242;
@@ -158,6 +159,9 @@
 @media screen and (max-width: 900px) {
   .ranking-page {
     font-size: 2vw;
+    table {
+      border-spacing: 0 1vw;
+    }
     td,
     th {
       padding: 0.3vw 0.25vw;
@@ -171,8 +175,8 @@
         padding-right: 1vw;
       }
     }
-    .player {
-      height: 4vw;
+    tr.player {
+      height: 5vw;
     }
     td {
       &.place {

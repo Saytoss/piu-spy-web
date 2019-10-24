@@ -29,7 +29,7 @@ export default function Range({ range, min, max, onChange }) {
               borderRadius: '3px',
               background: getTrackBackground({
                 values: range,
-                colors: ['#ccc', '#337ab7', '#ccc'],
+                colors: ['#ccc', '#88d3ff', '#ccc'],
                 min,
                 max,
               }),
@@ -60,7 +60,7 @@ export default function Range({ range, min, max, onChange }) {
               height: '6px',
               width: '6px',
               borderRadius: '3px',
-              backgroundColor: isDragged ? '#337ab7' : '#CCC',
+              backgroundColor: isDragged ? '#88d3ff' : '#CCC',
             }}
           />
         </div>

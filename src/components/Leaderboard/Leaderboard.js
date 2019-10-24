@@ -404,7 +404,7 @@ class Leaderboard extends Component {
                                 <tr>
                                   <th className="place"></th>
                                   <th className="nickname"></th>
-                                  <th className="rank"></th>
+                                  <th className="judge"></th>
                                   <th className="score">score</th>
                                   <th className="grade"></th>
                                   <th className="number">miss</th>

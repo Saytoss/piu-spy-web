@@ -266,7 +266,7 @@ class Profile extends Component {
             type="monotone"
             isAnimationActive={false}
             dataKey="rating"
-            stroke="#8884d8"
+            stroke="#88d3ff"
             strokeWidth={3}
             dot={false}
           />
@@ -312,7 +312,7 @@ class Profile extends Component {
             isAnimationActive={false}
             type="stepAfter"
             dataKey="place"
-            stroke="#8884d8"
+            stroke="#88d3ff"
             strokeWidth={3}
             dot={false}
           />
