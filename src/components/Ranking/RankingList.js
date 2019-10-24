@@ -1,6 +1,6 @@
 import React from 'react';
 import _ from 'lodash/fp';
-import numeral from 'numeral';
+// import numeral from 'numeral';
 import classNames from 'classnames';
 import { GiQueenCrown } from 'react-icons/gi';
 import { FaAngleDoubleUp, FaAngleDoubleDown } from 'react-icons/fa';
@@ -28,7 +28,8 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="name">name</th>
               <th className="name2">piu name</th>
               <th className="rating">elo</th>
-              <th className="total-score">total score</th>
+              <th className="rating-change-cell"></th>
+              {/* <th className="total-score">total score</th> */}
               <th className="grades sss">{getGradeImg('SSS')}</th>
               <th className="grades ss">{getGradeImg('SS')}</th>
               <th className="grades s">{getGradeImg('S')}</th>
@@ -38,7 +39,7 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="grades d">{getGradeImg('D')}</th>
               <th className="grades f">{getGradeImg('F')}</th>
               <th className="playcount">scores</th>
-              <th className="calories">cal</th>
+              {/* <th className="calories">kcal</th> */}
               <th className="accuracy">accuracy</th>
             </tr>
           </thead>
@@ -78,8 +79,8 @@ export default function RankingList({ ranking, isLoading }) {
                       {player.nameArcade}
                     </NavLink>
                   </td>
-                  <td className="rating">
-                    {player.rating}{' '}
+                  <td className="rating">{player.rating}</td>
+                  <td className="rating-change-cell">
                     {!!player.prevRating && player.prevRating !== player.rating && (
                       <span
                         className={classNames('rating-change', {
@@ -92,10 +93,10 @@ export default function RankingList({ ranking, isLoading }) {
                       </span>
                     )}
                   </td>
-                  <td className="total-score">
+                  {/* <td className="total-score">
                     <div>S: {numeral(player.totalScore.S).format('0,0')}</div>
                     <div>D: {numeral(player.totalScore.D).format('0,0')}</div>
-                  </td>
+                  </td> */}
                   <td className="grades sss">{player.grades.SSS}</td>
                   <td className="grades ss">{player.grades.SS}</td>
                   <td className="grades s">{player.grades.S}</td>
@@ -105,8 +106,10 @@ export default function RankingList({ ranking, isLoading }) {
                   <td className="grades d">{player.grades.D}</td>
                   <td className="grades f">{player.grades.F}</td>
                   <td className="playcount">{player.count}</td>
-                  <td className="calories">{numeral(player.totalScore.calories).format('0,0')}</td>
-                  <td className="accuracy">{player.accuracy ? `${player.accuracy}%` : ''}</td>
+                  {/* <td className="calories">{numeral(player.totalScore.calories).format('0,0')}</td> */}
+                  <td className="accuracy">
+                    {player.accuracy ? `${player.accuracy.toFixed(2)}%` : ''}
+                  </td>
                 </tr>
               );
             })}

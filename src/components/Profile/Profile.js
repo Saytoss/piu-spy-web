@@ -209,7 +209,7 @@ class Profile extends Component {
   };
 
   state = {
-    isLevelGraphCombined: false,
+    isLevelGraphCombined: true,
   };
 
   componentWillUnmount() {
@@ -518,7 +518,7 @@ class Profile extends Component {
         </div>
         <div className="grade-level">{levelString}</div>
         <div className="grade-progress">
-          {progr}% ({currentNumber}/{minNumber})
+          {progr}% ({progr === 100 ? minNumber : currentNumber}/{minNumber})
         </div>
         <div className="grade-progress">бонус: +{Math.floor(obj[`${grade}-bonus`])}</div>
         <div
