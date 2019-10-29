@@ -2,7 +2,7 @@ import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
 import matchSorter from 'match-sorter';
 
-import { SORT, CHART_MIN_MAX } from 'constants/leaderboard';
+import { SORT, CHART_MIN_MAX, DURATION_DEFAULT } from 'constants/leaderboard';
 
 export const playersSelector = createSelector(
   state => state.top.players,
@@ -19,17 +19,16 @@ export const playersSelector = createSelector(
 const filterCharts = (filter, rows) => {
   const range = _.getOr(CHART_MIN_MAX, 'range', filter);
   const type = _.getOr(null, 'type', filter);
+  const duration = _.getOr(DURATION_DEFAULT, 'duration', filter);
 
-  const filtered = _.flow(
-    _.filter(row => {
-      return (
-        row.chartLevel >= range[0] &&
-        row.chartLevel <= range[1] &&
-        (!type || type === row.chartType)
-      );
-    })
-  )(rows);
-  return filtered;
+  return _.filter(row => {
+    if (duration !== DURATION_DEFAULT && !duration.includes(row.duration)) {
+      return false;
+    }
+    return (
+      row.chartLevel >= range[0] && row.chartLevel <= range[1] && (!type || type === row.chartType)
+    );
+  }, rows);
 };
 
 const getFilteredData = (data, filter) => {

@@ -43,6 +43,7 @@ const preprocessData = data =>
         chartLevel: item.chart_label.slice(1),
         chartType: item.chart_label.slice(0, 1),
         mix: item.mix,
+        duration: item.duration,
         results: item.results.map((res, index) => {
           let resultInfoOverrides = {};
           if (stepSum) {
@@ -117,7 +118,7 @@ const preprocessData = data =>
             : null;
           return {
             ...res,
-            accuracy: acc < 0 ? 0 : acc === 100 ? acc : acc && +acc.toFixed(2),
+            accuracy: acc < 0 ? 0 : accRaw === 100 ? 100 : acc && +acc.toFixed(2),
             accuracyRaw: accRaw,
             hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
           };

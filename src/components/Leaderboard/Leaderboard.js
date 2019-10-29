@@ -341,6 +341,7 @@ class Leaderboard extends Component {
               <span>пресеты:</span>
               {this.props.presets.map(preset => (
                 <ToggleButton
+                  key={preset.name}
                   text={preset.name}
                   className="btn btn-sm btn-dark _margin-right"
                   active={_.get('filter', preset) === this.props.filter}

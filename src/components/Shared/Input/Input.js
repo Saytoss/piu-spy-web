@@ -29,7 +29,7 @@ export default class Input extends React.Component {
     this.state = {
       value: (!_.isNil(props.value) ? props.value : props.defaultValue) || '',
     };
-    _.bindAll(['handleChange', 'handleBlur'], this);
+    _.bindAll(['handleChange', 'handleBlur', 'handleKeyPress'], this);
   }
 
   componentDidUpdate(prevProps) {
@@ -57,6 +57,12 @@ export default class Input extends React.Component {
     }
   }
 
+  handleKeyPress(e) {
+    if (e.key === 'Enter') {
+      this.handleBlur(e);
+    }
+  }
+
   render() {
     const { className } = this.props;
 
@@ -70,6 +76,7 @@ export default class Input extends React.Component {
         className={classNames(className, 'text-input')}
         value={this.state.value}
         onBlur={this.handleBlur}
+        onKeyPress={this.handleKeyPress}
         onInput={this.handleChange}
       />
     );
