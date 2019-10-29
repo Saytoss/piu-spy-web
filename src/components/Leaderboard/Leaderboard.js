@@ -119,6 +119,10 @@ class Leaderboard extends Component {
     !isLoading && this.props.fetchTopScores();
   };
 
+  onTypeSongName = _.debounce(300, value => {
+    this.setFilter('song', value);
+  });
+
   renderSimpleSearch() {
     const { isLoading, filter } = this.props;
     return (
@@ -128,7 +132,7 @@ class Leaderboard extends Component {
             value={filter.song || ''}
             placeholder="название песни..."
             className="form-control"
-            onChange={this.setFilter('song')}
+            onChange={this.onTypeSongName}
           />
         </div>
         <div className="chart-range _margin-right _margin-bottom">
