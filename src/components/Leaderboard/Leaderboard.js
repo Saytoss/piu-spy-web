@@ -521,6 +521,18 @@ class Leaderboard extends Component {
                                         placement="top"
                                       >
                                         <div className="score-overlay">
+                                          {DEBUG && (
+                                            <>
+                                              <div>
+                                                <span className="_grey">result id: </span>
+                                                {res.id}
+                                              </div>
+                                              <div>
+                                                <span className="_grey">player id: </span>
+                                                {res.playerId}
+                                              </div>
+                                            </>
+                                          )}
                                           <div>
                                             <span className="_grey">игрок: </span>
                                             <NavLink

@@ -31,21 +31,21 @@ export default function ChartFilter({ filterValue, onChange }) {
           <div className="buttons">
             <ToggleButton
               text="S"
-              active={!type || type === 'S'}
+              active={type === 'S'}
               onToggle={active => {
                 onChange({
                   range,
-                  type: !active ? 'D' : null,
+                  type: active ? 'S' : null,
                 });
               }}
             />
             <ToggleButton
               text="D"
-              active={!type || type === 'D'}
+              active={type === 'D'}
               onToggle={active => {
                 onChange({
                   range,
-                  type: !active ? 'S' : null,
+                  type: active ? 'D' : null,
                 });
               }}
             />

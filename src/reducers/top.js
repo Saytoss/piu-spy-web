@@ -64,6 +64,7 @@ const preprocessData = data =>
             }
           }
           return {
+            id: res.id,
             playerId: res.player,
             nickname: data.players[res.player].nickname,
             nicknameArcade: data.players[res.player].arcade_name,
