@@ -119,9 +119,8 @@
         > .chart-name {
           font-weight: 600;
           line-height: 100%;
-          flex: 0 0 50px;
-          background: #169c16;
-          width: 50px;
+          flex: 0 0 auto;
+          background: grey;
           text-align: center;
           display: flex;
           align-items: center;
@@ -130,12 +129,25 @@
           height: 25px;
           border-radius: 5px;
           margin-left: 0;
+          padding: 0 10px;
 
           > .chart-letter {
             margin-right: 2px;
           }
           &.single {
             background: #af2928;
+          }
+          &.singlep {
+            background: #af2879;
+          }
+          &.double {
+            background: #169c16;
+          }
+          &.doublep {
+            background: #129c96;
+          }
+          &.coop {
+            background: #8d8a1b;
           }
         }
       }
@@ -321,8 +333,8 @@
 
 @media screen and (max-width: 900px) {
   .container {
-    padding-right: 1.5vw;
-    padding-left: 1.5vw;
+    padding-right: 1vw;
+    padding-left: 1vw;
   }
   .timeago-tooltip {
     font-size: 100%;
@@ -332,19 +344,20 @@
       margin-bottom: 1vw;
     }
     .top-list {
-      padding: 1vw;
+      padding: 0.5vw;
       border-radius: 1vw;
     }
     .top-list > .song-block {
       padding: 1vw;
       border-radius: 1vw;
+      margin-bottom: 1vw;
       > .song-name {
+        margin-bottom: 1vw;
         > .chart-name {
           margin-right: 1vw;
-          width: 5.4vw;
           height: 3vw;
-          flex: 0 0 5.4vw;
           border-radius: 0.6vw;
+          padding: 0 1vw;
         }
       }
       > .charts > .chart {

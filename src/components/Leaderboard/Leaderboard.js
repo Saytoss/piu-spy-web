@@ -382,6 +382,10 @@ class Leaderboard extends Component {
                       <div
                         className={classNames('chart-name', {
                           single: chart.chartType === 'S',
+                          singlep: chart.chartType === 'SP',
+                          doublep: chart.chartType === 'DP',
+                          double: chart.chartType === 'D',
+                          coop: chart.chartType === 'COOP',
                         })}
                       >
                         <span className="chart-letter">{chart.chartType}</span>

@@ -37,11 +37,13 @@ const preprocessData = data =>
           0
         );
 
+      const [chartType, chartLevel] = item.chart_label.match(/(\D+)|(\d+)/g);
+
       return {
         song: item.track,
         chartLabel: item.chart_label,
-        chartLevel: item.chart_label.slice(1),
-        chartType: item.chart_label.slice(0, 1),
+        chartLevel,
+        chartType,
         mix: item.mix,
         duration: item.duration,
         results: item.results.map((res, index) => {

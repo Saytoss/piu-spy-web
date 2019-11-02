@@ -26,7 +26,9 @@ const filterCharts = (filter, rows) => {
       return false;
     }
     return (
-      row.chartLevel >= range[0] && row.chartLevel <= range[1] && (!type || type === row.chartType)
+      row.chartLevel >= range[0] &&
+      row.chartLevel <= range[1] &&
+      (!type || row.chartType.startsWith(type))
     );
   }, rows);
 };
