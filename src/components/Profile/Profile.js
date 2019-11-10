@@ -560,6 +560,7 @@ class Profile extends Component {
     const description = achievements[achName].description;
     return (
       <Tooltip
+        key={achName}
         content={<div>{description}</div>}
         tooltipClassName="pumpking-tooltip achievement-tooltip"
       >

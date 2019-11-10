@@ -16,7 +16,7 @@ export default function ExpFaq() {
       <div className="faq-header">Список уровней и необходимый опыт для их получения:</div>
       <div className="ranks-list">
         {ranks.map(rank => (
-          <div className="rank">
+          <div key={rank.threshold} className="rank">
             <div className="exp-rank">{getRankImg(rank)}</div>
             <div className="threshold">{rank.threshold}</div>
           </div>

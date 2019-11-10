@@ -78,6 +78,7 @@ export default class Input extends React.Component {
         onBlur={this.handleBlur}
         onKeyPress={this.handleKeyPress}
         onInput={this.handleChange}
+        onChange={_.noop} // Handled by onInput
       />
     );
   }
