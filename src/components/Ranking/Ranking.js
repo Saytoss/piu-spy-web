@@ -5,7 +5,6 @@ import { FaSearch, FaQuestionCircle } from 'react-icons/fa';
 import { Link, Route, withRouter } from 'react-router-dom';
 
 // styles
-import 'react-responsive-ui/style.css';
 import './ranking.scss';
 
 // components

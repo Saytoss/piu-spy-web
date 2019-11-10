@@ -79,6 +79,9 @@ export const getRankings = (data, { players }, profiles) => {
     return {
       ..._.cloneDeep(defaultInfo),
       rating: 850 + profiles[id].progress.bonus,
+      exp: profiles[id].exp,
+      expRank: profiles[id].expRank,
+      //TODO: combine ranking and profiles
     };
   };
   const playerInfo = {};
@@ -104,6 +107,7 @@ export const getRankings = (data, { players }, profiles) => {
       }
       if (!song.maxScore && isFullScore(score)) {
         song.maxScore = getMaxScore(score, song);
+        song.maxScoreAccuracy = score.accuracyRaw;
       }
     });
 
@@ -192,8 +196,23 @@ export const getRankings = (data, { players }, profiles) => {
       );
       const kLevel = Math.min(kLevel1, kLevel2);
 
-      const K1 = kLevel;
-      const K2 = kLevel;
+      // When YOU vs ENEMY both have SS/SSS, and both scores are very close to SSS, this battle will NOT affect ELO too much
+      let kMinimizer = 1;
+      if (
+        song.maxScore &&
+        score.grade.startsWith('SS') &&
+        enemyScore.grade.startsWith('SS') &&
+        score.score / maxScore > 0.99 &&
+        enemyScore.score / maxScore > 0.99
+      ) {
+        kMinimizer = Math.min(
+          1,
+          Math.max(100 - (100 * score.score) / maxScore, 100 - (100 * enemyScore.score) / maxScore)
+        );
+      }
+
+      const K1 = kLevel * kMinimizer;
+      const K2 = kLevel * kMinimizer;
       let dr1 = K1 * (S1 - E1);
       let dr2 = K2 * (S2 - E2);
       // Do not decrease rating if you have SSS - RIP zero-sum algorithm
@@ -205,7 +224,7 @@ export const getRankings = (data, { players }, profiles) => {
       score.ratingDiffLast = dr1;
       enemyScore.ratingDiffLast = dr2;
 
-      if (DEBUG) {
+      if (DEBUG && kMinimizer !== 1) {
         // if (song.song === 'Club Night') {
         // if (score.nickname === 'Liza' || enemyScore.nickname === 'Liza') {
         // if (!song.maxScore) {
@@ -293,9 +312,9 @@ export const setRankingsAction = ranking => ({
   ranking,
 });
 
-const getListOfNames = _.map('name');
+const getListOfNames = _.map('id');
 const getMapOfRatings = _.flow(
-  _.map(q => [q.name, q.rating]),
+  _.map(q => [q.id, q.rating]),
   _.fromPairs
 );
 export const setRankings = ranking => {
@@ -303,11 +322,10 @@ export const setRankings = ranking => {
     dispatch(setRankingsAction(ranking));
     try {
       const [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking] = await Promise.all([
-        localForage.getItem('lastChangedRanking_v2'),
-        localForage.getItem('lastChangedRankingPoints_v2'),
-        localForage.getItem('lastFetchedRanking_v2'),
+        localForage.getItem('lastChangedRanking_v3'),
+        localForage.getItem('lastChangedRankingPoints_v3'),
+        localForage.getItem('lastFetchedRanking_v3'),
       ]);
-      // console.log(ranking);
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);

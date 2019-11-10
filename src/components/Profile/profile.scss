@@ -61,6 +61,44 @@
         padding: 10px;
         display: flex;
         flex-flow: column nowrap;
+        .exp-range {
+          padding: 10px;
+          align-items: center;
+          display: flex;
+          flex-flow: row nowrap;
+          > .exp-line-with-label {
+            flex: 1 1 auto;
+            padding: 0 10px 15px 10px;
+            align-items: center;
+            display: flex;
+            flex-flow: column nowrap;
+            > .exp-label {
+              font-size: 80%;
+              > .taken-num {
+                color: gold;
+              }
+            }
+            > .exp-line {
+              width: 100%;
+              flex: 1 1 auto;
+              align-items: center;
+              display: flex;
+              flex-flow: row nowrap;
+              > .taken {
+                background: gold;
+                box-shadow: 0px 0px 4px 0px gold;
+                height: 10px;
+              }
+              > .rest {
+                background: #777;
+                height: 10px;
+              }
+            }
+          }
+          > .rank > img {
+            width: 45px;
+          }
+        }
         .single-double-labels {
           .recharts-wrapper {
             &::before {
@@ -126,7 +164,7 @@
           }
         }
       }
-      .profile-section.progress-section {
+      .profile-section {
         .progress-blocks-single-double {
           display: flex;
           .progress-block {
@@ -136,6 +174,47 @@
         .bonus-faq {
           font-size: 70%;
           text-align: right;
+        }
+        .achievements {
+          display: grid;
+          grid: auto-flow / repeat(5, 20%);
+          .ach-block {
+            flex: 0 0 15%;
+            margin: 5px;
+            display: flex;
+            flex-flow: column nowrap;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc4;
+            border-radius: 10px;
+            position: relative;
+            height: 130px;
+            > .ach-icon {
+              font-size: 220%;
+              line-height: 100%;
+            }
+            > .ach-name {
+              text-align: center;
+            }
+            > .progress-background {
+              border-bottom-left-radius: 10px;
+              border-bottom-right-radius: 10px;
+              position: absolute;
+              border-bottom: 3px solid #88d3ff;
+              border-left: 3px solid #88d3ff;
+              border-right: 3px solid #88d3ff;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              &.complete {
+                border-top: 3px solid #88d3ff;
+                border-radius: 10px;
+              }
+              &.zero {
+                border: none;
+              }
+            }
+          }
         }
         .achievements-grades {
           display: flex;
@@ -202,10 +281,37 @@
   }
 }
 
+.faq-exp {
+  max-width: 650px;
+  .faq-header {
+    font-size: 100%;
+    border-bottom: 1px solid #555;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+  }
+  .ranks-list {
+    margin-left: 2%;
+    display: grid;
+    grid: auto-flow / repeat(9, 9%);
+    grid-column-gap: 2%;
+    grid-row-gap: 5px;
+    .rank {
+      text-align: center;
+      > .threshold {
+        font-size: 75%;
+      }
+    }
+  }
+}
+
 @media screen and (max-width: 800px) {
+  .achievement-tooltip {
+    font-size: 130%;
+  }
   .profile-page {
     font-size: 3vw;
     > .content > .profile {
+      padding: 0 2vw;
       .chart-container {
         font-size: 16px;
       }
@@ -220,15 +326,39 @@
         display: block;
         > .profile-section {
           width: 100%;
-          margin: 0;
-          margin-bottom: 10px;
+          padding: 1.5vw;
+          border-radius: 1.5vw;
+          margin: 2vw 0;
         }
       }
       .profile-section {
+        padding: 1.5vw;
+        border-radius: 1.5vw;
+        margin: 1.5vw 0;
+        .exp-range {
+          padding: 1.5vw;
+          > .exp-line-with-label {
+            > .exp-line {
+              > .taken,
+              > .rest {
+                height: 1.5vw;
+              }
+            }
+          }
+          > .rank > img {
+            width: 7vw;
+          }
+        }
         .profile-section-content {
           flex-flow: column nowrap;
           > div {
             width: 100%;
+          }
+        }
+        .achievements {
+          grid: auto-flow/repeat(3, 33%);
+          .ach-block {
+            height: 23vw;
           }
         }
         &.progress-section .progress-blocks-single-double {

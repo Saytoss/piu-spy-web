@@ -17,7 +17,6 @@ import {
 } from 'react-icons/fa';
 
 // styles
-import 'react-responsive-ui/style.css';
 import './leaderboard.scss';
 
 // components
@@ -40,6 +39,7 @@ import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/
 import { selectPreset, openPreset } from 'reducers/presets';
 
 // utils
+import { getExp } from 'utils/exp';
 import { tooltipFormatter, tooltipFormatterForBests, getTimeAgo } from 'utils/leaderboards';
 import { colorsArray } from 'utils/colors';
 import { playersSelector, filteredDataSelector } from 'reducers/selectors';
@@ -508,7 +508,7 @@ class Leaderboard extends Component {
                                                   основываясь на скоре
                                                 </div>
                                               }
-                                              tooltipClassName="timeago-tooltip"
+                                              tooltipClassName="pumpking-tooltip"
                                             >
                                               VJ?
                                             </Tooltip>
@@ -550,6 +550,10 @@ class Leaderboard extends Component {
                                             >
                                               {res.nickname} ({res.nicknameArcade})
                                             </NavLink>
+                                          </div>
+                                          <div>
+                                            <span className="_grey">опыт: </span>+
+                                            {numeral(getExp(res, chart)).format('0,0')}
                                           </div>
                                           {!res.isExactDate && (
                                             <div className="warning">
@@ -642,7 +646,7 @@ class Leaderboard extends Component {
                                             ? tooltipFormatter(res.dateObject)
                                             : tooltipFormatterForBests(res.dateObject)
                                         }
-                                        tooltipClassName="timeago-tooltip"
+                                        tooltipClassName="pumpking-tooltip"
                                       >
                                         {getTimeAgo(res.dateObject)}
                                         {res.isExactDate ? '' : '?'}

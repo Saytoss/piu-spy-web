@@ -10,6 +10,8 @@ import { routes } from 'constants/routes';
 
 import Loader from 'components/Shared/Loader';
 
+import { getRankImg } from 'utils/exp';
+
 const getGradeImg = grade => (
   <img src={`${process.env.PUBLIC_URL}/grades/${grade}.png`} alt={grade} />
 );
@@ -25,6 +27,7 @@ export default function RankingList({ ranking, isLoading }) {
             <tr>
               <th className="place"></th>
               <th className="change"></th>
+              <th className="exp-rank">rank</th>
               <th className="name">name</th>
               <th className="name2">piu name</th>
               <th className="rating">elo</th>
@@ -69,6 +72,7 @@ export default function RankingList({ ranking, isLoading }) {
                       </div>
                     )}
                   </td>
+                  <td className="exp-rank">{getRankImg(player.expRank)}</td>
                   <td className="name">
                     <NavLink exact to={routes.profile.getPath({ id: player.id })}>
                       {player.name}

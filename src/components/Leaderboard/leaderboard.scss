@@ -321,23 +321,10 @@
   }
 }
 
-.timeago-tooltip {
-  background: #333;
-  border: 1px solid #292929;
-  border-radius: 7px;
-  font-size: 14px;
-  padding-top: 2px;
-  height: auto;
-  z-index: 4;
-}
-
 @media screen and (max-width: 900px) {
   .container {
     padding-right: 1vw;
     padding-left: 1vw;
-  }
-  .timeago-tooltip {
-    font-size: 100%;
   }
   .leaderboard-page {
     .search-block {

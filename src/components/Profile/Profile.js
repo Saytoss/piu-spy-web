@@ -1,16 +1,18 @@
 import React, { Component } from 'react';
 import toBe from 'prop-types';
 import { connect } from 'react-redux';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaQuestionCircle, FaTimes } from 'react-icons/fa';
 import { withRouter } from 'react-router-dom';
 import classNames from 'classnames';
+import ReactModal from 'react-modal';
+import Tooltip from 'react-responsive-ui/modules/Tooltip';
 import {
   BarChart,
   Bar,
   LineChart,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ReferenceLine,
   CartesianGrid,
   Line,
@@ -22,7 +24,6 @@ import { createSelector } from 'reselect';
 import _ from 'lodash/fp';
 
 // styles
-import 'react-responsive-ui/style.css';
 import './profile.scss';
 
 // constants
@@ -31,6 +32,7 @@ import './profile.scss';
 import Range from 'components/Shared/Range';
 import Loader from 'components/Shared/Loader';
 import Toggle from 'components/Shared/Toggle/Toggle';
+import ExpFaq from './ExpFaq';
 
 // reducers
 import { fetchTopScores } from 'reducers/top';
@@ -38,6 +40,8 @@ import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 
 // utils
 import { getTimeAgo } from 'utils/leaderboards';
+import { achievements } from 'utils/achievements';
+import { getRankImg } from 'utils/exp';
 
 // code
 const MIN_GRAPH_HEIGHT = undefined;
@@ -210,6 +214,7 @@ class Profile extends Component {
 
   state = {
     isLevelGraphCombined: true,
+    showFaq: false,
   };
 
   componentWillUnmount() {
@@ -227,6 +232,14 @@ class Profile extends Component {
       ...filter,
       dayRange: range,
     });
+  };
+
+  onShowFaq = () => {
+    this.setState({ showFaq: true });
+  };
+
+  onHideFaq = () => {
+    this.setState({ showFaq: false });
   };
 
   renderRankingHistory() {
@@ -248,7 +261,7 @@ class Profile extends Component {
             width={40}
           />
           <ReferenceLine y={1000} stroke="white" />
-          <Tooltip
+          <RechartsTooltip
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!payload || !payload[0]) {
@@ -294,7 +307,7 @@ class Profile extends Component {
             reversed
             width={40}
           />
-          <Tooltip
+          <RechartsTooltip
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!payload || !payload[0]) {
@@ -329,7 +342,7 @@ class Profile extends Component {
           data={profile.gradesDistribution}
           margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
         >
-          <Tooltip
+          <RechartsTooltip
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!payload || !payload[0]) {
@@ -378,7 +391,7 @@ class Profile extends Component {
           margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
           stackOffset="sign"
         >
-          <Tooltip
+          <RechartsTooltip
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!payload || !payload[0]) {
@@ -426,7 +439,11 @@ class Profile extends Component {
             }}
           />
           <XAxis dataKey="x" />
-          <YAxis tickFormatter={x => `${Math.round(x)}%`} width={40} />
+          <YAxis
+            tickFormatter={x => `${Math.round(Math.abs(x))}%`}
+            width={40}
+            domain={[dataMin => Math.min(dataMin, -10), dataMax => Math.max(10, dataMax)]}
+          />
           <Bar dataKey="S-SSS" fill="#ffd700" stackId="stack" />
           <Bar dataKey="S-SS" fill="#dab800" stackId="stack" />
           <Bar dataKey="S-S" fill="#b19500" stackId="stack" />
@@ -462,7 +479,7 @@ class Profile extends Component {
           stackOffset="sign"
           margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
         >
-          <Tooltip
+          <RechartsTooltip
             isAnimationActive={false}
             content={({ active, payload, label }) => {
               if (!payload || !payload[0]) {
@@ -490,8 +507,12 @@ class Profile extends Component {
             }}
           />
           <XAxis dataKey="x" />
-          <YAxis tickFormatter={x => Math.abs(x) + '%'} width={40} />
-          <Tooltip />
+          <YAxis
+            tickFormatter={x => Math.round(Math.abs(x)) + '%'}
+            width={40}
+            domain={[dataMin => Math.min(dataMin, -10), dataMax => Math.max(10, dataMax)]}
+          />
+          <RechartsTooltip />
           <ReferenceLine y={0} stroke="#555" />
           <Legend />
           <Bar dataKey="D" fill="#169c16" stackId="stack" />
@@ -534,6 +555,35 @@ class Profile extends Component {
     );
   }
 
+  renderAchievement(achName, achievement) {
+    const Icon = achievements[achName].icon;
+    const description = achievements[achName].description;
+    return (
+      <Tooltip
+        content={<div>{description}</div>}
+        tooltipClassName="pumpking-tooltip achievement-tooltip"
+      >
+        <div className="ach-block">
+          {Icon && (
+            <div className="ach-icon">
+              <Icon />
+            </div>
+          )}
+          <div className="ach-name">{achName}</div>
+          <div
+            className={classNames('progress-background', {
+              complete: achievement.progress === 100,
+              zero: achievement.progress === 0,
+            })}
+            style={{
+              height: `${Math.round(achievement.progress)}%`,
+            }}
+          />
+        </div>
+      </Tooltip>
+    );
+  }
+
   render() {
     const { isLoading, profile, error, filter } = this.props;
     const { isLevelGraphCombined } = this.state;
@@ -542,6 +592,10 @@ class Profile extends Component {
       return null;
     }
 
+    const expProgress = profile.expRankNext
+      ? (profile.exp - profile.expRank.threshold) /
+        (profile.expRankNext.threshold - profile.expRank.threshold)
+      : 100;
     return (
       <div className="profile-page">
         <div className="content">
@@ -578,6 +632,49 @@ class Profile extends Component {
                   <div>
                     {profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}
                   </div>
+                </div>
+              </div>
+              <div className="profile-section">
+                <div className="profile-sm-section-header _flex-row _align-center">
+                  <span>опыт</span>
+                  <div className="_flex-fill" />
+                  <div onClick={this.onShowFaq} className="_clickable">
+                    <FaQuestionCircle onClick={this.onShowFaq} />
+                  </div>
+                  <ReactModal
+                    ariaHideApp={false}
+                    className="Modal faq-modal"
+                    overlayClassName="Overlay"
+                    isOpen={this.state.showFaq}
+                    onRequestClose={this.onHideFaq}
+                  >
+                    <div className="close-btn" onClick={this.onHideFaq}>
+                      <FaTimes />
+                    </div>{' '}
+                    <ExpFaq />
+                  </ReactModal>
+                </div>
+                <div className="exp-range">
+                  <div className="rank exp-rank">{getRankImg(profile.expRank)}</div>
+                  <div className="exp-line-with-label">
+                    <div className="exp-label">
+                      <span className="taken-num">{Math.round(profile.exp)}</span>
+                      {profile.expRankNext ? ` / ${profile.expRankNext.threshold}` : ''}
+                    </div>
+                    <div className="exp-line">
+                      <div
+                        className="taken"
+                        style={{ width: Math.floor(100 * expProgress) + '%' }}
+                      ></div>
+                      <div
+                        className="rest"
+                        style={{ width: 100 - Math.ceil(100 * expProgress) + '%' }}
+                      ></div>
+                    </div>
+                  </div>
+                  {profile.expRankNext && (
+                    <div className="rank exp-rank">{getRankImg(profile.expRankNext)}</div>
+                  )}
                 </div>
               </div>
               <div className="profile-section-horizontal-container">
@@ -663,7 +760,7 @@ class Profile extends Component {
               </div>
               <div className="profile-section progress-section">
                 <div className="profile-sm-section-header">
-                  <span>ачивки по уровням</span>
+                  <span>достижения по уровням</span>
                 </div>
                 <div className="progress-blocks-single-double">
                   <div className="progress-block">
@@ -688,6 +785,16 @@ class Profile extends Component {
                   Эло
                   <br />* для получения ачивки нужно сыграть около 10% всех чартов данного левела на
                   нужный грейд
+                </div>
+              </div>
+              <div className="profile-section">
+                <div className="profile-sm-section-header">
+                  <span>достижения</span>
+                </div>
+                <div className="achievements">
+                  {_.keys(profile.achievements).map(achName =>
+                    this.renderAchievement(achName, profile.achievements[achName])
+                  )}
                 </div>
               </div>
             </div>

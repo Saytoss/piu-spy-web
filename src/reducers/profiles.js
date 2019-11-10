@@ -1,6 +1,8 @@
 import _ from 'lodash/fp';
-// import localForage from 'localforage';
-//
+
+import { achievements, initialAchievementState } from 'utils/achievements';
+import { getExp, ranks as expRanks } from 'utils/exp';
+
 import { GRADES } from 'constants/grades';
 
 const SET_PROFILES = `PROFILES/SET_PROFILES`;
@@ -60,13 +62,22 @@ export const getProfiles = (profiles, data, ranking) => {
 export const getInitialProfiles = (data, tracklist) => {
   // console.log(tracklist);
   let profiles = {};
-  const initializeProfile = id => {
+  const initializeProfile = (id, name) => {
     const resultsByLevel = _.fromPairs(Array.from({ length: 28 }).map((x, i) => [i + 1, []]));
-    profiles[id] = { resultsByGrade: {}, resultsByLevel, lastResultDate: null };
+    profiles[id] = { name, resultsByGrade: {}, resultsByLevel, lastResultDate: null };
+    profiles[id].achievements = _.flow(
+      _.keys,
+      _.map(achName => [
+        achName,
+        { ...(achievements[achName].initialState || initialAchievementState) },
+      ]),
+      _.fromPairs
+    )(achievements);
+    profiles[id].exp = 0;
   };
   const addResultData = (chart, result) => {
     if (!profiles[result.playerId]) {
-      initializeProfile(result.playerId);
+      initializeProfile(result.playerId, result.nickname);
     }
     const profile = profiles[result.playerId];
     profile.resultsByGrade[result.grade] = [
@@ -90,6 +101,10 @@ export const getInitialProfiles = (data, tracklist) => {
     if (result.isExactDate && profile.lastResultDate < result.dateObject) {
       profile.lastResultDate = result.dateObject;
     }
+    profile.achievements = _.mapValues.convert({ cap: false })((achState, achName) => {
+      return achievements[achName].resultFunction(result, chart, achState, profile);
+    }, profile.achievements);
+    profile.exp += getExp(result, chart);
   };
   data.forEach(chart => {
     chart.results.forEach(result => {
@@ -105,6 +120,8 @@ export const getInitialProfiles = (data, tracklist) => {
 
   profiles = _.mapValues(profile => {
     const neededGrades = ['A', 'A+', 'S', 'SS', 'SSS'];
+    profile.expRank = _.findLast(rank => rank.threshold <= profile.exp, expRanks);
+    profile.expRankNext = _.find(rank => rank.threshold > profile.exp, expRanks);
     profile.progress = {
       double: {
         SS: {},
@@ -151,7 +168,6 @@ export const getInitialProfiles = (data, tracklist) => {
         }
       });
     });
-    // console.log(profile.progress);
     ['single', 'double'].forEach(chartType => {
       profile.progress[`${chartType}-bonus`] = 0;
       _.keys(profile.progress[chartType]).forEach(grade => {
@@ -179,31 +195,8 @@ export const getInitialProfiles = (data, tracklist) => {
       });
     });
     profile.progress.bonus = profile.progress['double-bonus'] + profile.progress['single-bonus'];
-    // console.log(profile.progress);
     return profile;
   }, profiles);
-  // const formatProfile = profile => {
-  //   // console.log(profile);
-  //   // const id = _.values(profile.resultsByGrade)[0][0].result.playerId;
-  //   const name = _.values(profile.resultsByGrade)[0][0].result.nickname;
-  //   return `${name} - ${profile.progress.bonus}
-  // S: A (${profile.progress.single['A-bonus'].toFixed(1)}) A+ (${profile.progress.single[
-  //     'A+-bonus'
-  //   ].toFixed(1)}) S (${profile.progress.single['S-bonus'].toFixed(
-  //     1
-  //   )}) SS (${profile.progress.single['SS-bonus'].toFixed(1)})
-  // D: A (${profile.progress.double['A-bonus'].toFixed(1)}) A+ (${profile.progress.double[
-  //     'A+-bonus'
-  //   ].toFixed(1)}) S (${profile.progress.double['S-bonus'].toFixed(
-  //     1
-  //   )}) SS (${profile.progress.double['SS-bonus'].toFixed(1)})`;
-  // };
-  // console.log(
-  //   _.join(
-  //     '\n',
-  //     _.map(formatProfile, _.values(profiles).sort((a, b) => b.progress.bonus - a.progress.bonus))
-  //   )
-  // );
   return profiles;
 };
 

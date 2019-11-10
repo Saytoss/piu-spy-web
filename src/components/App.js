@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Route, Redirect } from 'react-router-dom';
 
+import 'react-responsive-ui/style.css';
 import './App.scss';
 
 import { routes } from 'constants/routes';

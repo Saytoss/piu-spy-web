@@ -7,3 +7,72 @@
   align-items: center;
   width: 100%;
 }
+
+.pumpking-tooltip {
+  background: #333;
+  border: 1px solid white;
+  border-radius: 7px;
+  padding-top: 2px;
+  height: auto;
+  z-index: 4;
+  font-size: 14px;
+  max-width: 260px;
+}
+
+.exp-rank {
+  img {
+    width: 100%;
+    &.gold {
+      filter: drop-shadow(0px 0px 3px gold);
+      // filter: invert(1) sepia(1) hue-rotate(-43deg) saturate(200) drop-shadow(0px 0px 5px gold);
+    }
+    &.silver {
+      filter: drop-shadow(0px 0px 2px #fff5);
+    }
+    &.bronze {
+      // filter: invert(100%) sepia(100%) hue-rotate(-60deg) saturate(195) brightness(82%)
+      // drop-shadow(0px 0px 1px #e07f1f);
+      // filter: invert(100%) sepia(100%) hue-rotate(-65deg) saturate(100) brightness(70%)
+      //   drop-shadow(0px 0px 1px #e07f1f);
+      // filter: invert(100%) sepia(100%) hue-rotate(-54deg) saturate(190) brightness(93%);
+    }
+  }
+}
+
+.Modal {
+  max-width: 90%;
+  margin: auto;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid #555;
+  background-color: #353535;
+  outline: none;
+  .close-btn {
+    float: right;
+    cursor: pointer;
+    border: 1px solid #aaa;
+    height: 2em;
+    width: 2em;
+    border-radius: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.Overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #1119;
+  display: flex;
+  z-index: 5;
+}
+
+@media screen and (max-width: 900px) {
+  .pumpking-tooltip {
+    font-size: 100%;
+  }
+}

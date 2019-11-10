@@ -104,6 +104,11 @@
         white-space: nowrap;
       }
     }
+    &.exp-rank {
+      img {
+        width: 2em;
+      }
+    }
     &.place {
       color: #c9c9c9;
       font-size: 17px;
