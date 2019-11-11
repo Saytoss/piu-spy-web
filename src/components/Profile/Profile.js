@@ -659,6 +659,7 @@ class Profile extends Component {
                   <div className="rank exp-rank">{getRankImg(profile.expRank)}</div>
                   <div className="exp-line-with-label">
                     <div className="exp-label">
+                      {profile.expRank ? `${profile.expRank.threshold} / ` : ''}
                       <span className="taken-num">{Math.round(profile.exp)}</span>
                       {profile.expRankNext ? ` / ${profile.expRankNext.threshold}` : ''}
                     </div>
