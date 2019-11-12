@@ -62,23 +62,25 @@
         display: flex;
         flex-flow: column nowrap;
         .exp-range {
+          font-size: 80%;
           padding: 10px;
           align-items: center;
           display: flex;
           flex-flow: row nowrap;
           > .exp-line-with-label {
             flex: 1 1 auto;
-            padding: 0 10px 15px 10px;
+            padding: 0 10px 8px 10px;
             align-items: center;
             display: flex;
             flex-flow: column nowrap;
             > .exp-label {
-              font-size: 80%;
+              line-height: 1;
               > .taken-num {
                 color: gold;
               }
             }
             > .exp-line {
+              padding: 4px 0 6px 0;
               width: 100%;
               flex: 1 1 auto;
               align-items: center;
@@ -95,8 +97,16 @@
               }
             }
           }
-          > .rank > img {
-            width: 45px;
+          > .rank {
+            text-align: center;
+            > img {
+              width: 45px;
+              margin-bottom: 2px;
+            }
+            > div {
+              font-size: 80%;
+              color: #ccc;
+            }
           }
         }
         .single-double-labels {
@@ -339,6 +349,7 @@
           padding: 1.5vw;
           > .exp-line-with-label {
             > .exp-line {
+              padding: 0.7vw 0 0.8vw 0;
               > .taken,
               > .rest {
                 height: 1.5vw;

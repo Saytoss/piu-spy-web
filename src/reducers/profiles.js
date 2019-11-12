@@ -80,23 +80,25 @@ export const getInitialProfiles = (data, tracklist) => {
       initializeProfile(result.playerId, result.nickname);
     }
     const profile = profiles[result.playerId];
-    profile.resultsByGrade[result.grade] = [
-      ...(profile.resultsByGrade[result.grade] || []),
-      { result, chart },
-    ];
-    const resultsOfThisPlayer = _.filter({ playerId: result.playerId }, chart.results);
-    if (resultsOfThisPlayer[0] === result) {
-      // Only apply one result
-      let bestGradeResult = result;
-      if (resultsOfThisPlayer.length > 1) {
-        bestGradeResult = resultsOfThisPlayer.sort(
-          (a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade)
-        )[0];
-      }
-      profile.resultsByLevel[chart.chartLevel] = [
-        ...(profile.resultsByLevel[chart.chartLevel] || []),
-        { result: bestGradeResult, chart },
+    if (chart.chartType !== 'COOP') {
+      profile.resultsByGrade[result.grade] = [
+        ...(profile.resultsByGrade[result.grade] || []),
+        { result, chart },
       ];
+      const resultsOfThisPlayer = _.filter({ playerId: result.playerId }, chart.results);
+      if (resultsOfThisPlayer[0] === result) {
+        // Only apply one result
+        let bestGradeResult = result;
+        if (resultsOfThisPlayer.length > 1) {
+          bestGradeResult = resultsOfThisPlayer.sort(
+            (a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade)
+          )[0];
+        }
+        profile.resultsByLevel[chart.chartLevel] = [
+          ...(profile.resultsByLevel[chart.chartLevel] || []),
+          { result: bestGradeResult, chart },
+        ];
+      }
     }
     if (result.isExactDate && profile.lastResultDate < result.dateObject) {
       profile.lastResultDate = result.dateObject;
@@ -143,9 +145,16 @@ export const getInitialProfiles = (data, tracklist) => {
       'A+': ['A+', 'A'],
       A: ['A'],
     };
-    const incrementLevel = (l, g, isS) => {
-      const prog = isS ? profile.progress.single : profile.progress.double;
-      prog[g][l] = prog[g][l] ? prog[g][l] + 1 : 1;
+    const incrementLevel = (l, g, chartType) => {
+      const prog =
+        chartType === 'S' || chartType === 'SP'
+          ? profile.progress.single
+          : chartType === 'D' || chartType === 'DP'
+          ? profile.progress.double
+          : null;
+      if (prog) {
+        prog[g][l] = prog[g][l] ? prog[g][l] + 1 : 1;
+      }
     };
     _.keys(profile.resultsByLevel).forEach(level => {
       profile.resultsByLevel[level].forEach(res => {
@@ -163,7 +172,7 @@ export const getInitialProfiles = (data, tracklist) => {
         const gradeIncArray = gradeIncrementMap[thisGrade];
         if (gradeIncArray) {
           gradeIncArray.forEach(gradeInc => {
-            incrementLevel(level, gradeInc, res.chart.chartType === 'S');
+            incrementLevel(level, gradeInc, res.chart.chartType);
           });
         }
       });

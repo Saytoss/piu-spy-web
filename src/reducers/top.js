@@ -26,16 +26,20 @@ const preprocessData = data =>
     _.get('top'),
     _.values,
     _.map(item => {
-      const fullRes = _.find(
-        r => _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses]),
-        item.results
-      );
+      let latestScoreDate = item.results[0].gained;
+      let fullRes = null;
+      let firstResultMap = {};
+      _.forEach(r => {
+        if (!fullRes && _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses])) {
+          fullRes = r;
+        }
+        firstResultMap[r.player] = firstResultMap[r.player] || r;
+        latestScoreDate = r.gained > latestScoreDate ? r.gained : latestScoreDate;
+      }, item.results);
+
       const stepSum =
         fullRes &&
-        [fullRes.perfects, fullRes.greats, fullRes.goods, fullRes.bads, fullRes.misses].reduce(
-          (sum, n) => sum + n,
-          0
-        );
+        fullRes.perfects + fullRes.greats + fullRes.goods + fullRes.bads + fullRes.misses;
 
       const [chartType, chartLevel] = item.chart_label.match(/(\D+)|(\d+)/g);
 
@@ -46,27 +50,9 @@ const preprocessData = data =>
         chartType,
         mix: item.mix,
         duration: item.duration,
+        latestScoreDate,
         results: item.results.map((res, index) => {
-          let resultInfoOverrides = {};
-          if (stepSum) {
-            const infos = [res.perfects, res.greats, res.goods, res.bads, res.misses];
-            let fixableIndex = -1;
-            let localStepSum = 0;
-            const canFix =
-              infos.filter((numb, index) => {
-                if (!_.isNumber(numb)) {
-                  fixableIndex = index;
-                  return true;
-                }
-                localStepSum += numb;
-                return false;
-              }).length === 1;
-            if (canFix) {
-              resultInfoOverrides[['perfect', 'great', 'good', 'bad', 'miss'][fixableIndex]] =
-                stepSum - localStepSum;
-            }
-          }
-          return {
+          let _r = {
             id: res.id,
             playerId: res.player,
             nickname: data.players[res.player].nickname,
@@ -90,39 +76,46 @@ const preprocessData = data =>
             mods: res.mods_list,
             isRank: !!res.rank_mode,
             isHJ: (res.mods_list || '').split(' ').includes('HJ'),
-            ...resultInfoOverrides,
           };
-        }),
-      };
-    }),
-    _.map(song => {
-      return {
-        ...song,
-        latestScoreDate: song.results.reduce(
-          (latest, current) => (current.date > latest ? current.date : latest),
-          song.results[0].date
-        ),
-        results: song.results.map(res => {
-          const perfects = (Math.sqrt(res.perfect) * _.toInteger(song.chartLevel)) / 2;
+
+          if (stepSum) {
+            const infos = [_r.perfect, _r.great, _r.good, _r.bad, _r.miss];
+            let fixableIndex = -1;
+            let localStepSum = 0;
+            const canFix =
+              infos.filter((numb, index) => {
+                if (!_.isNumber(numb)) {
+                  fixableIndex = index;
+                  return true;
+                }
+                localStepSum += numb;
+                return false;
+              }).length === 1;
+            if (canFix) {
+              _r[['perfect', 'great', 'good', 'bad', 'miss'][fixableIndex]] =
+                stepSum - localStepSum;
+            }
+          }
+          const perfects = (Math.sqrt(_r.perfect) * _.toInteger(chartLevel)) / 2;
           const acc = perfects
             ? Math.floor(
-                ((perfects * 100 + res.great * 60 + res.good * 30 + res.miss * -20) /
-                  (perfects + res.great + res.good + res.bad + res.miss)) *
+                ((perfects * 100 + _r.great * 60 + _r.good * 30 + _r.miss * -20) /
+                  (perfects + _r.great + _r.good + _r.bad + _r.miss)) *
                   100
               ) / 100
             : null;
-          const accRaw = res.perfect
+          const accRaw = _r.perfect
             ? Math.floor(
-                ((res.perfect * 100 + res.great * 60 + res.good * 30 + res.miss * -20) /
-                  (res.perfect + res.great + res.good + res.bad + res.miss)) *
+                ((_r.perfect * 100 + _r.great * 60 + _r.good * 30 + _r.miss * -20) /
+                  (_r.perfect + _r.great + _r.good + _r.bad + _r.miss)) *
                   100
               ) / 100
             : null;
           return {
-            ...res,
+            ..._r,
+            isPlayersTopResult: firstResultMap[res.player] === res,
             accuracy: acc < 0 ? 0 : accRaw === 100 ? 100 : acc && +acc.toFixed(2),
             accuracyRaw: accRaw,
-            hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
           };
         }),
       };

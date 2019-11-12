@@ -3,11 +3,11 @@ import React from 'react';
 const gradeCoef = {
   F: 0.1,
   D: 0.2,
-  'D+': 0.2,
+  'D+': 0.3,
   C: 0.3,
-  'C+': 0.3,
+  'C+': 0.5,
   B: 0.5,
-  'B+': 0.5,
+  'B+': 0.8,
   A: 0.8,
   'A+': 1,
   S: 1.1,
@@ -16,6 +16,12 @@ const gradeCoef = {
 };
 
 export const getExp = (result, chart) => {
+  if (!result.isPlayersTopResult) {
+    return 0;
+  }
+  if (chart.chartType === 'COOP') {
+    return (chart.chartLevel * 1000 * (gradeCoef[result.grade] || 0.8)) / 8;
+  }
   const exp = (chart.chartLevel ** 2.31 * (gradeCoef[result.grade] || 0.8)) / 9;
   return exp;
 };

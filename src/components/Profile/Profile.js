@@ -96,10 +96,14 @@ const profileSelector = createSelector(
       _.map(([x, y]) => ({
         x: _.toInteger(x),
         S:
-          (_.size(_.filter(res => res.chart.chartType === 'S', y)) / tracklist.singlesLevels[x]) *
+          (_.size(_.filter(res => res.chart.chartType === 'S' || res.chart.chartType === 'SP', y)) /
+            tracklist.singlesLevels[x]) *
           100,
         D:
-          (-_.size(_.filter(res => res.chart.chartType === 'D', y)) / tracklist.doublesLevels[x]) *
+          (-_.size(
+            _.filter(res => res.chart.chartType === 'D' || res.chart.chartType === 'DP', y)
+          ) /
+            tracklist.doublesLevels[x]) *
           100,
       }))
     )(profile);
@@ -131,7 +135,19 @@ const profileSelector = createSelector(
     const gradesAndLevelsDistribution = _.flow(
       _.map(([x, y]) => {
         const groupedResults = _.groupBy('result.grade', y);
-        const counts = _.omit('?', _.mapValues(_.countBy('chart.chartType'), groupedResults));
+        const counts = _.omit(
+          '?',
+          _.mapValues(
+            _.countBy(res => {
+              return res.chart.chartType === 'S' || res.chart.chartType === 'SP'
+                ? 'S'
+                : res.chart.chartType === 'D' || res.chart.chartType === 'DP'
+                ? 'D'
+                : 'Other';
+            }),
+            groupedResults
+          )
+        );
         const reduced = _.reduce(
           (acc, [grade, levelsData]) => {
             const accData = _.flow(
@@ -656,12 +672,20 @@ class Profile extends Component {
                   </ReactModal>
                 </div>
                 <div className="exp-range">
-                  <div className="rank exp-rank">{getRankImg(profile.expRank)}</div>
+                  <div className="rank exp-rank">
+                    {getRankImg(profile.expRank)}
+                    {profile.expRank && <div>{profile.expRank.threshold}</div>}
+                  </div>
                   <div className="exp-line-with-label">
                     <div className="exp-label">
-                      {profile.expRank ? `${profile.expRank.threshold} / ` : ''}
-                      <span className="taken-num">{Math.round(profile.exp)}</span>
-                      {profile.expRankNext ? ` / ${profile.expRankNext.threshold}` : ''}
+                      {profile.expRankNext ? (
+                        <>
+                          <span className="taken-num">
+                            {Math.round(profile.exp - profile.expRank.threshold)}
+                          </span>
+                          {` / ${profile.expRankNext.threshold - profile.expRank.threshold}`}
+                        </>
+                      ) : null}
                     </div>
                     <div className="exp-line">
                       <div
@@ -673,9 +697,15 @@ class Profile extends Component {
                         style={{ width: 100 - Math.ceil(100 * expProgress) + '%' }}
                       ></div>
                     </div>
+                    <div className="exp-label">
+                      total: <span className="taken-num">{Math.round(profile.exp)}</span>
+                    </div>
                   </div>
                   {profile.expRankNext && (
-                    <div className="rank exp-rank">{getRankImg(profile.expRankNext)}</div>
+                    <div className="rank exp-rank">
+                      {getRankImg(profile.expRankNext)}
+                      {profile.expRankNext && <div>{profile.expRankNext.threshold}</div>}
+                    </div>
                   )}
                 </div>
               </div>

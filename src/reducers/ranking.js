@@ -87,6 +87,10 @@ export const getRankings = (data, { players }, profiles) => {
   const playerInfo = {};
   const battles = [];
   data.forEach(song => {
+    if (song.chartType === 'COOP') {
+      // Coops don't affect ELO
+      return;
+    }
     const validResults = [];
     _.orderBy(['score'], ['desc'], song.results).forEach(score => {
       if (!score.nickname.includes('???')) {
