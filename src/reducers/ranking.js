@@ -333,20 +333,22 @@ export const setRankings = ranking => {
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
+      console.log(listNow, listLastFetched, listLastChanged);
       const mapPointsNow = getMapOfRatings(ranking);
       const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
       const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
+      console.log(ranking, lastFetchedRanking, lastChangedRankingPoints);
       let rankingsPointsMap = mapPointsLastChanged;
       // console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
       if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
-        localForage.setItem('lastChangedRankingPoints_v2', lastFetchedRanking);
+        localForage.setItem('lastChangedRankingPoints_v3', lastFetchedRanking);
         rankingsPointsMap = mapPointsLastFetched;
       }
       let listPrev = listLastChanged;
       if (!_.isEqual(listNow, listLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
-        localForage.setItem('lastChangedRanking_v2', lastFetchedRanking);
+        localForage.setItem('lastChangedRanking_v3', lastFetchedRanking);
         listPrev = listLastFetched;
       }
       dispatch({
@@ -355,7 +357,7 @@ export const setRankings = ranking => {
         listPrev,
         rankingsPointsMap,
       });
-      localForage.setItem('lastFetchedRanking_v2', ranking);
+      localForage.setItem('lastFetchedRanking_v3', ranking);
       // console.log(listNow, listLastFetched, listLastChanged);
     } catch (error) {
       console.warn('Cannot get ranking from local storage', error);
