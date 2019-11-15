@@ -37,21 +37,20 @@ export default function reducer(state = {}, action) {
         data: _.map(playerOriginal => {
           const player = {
             ...playerOriginal,
-            prevRating: _.get(playerOriginal.name, action.rankingsPointsMap),
+            prevRating: _.get(playerOriginal.id, action.rankingsPointsMap),
           };
           if (!hasPrevList) {
             return player; // First time opening this thing and we didn't have any previous data
           }
-          if (!_.includes(player.name, action.listPrev)) {
+          if (!_.includes(player.id, action.listPrev)) {
             return { ...player, change: 'NEW' };
-          } else if (!_.includes(player.name, action.listNow)) {
+          } else if (!_.includes(player.id, action.listNow)) {
             // Should NEVER happen, idk if this is possible
             return { ...player, change: '?' };
           } else {
             return {
               ...player,
-              change:
-                _.indexOf(player.name, action.listPrev) - _.indexOf(player.name, action.listNow),
+              change: _.indexOf(player.id, action.listPrev) - _.indexOf(player.id, action.listNow),
             };
           }
         }, state.data),
@@ -228,7 +227,7 @@ export const getRankings = (data, { players }, profiles) => {
       score.ratingDiffLast = dr1;
       enemyScore.ratingDiffLast = dr2;
 
-      if (DEBUG && kMinimizer !== 1) {
+      if (DEBUG) {
         // if (song.song === 'Club Night') {
         // if (score.nickname === 'Liza' || enemyScore.nickname === 'Liza') {
         // if (!song.maxScore) {
@@ -250,8 +249,8 @@ export const getRankings = (data, { players }, profiles) => {
       }
 
       // Change rating as a result of this battle
-      p1.rating = r1 + dr1;
-      p2.rating = r2 + dr2;
+      p1.rating = p1.rating + dr1;
+      p2.rating = p2.rating + dr2;
       // Rating floor
       p1.rating = Math.max(100, p1.rating);
       p2.rating = Math.max(100, p2.rating);
@@ -333,12 +332,12 @@ export const setRankings = ranking => {
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
-      console.log(listNow, listLastFetched, listLastChanged);
       const mapPointsNow = getMapOfRatings(ranking);
       const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
       const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
-      console.log(ranking, lastFetchedRanking, lastChangedRankingPoints);
+
       let rankingsPointsMap = mapPointsLastChanged;
+      // console.log(listNow, listLastFetched, listLastChanged);
       // console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
       if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
         // Between this fetch and last fetch there was a CHANGE in ranking
@@ -358,7 +357,6 @@ export const setRankings = ranking => {
         rankingsPointsMap,
       });
       localForage.setItem('lastFetchedRanking_v3', ranking);
-      // console.log(listNow, listLastFetched, listLastChanged);
     } catch (error) {
       console.warn('Cannot get ranking from local storage', error);
     }
