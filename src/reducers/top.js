@@ -96,7 +96,7 @@ const preprocessData = data =>
                 stepSum - localStepSum;
             }
           }
-          const perfects = (Math.sqrt(_r.perfect) * _.toInteger(chartLevel)) / 2;
+          const perfects = Math.sqrt(_r.perfect) * 10;
           const acc = perfects
             ? Math.floor(
                 ((perfects * 100 + _r.great * 60 + _r.good * 30 + _r.miss * -20) /
