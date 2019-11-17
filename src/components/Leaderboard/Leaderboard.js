@@ -561,21 +561,21 @@ class Leaderboard extends Component {
                                               рекорд взят с my best. часть данных недоступна
                                             </div>
                                           )}
-                                          {res.isExactDate && (
+                                          {!!res.isExactDate && (
                                             <>
-                                              {res.mods && (
+                                              {!!res.mods && (
                                                 <div>
                                                   <span className="_grey">моды: </span>
                                                   {res.mods}
                                                 </div>
                                               )}
-                                              {res.calories && (
+                                              {!!res.calories && (
                                                 <div>
                                                   <span className="_grey">ккал: </span>
                                                   {res.calories}
                                                 </div>
                                               )}
-                                              {res.scoreIncrease && (
+                                              {!!res.scoreIncrease && (
                                                 <div>
                                                   <span className="_grey">прирост: </span>+
                                                   {numeral(res.scoreIncrease).format('0,0')}
