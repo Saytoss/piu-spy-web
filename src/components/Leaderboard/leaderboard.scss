@@ -106,6 +106,16 @@
         justify-content: flex-start;
         flex: 0 0 100%;
 
+        .undo-result-button {
+          display: none;
+        }
+        &:hover {
+          .undo-result-button {
+            display: block;
+            cursor: pointer;
+          }
+        }
+
         > .youtube-link {
           align-self: center;
           margin-left: 0.5vw;

@@ -3,6 +3,8 @@ import toBe from 'prop-types';
 import { connect } from 'react-redux';
 import { FaSearch, FaQuestionCircle } from 'react-icons/fa';
 import { Link, Route, withRouter } from 'react-router-dom';
+import { createSelector } from 'reselect';
+import _ from 'lodash/fp';
 
 // styles
 import './ranking.scss';
@@ -15,22 +17,29 @@ import RankingFaq from './RankingFaq';
 import { routes } from 'constants/routes';
 
 // reducers
-import { fetchTopScores } from 'reducers/top';
+import { fetchResults } from 'reducers/results';
 
 // utils
 
 // code
+const rankingSelector = createSelector(
+  state => state.results.profiles,
+  _.flow(
+    _.values,
+    _.orderBy(['ratingRaw'], ['desc'])
+  )
+);
 
 const mapStateToProps = state => {
   return {
-    ranking: state.ranking.data,
-    error: state.top.error,
-    isLoading: state.top.isLoading,
+    ranking: rankingSelector(state),
+    error: state.results.error,
+    isLoading: state.results.isLoading,
   };
 };
 
 const mapDispatchToProps = {
-  fetchTopScores,
+  fetchResults,
 };
 
 class Ranking extends Component {
@@ -46,7 +55,7 @@ class Ranking extends Component {
 
   onRefresh = () => {
     const { isLoading } = this.props;
-    !isLoading && this.props.fetchTopScores();
+    !isLoading && this.props.fetchResults();
   };
 
   render() {

@@ -5,7 +5,7 @@ import matchSorter from 'match-sorter';
 import { SORT, CHART_MIN_MAX, DURATION_DEFAULT } from 'constants/leaderboard';
 
 export const playersSelector = createSelector(
-  state => state.top.players,
+  state => state.results.players,
   _.flow(
     _.toPairs,
     _.map(([id, { nickname, arcade_name }]) => ({
@@ -105,6 +105,13 @@ const getFilteredData = (data, filter) => {
 
   const result = _.flow(
     _.compact([
+      _.map(row => ({
+        ...row,
+        results: row.results.filter(
+          (res, index) => !res.isUnknownPlayer || index === 0,
+          row.results
+        ),
+      })),
       filter.chartRange && (items => filterCharts(filter.chartRange, items)),
       !filter.showRank &&
         _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
@@ -144,7 +151,7 @@ const getFilteredData = (data, filter) => {
 };
 
 export const filteredDataSelector = createSelector(
-  state => state.top.data,
-  state => state.top.filter,
+  state => state.results.data,
+  state => state.results.filter,
   getFilteredData
 );

@@ -14,6 +14,7 @@ import {
   FaSearch,
   FaYoutube,
   FaAngleDoubleUp,
+  FaUndoAlt,
 } from 'react-icons/fa';
 
 // styles
@@ -35,7 +36,7 @@ import { SORT } from 'constants/leaderboard';
 import { DEBUG } from 'constants/env';
 
 // reducers
-import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/top';
+import { fetchResults, setFilter, resetFilter, defaultFilter } from 'reducers/results';
 import { selectPreset, openPreset } from 'reducers/presets';
 
 // utils
@@ -75,18 +76,19 @@ const sortingOptions = [
 const mapStateToProps = state => {
   return {
     players: playersSelector(state),
+    results: state.results.results,
     filteredData: filteredDataSelector(state),
-    data: state.top.data,
-    filter: state.top.filter,
-    error: state.top.error,
-    isLoading: state.top.isLoading,
+    data: state.results.data,
+    filter: state.results.filter,
+    error: state.results.error,
+    isLoading: state.results.isLoading,
     presets: state.presets.presets,
     currentPreset: state.presets.currentPreset,
   };
 };
 
 const mapDispatchToProps = {
-  fetchTopScores,
+  fetchResults,
   setFilter,
   resetFilter,
   selectPreset,
@@ -98,10 +100,11 @@ class Leaderboard extends Component {
     match: toBe.object,
     data: toBe.array,
     error: toBe.object,
+    results: toBe.array,
     isLoading: toBe.bool.isRequired,
   };
 
-  state = { showItemsCount: 20 };
+  state = { showItemsCount: 20, chartOverrides: {} };
 
   setFilter = _.curry((name, value) => {
     const filter = { ...this.props.filter, [name]: value };
@@ -116,12 +119,53 @@ class Leaderboard extends Component {
 
   onRefresh = () => {
     const { isLoading } = this.props;
-    !isLoading && this.props.fetchTopScores();
+    !isLoading && this.props.fetchResults();
   };
 
   onTypeSongName = _.debounce(300, value => {
     this.setFilter('song', value);
   });
+
+  onUndoLatestResult = chart => {
+    if (_.isEmpty(chart.results)) {
+      this.setState(state => ({
+        chartOverrides: _.omit(chart.sharedChartId, state.chartOverrides),
+      }));
+    }
+    const undoedResultIndex = _.findIndex({ date: chart.latestScoreDate }, chart.results);
+    if (undoedResultIndex < 0) {
+      return;
+    }
+    const { results } = this.props;
+    const undoedResult = chart.results[undoedResultIndex];
+    const undoedPlayerId = undoedResult.playerId;
+    const previousPlayerResult = _.findLast(
+      res =>
+        res.playerId === undoedPlayerId &&
+        res.sharedChartId === chart.sharedChartId &&
+        res.isRank === undoedResult.isRank &&
+        res.date < undoedResult.date,
+      results
+    );
+    const newResults = _.orderBy(
+      'score',
+      'desc',
+      _.compact(_.map(res => (res === undoedResult ? previousPlayerResult : res), chart.results))
+    );
+    const latestScore = _.maxBy('date', newResults);
+    const overrideChart = {
+      ...chart,
+      latestScoreDate: latestScore && latestScore.date,
+      results: newResults,
+    };
+    console.log(overrideChart);
+    this.setState(state => ({
+      chartOverrides: {
+        ...state.chartOverrides,
+        [chart.sharedChartId]: overrideChart,
+      },
+    }));
+  };
 
   renderSimpleSearch() {
     const { isLoading, filter } = this.props;
@@ -301,7 +345,7 @@ class Leaderboard extends Component {
 
   render() {
     const { isLoading, filteredData, error, filter } = this.props;
-    const { showItemsCount } = this.state;
+    const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
@@ -356,7 +400,9 @@ class Leaderboard extends Component {
           <div className="top-list">
             {_.isEmpty(filteredData) && !isLoading && (error ? error.message : 'ничего не найдено')}
             {!isLoading &&
-              visibleData.map((chart, chartIndex) => {
+              visibleData.map((chartOriginal, chartIndex) => {
+                const chart = chartOverrides[chartOriginal.sharedChartId] || chartOriginal;
+                console.log(chart);
                 let topPlace = 1;
                 const occuredNicknames = [];
                 const results = chart.results.map((res, index) => {
@@ -403,6 +449,10 @@ class Leaderboard extends Component {
                           <FaYoutube />
                         </a>
                       </div>
+                      <div className="_flex-fill" />
+                      <div className="undo-result-button">
+                        <FaUndoAlt onClick={() => this.onUndoLatestResult(chart)} />
+                      </div>
                     </div>
                     <div className="charts">
                       <div className="chart">
@@ -429,6 +479,9 @@ class Leaderboard extends Component {
                             )}
                             <tbody>
                               {results.map((res, index) => {
+                                if (res.isUnknownPlayer && index !== 0) {
+                                  return null;
+                                }
                                 const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
                                 let placeDifference, newIndex;
                                 if (res.scoreIncrease && res.date === chart.latestScoreDate) {

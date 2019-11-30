@@ -1,0 +1,385 @@
+import _ from 'lodash/fp';
+
+import { fetchJson } from 'utils/fetch';
+import { gradeValue, getExp } from 'utils/exp';
+import { achievements, initialAchievementState } from 'utils/achievements';
+
+import { processBattles } from './ranking';
+import { postProcessProfiles } from './profiles';
+
+import { HOST } from 'constants/backend';
+
+const LOADING = `TOP/LOADING`;
+const SUCCESS = `TOP/SUCCESS`;
+const ERROR = `TOP/ERROR`;
+const SET_FILTER = `TOP/SET_FILTER`;
+const RESET_FILTER = `TOP/RESET_FILTER`;
+
+export const defaultFilter = { showRank: true, showRankAndNorank: true };
+
+const initialState = {
+  isLoading: false,
+  data: [],
+  filter: defaultFilter,
+  players: {},
+  profiles: {},
+  results: [],
+};
+
+const tryFixIncompleteResult = (result, maxTotalSteps) => {
+  if (!maxTotalSteps) {
+    return;
+  }
+  const infos = [result.perfect, result.great, result.good, result.bad, result.miss];
+  let fixableIndex = -1,
+    absentNumbersCount = 0,
+    localStepSum = 0;
+  for (let i = 0; i < 5; ++i) {
+    if (!_.isNumber(infos[i])) {
+      fixableIndex = i;
+      absentNumbersCount++;
+    } else {
+      localStepSum += infos[i];
+    }
+  }
+  if (absentNumbersCount === 1) {
+    result[['perfect', 'great', 'good', 'bad', 'miss'][fixableIndex]] =
+      maxTotalSteps - localStepSum;
+  }
+};
+
+const mapResult = (res, players, chart) => {
+  if (typeof res.recognition_notes === 'undefined') {
+    // Short result, minimum info, only for ELO calculation
+    // Will be replaced with better result later
+    return {
+      isUnknownPlayer: players[res.player].arcade_name === 'PUMPITUP',
+      isIntermediateResult: true,
+      sharedChartId: res.shared_chart,
+      playerId: res.player,
+      nickname: players[res.player].nickname,
+      nicknameArcade: players[res.player].arcade_name,
+      date: res.gained,
+      dateObject: new Date(res.gained),
+      grade: res.grade,
+      isExactDate: !!res.exact_gain_date,
+      score: res.score,
+      isRank: !!res.rank_mode,
+    };
+  }
+  // Full best result
+  let _r = {
+    isUnknownPlayer: players[res.player].arcade_name === 'PUMPITUP',
+    isIntermediateResult: false,
+    sharedChartId: res.shared_chart,
+    id: res.id,
+    playerId: res.player,
+    nickname: players[res.player].nickname,
+    nicknameArcade: players[res.player].arcade_name,
+    originalChartMix: res.original_mix,
+    originalChartLabel: res.original_label,
+    originalScore: res.original_score,
+    date: res.gained,
+    dateObject: new Date(res.gained),
+    grade: res.grade,
+    isExactDate: !!res.exact_gain_date,
+    score: res.score,
+    scoreIncrease: res.score_increase,
+    calories: res.calories && res.calories / 1000,
+    perfect: res.perfects,
+    great: res.greats,
+    good: res.goods,
+    bad: res.bads,
+    miss: res.misses,
+    combo: res.max_combo,
+    mods: res.mods_list,
+    isRank: !!res.rank_mode,
+    isHJ: (res.mods_list || '').split(' ').includes('HJ'),
+    isMachineBest: res.recognition_notes === 'machine_best',
+    isMyBest: res.recognition_notes === 'personal_best',
+  };
+
+  tryFixIncompleteResult(_r, chart.maxTotalSteps);
+
+  const perfects = Math.sqrt(_r.perfect) * 10;
+  const acc = perfects
+    ? Math.floor(
+        ((perfects * 100 + _r.great * 60 + _r.good * 30 + _r.miss * -20) /
+          (perfects + _r.great + _r.good + _r.bad + _r.miss)) *
+          100
+      ) / 100
+    : null;
+  const accRaw = _r.perfect
+    ? Math.floor(
+        ((_r.perfect * 100 + _r.great * 60 + _r.good * 30 + _r.miss * -20) /
+          (_r.perfect + _r.great + _r.good + _r.bad + _r.miss)) *
+          100
+      ) / 100
+    : null;
+
+  _r.accuracy = acc < 0 ? 0 : accRaw === 100 ? 100 : acc && +acc.toFixed(2);
+  _r.accuracyRaw = accRaw;
+  return _r;
+};
+
+const isFullScore = score => {
+  return (
+    _.isInteger(score.perfect) &&
+    _.isInteger(score.great) &&
+    _.isInteger(score.good) &&
+    _.isInteger(score.bad) &&
+    _.isInteger(score.miss) &&
+    _.isInteger(score.score)
+  );
+};
+
+const getMaxScore = score => {
+  const maxScoreAccuracy = ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
+  return maxScoreAccuracy;
+};
+
+const initializeProfile = (result, profiles) => {
+  const id = result.playerId;
+  const resultsByLevel = _.fromPairs(Array.from({ length: 28 }).map((x, i) => [i + 1, []]));
+  profiles[id] = {
+    name: result.nickname,
+    nameArcade: result.nicknameArcade,
+    resultsByGrade: {},
+    resultsByLevel,
+    lastResultDate: result.dateObject,
+    count: 0,
+    battleCount: 0,
+    countAcc: 0,
+    grades: { F: 0, D: 0, C: 0, B: 0, A: 0, S: 0, SS: 0, SSS: 0 },
+    sumAccuracy: 0,
+    rankingHistory: [],
+    ratingHistory: [],
+    lastPlace: null,
+    lastBattleDate: 0,
+  };
+  profiles[id].achievements = _.flow(
+    _.keys,
+    _.map(achName => [
+      achName,
+      { ...(achievements[achName].initialState || initialAchievementState) },
+    ]),
+    _.fromPairs
+  )(achievements);
+  profiles[id].exp = 0;
+};
+
+const getProfileInfoFromResult = (result, chart, profiles) => {
+  const profile = profiles[result.playerId];
+
+  profile.count++;
+  if (result.accuracy) {
+    profile.countAcc++;
+    profile.sumAccuracy += result.accuracy;
+  }
+  profile.grades[result.grade.replace('+', '')]++;
+
+  if (chart.chartType !== 'COOP' && result.isBestGradeOnChart) {
+    profile.resultsByGrade[result.grade] = [
+      ...(profile.resultsByGrade[result.grade] || []),
+      { result, chart },
+    ];
+    profile.resultsByLevel[chart.chartLevel] = [
+      ...(profile.resultsByLevel[chart.chartLevel] || []),
+      { result, chart },
+    ];
+  }
+  if (result.isExactDate && profile.lastResultDate < result.dateObject) {
+    profile.lastResultDate = result.dateObject;
+  }
+  profile.achievements = _.mapValues.convert({ cap: false })((achState, achName) => {
+    return achievements[achName].resultFunction(result, chart, achState, profile);
+  }, profile.achievements);
+  profile.exp += getExp(result, chart);
+};
+
+const processData = (data, tracklist) => {
+  const { players, results, shared_charts } = data;
+  //// Initialization
+  // Init for TOP
+  const mappedResults = [];
+  const getTopResultId = result => `${result.sharedChartId}-${result.playerId}-${result.isRank}`;
+  const getBestGradeResultId = result => `${result.sharedChartId}-${result.playerId}`;
+  const topResults = {}; // Temp object
+  const bestGradeResults = {}; // Temp object
+  const top = {}; // Main top scores pbject
+
+  // Battles for ELO calculation
+  const battles = [];
+  // Profiles for every player
+  let profiles = {};
+
+  // Loop 1
+  for (let resRaw of results) {
+    const sharedChartId = resRaw.shared_chart;
+    // Initialize Song
+    if (!top[sharedChartId]) {
+      const sharedChart = shared_charts[sharedChartId];
+      const label = _.toUpper(sharedChart.chart_label);
+      const [chartType, chartLevel] = label.match(/(\D+)|(\d+)/g);
+      top[sharedChartId] = {
+        song: sharedChart.track_name,
+        chartLabel: label,
+        chartLevel,
+        chartType,
+        duration: sharedChart.duration,
+        sharedChartId: sharedChartId,
+        maxTotalSteps: sharedChart.max_total_steps,
+        results: [],
+      };
+    }
+
+    // Getting current chart and result (mapped)
+    const chartTop = top[sharedChartId];
+    const result = mapResult(resRaw, players, chartTop);
+    mappedResults.push(result);
+
+    // Inserting result into TOP
+    const topResultId = getTopResultId(result);
+    const currentTopResult = topResults[topResultId];
+    if (!currentTopResult || currentTopResult.score < result.score) {
+      let oldScoreIndex = -1;
+      if (currentTopResult) {
+        oldScoreIndex = chartTop.results.indexOf(currentTopResult);
+        chartTop.results.splice(oldScoreIndex, 1);
+      }
+      const newScoreIndex = _.sortedLastIndexBy(r => -r.score, result, chartTop.results);
+      chartTop.results.splice(newScoreIndex, 0, result);
+      topResults[topResultId] = result;
+      chartTop.latestScoreDate = result.date;
+
+      chartTop.results.forEach(enemyResult => {
+        if (
+          !result.isUnknownPlayer &&
+          !enemyResult.isUnknownPlayer &&
+          enemyResult.isRank === result.isRank &&
+          enemyResult.playerId !== result.playerId
+        ) {
+          battles.push([result, enemyResult, chartTop]);
+        }
+      });
+
+      if (!chartTop.maxScore && isFullScore(result)) {
+        chartTop.maxScore = getMaxScore(result, chartTop);
+        chartTop.maxScoreAccuracy = result.accuracyRaw;
+      }
+    }
+    // Getting best grade of player on this chart
+    if (!result.isIntermediateResult) {
+      const bestGradeResultId = getBestGradeResultId(result);
+      const currentBestGradeRes = bestGradeResults[bestGradeResultId];
+      if (
+        !currentBestGradeRes ||
+        gradeValue[currentBestGradeRes.grade] <= gradeValue[result.grade]
+      ) {
+        // Using <= here, so newer scores always win and rewrite old scores
+        currentBestGradeRes && (currentBestGradeRes.isBestGradeOnChart = false);
+        result.isBestGradeOnChart = true;
+        bestGradeResults[bestGradeResultId] = result;
+      }
+    }
+  }
+
+  const sortedSongs = _.orderBy(
+    ['latestScoreDate', 'song', 'chartLevel'],
+    ['desc', 'asc', 'desc'],
+    _.values(top)
+  );
+
+  // Loop 2, when the TOP is already set up
+  for (let result of mappedResults) {
+    const chart = top[result.sharedChartId];
+
+    // Getting some info about players
+    if (!result.isUnknownPlayer && !result.isIntermediateResult) {
+      if (!profiles[result.playerId]) {
+        initializeProfile(result, profiles);
+      }
+      getProfileInfoFromResult(result, chart, profiles);
+    }
+  }
+  // Calculate Progress achievements and bonus for starting Elo
+  profiles = postProcessProfiles(profiles, tracklist);
+  processBattles({ battles, profiles });
+
+  return { top: sortedSongs, mappedResults, profiles };
+};
+
+export default function reducer(state = initialState, action) {
+  switch (action.type) {
+    case LOADING:
+      return {
+        ...state,
+        isLoading: true,
+      };
+    case ERROR:
+      return {
+        ...state,
+        isLoading: false,
+        error: action.error,
+      };
+    case SUCCESS:
+      return {
+        ...state,
+        isLoading: false,
+        data: action.data,
+        players: action.players,
+        profiles: action.profiles,
+        results: action.results,
+      };
+    case SET_FILTER:
+      return {
+        ...state,
+        filter: action.filter,
+      };
+    case RESET_FILTER:
+      return {
+        ...state,
+        filter: defaultFilter,
+      };
+    default:
+      return state;
+  }
+}
+
+export const fetchResults = () => {
+  return async (dispatch, getState) => {
+    dispatch({ type: LOADING });
+    try {
+      const data = await fetchJson({
+        url: `${HOST}/results/highscores`,
+      });
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      const { tracklist } = getState();
+      const { top, mappedResults, profiles } = processData(data, tracklist);
+
+      dispatch({
+        type: SUCCESS,
+        data: top,
+        players: _.flow(
+          _.toPairs,
+          _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
+        )(data.players),
+        results: mappedResults,
+        profiles,
+      });
+    } catch (error) {
+      console.log(error);
+      dispatch({ type: ERROR, error });
+    }
+  };
+};
+
+export const setFilter = filter => ({
+  type: SET_FILTER,
+  filter,
+});
+export const resetFilter = () => ({
+  type: RESET_FILTER,
+});

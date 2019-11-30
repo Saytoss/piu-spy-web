@@ -1,9 +1,6 @@
 import _ from 'lodash/fp';
 
-import { achievements, initialAchievementState } from 'utils/achievements';
-import { getExp, ranks as expRanks } from 'utils/exp';
-
-import { GRADES } from 'constants/grades';
+import { ranks as expRanks } from 'utils/exp';
 
 const SET_PROFILES = `PROFILES/SET_PROFILES`;
 const SET_FILTER = `PROFILES/SET_FILTER`;
@@ -39,88 +36,14 @@ export default function reducer(state = initialState, action) {
   }
 }
 
-export const getProfiles = (profiles, data, ranking) => {
-  const addHistoryData = profile => {
-    const id = _.values(profile.resultsByGrade)[0][0].result.playerId;
-    profile.ratingHistory =
-      _.flow(
-        _.find({ id }),
-        _.get('ratingHistory')
-      )(ranking) || [];
-    profile.rankingHistory =
-      _.flow(
-        _.find({ id }),
-        _.get('history'),
-        history =>
-          history && [...history, { place: _.get('place', _.last(history)), date: Date.now() }]
-      )(ranking) || [];
-    return profile;
-  };
-  return _.mapValues(addHistoryData, profiles);
-};
-
-export const getInitialProfiles = (data, tracklist) => {
-  // console.log(tracklist);
-  let profiles = {};
-  const initializeProfile = (id, name) => {
-    const resultsByLevel = _.fromPairs(Array.from({ length: 28 }).map((x, i) => [i + 1, []]));
-    profiles[id] = { name, resultsByGrade: {}, resultsByLevel, lastResultDate: null };
-    profiles[id].achievements = _.flow(
-      _.keys,
-      _.map(achName => [
-        achName,
-        { ...(achievements[achName].initialState || initialAchievementState) },
-      ]),
-      _.fromPairs
-    )(achievements);
-    profiles[id].exp = 0;
-  };
-  const addResultData = (chart, result) => {
-    if (!profiles[result.playerId]) {
-      initializeProfile(result.playerId, result.nickname);
-    }
-    const profile = profiles[result.playerId];
-    if (chart.chartType !== 'COOP') {
-      profile.resultsByGrade[result.grade] = [
-        ...(profile.resultsByGrade[result.grade] || []),
-        { result, chart },
-      ];
-      const resultsOfThisPlayer = _.filter({ playerId: result.playerId }, chart.results);
-      if (resultsOfThisPlayer[0] === result) {
-        // Only apply one result
-        let bestGradeResult = result;
-        if (resultsOfThisPlayer.length > 1) {
-          bestGradeResult = resultsOfThisPlayer.sort(
-            (a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade)
-          )[0];
-        }
-        profile.resultsByLevel[chart.chartLevel] = [
-          ...(profile.resultsByLevel[chart.chartLevel] || []),
-          { result: bestGradeResult, chart },
-        ];
-      }
-    }
-    if (result.isExactDate && profile.lastResultDate < result.dateObject) {
-      profile.lastResultDate = result.dateObject;
-    }
-    profile.achievements = _.mapValues.convert({ cap: false })((achState, achName) => {
-      return achievements[achName].resultFunction(result, chart, achState, profile);
-    }, profile.achievements);
-    profile.exp += getExp(result, chart);
-  };
-  data.forEach(chart => {
-    chart.results.forEach(result => {
-      addResultData(chart, result);
-    });
-  });
-
+export const postProcessProfiles = (profiles, tracklist) => {
   const getBonusForLevel = level => (30 * (1 + 2 ** (level / 4))) / 11;
   const getMinimumNumber = totalCharts =>
     Math.round(
       Math.min(totalCharts, 1 + totalCharts / 20 + Math.sqrt(Math.max(totalCharts - 1, 0)) * 0.7)
     );
 
-  profiles = _.mapValues(profile => {
+  const newProfiles = _.mapValues(profile => {
     const neededGrades = ['A', 'A+', 'S', 'SS', 'SSS'];
     profile.expRank = _.findLast(rank => rank.threshold <= profile.exp, expRanks);
     profile.expRankNext = _.find(rank => rank.threshold > profile.exp, expRanks);
@@ -204,9 +127,14 @@ export const getInitialProfiles = (data, tracklist) => {
       });
     });
     profile.progress.bonus = profile.progress['double-bonus'] + profile.progress['single-bonus'];
+    profile.rating = 850 + profile.progress.bonus;
+    profile.accuracy =
+      profile.countAcc > 0
+        ? Math.round((profile.sumAccuracy / profile.countAcc) * 100) / 100
+        : null;
     return profile;
   }, profiles);
-  return profiles;
+  return newProfiles;
 };
 
 export const setProfiles = data => ({
