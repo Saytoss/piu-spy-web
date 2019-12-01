@@ -48,9 +48,6 @@ export default function RankingList({ ranking, isLoading }) {
           </thead>
           <tbody>
             {ranking.map((player, playerIndex) => {
-              if (player.count < 10) {
-                return null;
-              }
               return (
                 <tr className="player" key={player.name}>
                   <td className="place">
