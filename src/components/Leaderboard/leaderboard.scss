@@ -94,12 +94,36 @@
       flex-flow: row wrap;
 
       .undo-result-button {
+        align-items: center;
+        font-size: 80%;
+        font-weight: normal;
         user-select: none;
         display: none;
+        > svg {
+          margin-bottom: 2px;
+        }
+        > .number {
+          line-height: 100%;
+          text-align: center;
+          margin: 0 4px;
+          cursor: auto;
+        }
+        > .forward-btn {
+          color: #777;
+          cursor: auto;
+        }
+        &.active {
+          display: flex;
+          cursor: pointer;
+          > .forward-btn {
+            color: inherit;
+            cursor: pointer;
+          }
+        }
       }
       &:hover {
         .undo-result-button {
-          display: block;
+          display: flex;
           cursor: pointer;
         }
       }

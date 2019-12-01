@@ -33,8 +33,8 @@ const rankingSelector = createSelector(
 const mapStateToProps = state => {
   return {
     ranking: rankingSelector(state),
-    error: state.results.error,
-    isLoading: state.results.isLoading,
+    error: state.results.error || state.tracklist.error,
+    isLoading: state.results.isLoading || state.tracklist.isLoading,
   };
 };
 

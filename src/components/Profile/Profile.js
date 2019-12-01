@@ -211,8 +211,8 @@ const mapStateToProps = (state, props) => {
     profile: profileSelector(state, props),
     tracklist: state.tracklist.data,
     filter: state.profiles.filter,
-    error: state.results.error,
-    isLoading: state.results.isLoading,
+    error: state.results.error || state.tracklist.error,
+    isLoading: state.results.isLoading || state.tracklist.isLoading,
   };
 };
 

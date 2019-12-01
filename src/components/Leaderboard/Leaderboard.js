@@ -14,7 +14,8 @@ import {
   FaSearch,
   FaYoutube,
   FaAngleDoubleUp,
-  FaUndoAlt,
+  FaBackward,
+  FaForward,
 } from 'react-icons/fa';
 
 // styles
@@ -80,8 +81,8 @@ const mapStateToProps = state => {
     filteredData: filteredDataSelector(state),
     data: state.results.data,
     filter: state.results.filter,
-    error: state.results.error,
-    isLoading: state.results.isLoading,
+    error: state.results.error || state.tracklist.error,
+    isLoading: state.results.isLoading || state.tracklist.isLoading,
     presets: state.presets.presets,
     currentPreset: state.presets.currentPreset,
   };
@@ -114,17 +115,29 @@ class Leaderboard extends Component {
 
   resetFilter = () => {
     this.props.resetFilter();
+    this.setState({ chartOverrides: {} });
     localForage.setItem('filter', defaultFilter);
   };
 
   onRefresh = () => {
     const { isLoading } = this.props;
+    this.setState({ chartOverrides: {} });
     !isLoading && this.props.fetchResults();
   };
 
   onTypeSongName = _.debounce(300, value => {
     this.setFilter('song', value);
   });
+
+  onRedoLatestResult = chart => {
+    const overrides = _.drop(1, this.state.chartOverrides[chart.sharedChartId]);
+    this.setState(state => ({
+      chartOverrides: {
+        ...state.chartOverrides,
+        [chart.sharedChartId]: _.size(overrides) === 1 ? null : overrides,
+      },
+    }));
+  };
 
   onUndoLatestResult = chart => {
     if (_.isEmpty(chart.results)) {
@@ -161,7 +174,10 @@ class Leaderboard extends Component {
     this.setState(state => ({
       chartOverrides: {
         ...state.chartOverrides,
-        [chart.sharedChartId]: overrideChart,
+        [chart.sharedChartId]: [
+          overrideChart,
+          ...(state.chartOverrides[chart.sharedChartId] || [chart]),
+        ],
       },
     }));
   };
@@ -400,7 +416,8 @@ class Leaderboard extends Component {
             {_.isEmpty(filteredData) && !isLoading && (error ? error.message : 'ничего не найдено')}
             {!isLoading &&
               visibleData.map((chartOriginal, chartIndex) => {
-                const chart = chartOverrides[chartOriginal.sharedChartId] || chartOriginal;
+                const overrides = chartOverrides[chartOriginal.sharedChartId];
+                const chart = _.first(overrides) || chartOriginal;
                 if (DEBUG) console.log(chart);
                 let topPlace = 1;
                 const occuredNicknames = [];
@@ -449,8 +466,22 @@ class Leaderboard extends Component {
                         </a>
                       </div>
                       <div className="_flex-fill" />
-                      <div className="undo-result-button">
-                        <FaUndoAlt onClick={() => this.onUndoLatestResult(chart)} />
+                      <div
+                        className={classNames('undo-result-button', {
+                          active: !_.isEmpty(overrides),
+                        })}
+                      >
+                        <FaBackward onClick={() => this.onUndoLatestResult(chart)} />
+                        <span className="number">
+                          {!_.isEmpty(overrides)
+                            ? 1 + chart.totalResultsCount - _.size(overrides)
+                            : chart.totalResultsCount}
+                          /{chart.totalResultsCount}
+                        </span>
+                        <FaForward
+                          className="forward-btn"
+                          onClick={() => !_.isEmpty(overrides) && this.onRedoLatestResult(chart)}
+                        />
                       </div>
                     </div>
                     <div className="charts">
