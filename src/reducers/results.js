@@ -1,7 +1,8 @@
 import _ from 'lodash/fp';
+import localForage from 'localforage';
 
 import { fetchJson } from 'utils/fetch';
-import { gradeValue, getExp } from 'utils/exp';
+import { getExp } from 'utils/exp';
 import { achievements, initialAchievementState } from 'utils/achievements';
 
 import { processBattles } from './ranking';
@@ -14,6 +15,7 @@ const SUCCESS = `TOP/SUCCESS`;
 const ERROR = `TOP/ERROR`;
 const SET_FILTER = `TOP/SET_FILTER`;
 const RESET_FILTER = `TOP/RESET_FILTER`;
+const RANKING_CHANGE_SET = `TOP/RANKING_CHANGE_SET`;
 
 export const defaultFilter = { showRank: true, showRankAndNorank: true };
 
@@ -24,6 +26,22 @@ const initialState = {
   players: {},
   profiles: {},
   results: [],
+};
+
+export const gradeComparator = {
+  '?': 0,
+  F: 1,
+  D: 2,
+  'D+': 3,
+  C: 4,
+  'C+': 5,
+  B: 6,
+  'B+': 7,
+  A: 8,
+  'A+': 9,
+  S: 10,
+  SS: 11,
+  SSS: 12,
 };
 
 const tryFixIncompleteResult = (result, maxTotalSteps) => {
@@ -46,6 +64,17 @@ const tryFixIncompleteResult = (result, maxTotalSteps) => {
     result[['perfect', 'great', 'good', 'bad', 'miss'][fixableIndex]] =
       maxTotalSteps - localStepSum;
   }
+};
+
+const guessGrade = result => {
+  if (result.misses === 0 && result.bads === 0 && result.goods === 0) {
+    if (result.greats === 0) {
+      return 'SSS';
+    } else {
+      return 'SS';
+    }
+  }
+  return result.grade;
 };
 
 const mapResult = (res, players, chart) => {
@@ -81,7 +110,7 @@ const mapResult = (res, players, chart) => {
     originalScore: res.original_score,
     date: res.gained,
     dateObject: new Date(res.gained),
-    grade: res.grade,
+    grade: res.grade !== '?' ? res.grade : guessGrade(res),
     isExactDate: !!res.exact_gain_date,
     score: res.score,
     scoreIncrease: res.score_increase,
@@ -274,7 +303,7 @@ const processData = (data, tracklist) => {
       const currentBestGradeRes = bestGradeResults[bestGradeResultId];
       if (
         !currentBestGradeRes ||
-        gradeValue[currentBestGradeRes.grade] <= gradeValue[result.grade]
+        gradeComparator[currentBestGradeRes.grade] <= gradeComparator[result.grade]
       ) {
         // Using <= here, so newer scores always win and rewrite old scores
         currentBestGradeRes && (currentBestGradeRes.isBestGradeOnChart = false);
@@ -341,6 +370,31 @@ export default function reducer(state = initialState, action) {
         ...state,
         filter: defaultFilter,
       };
+    case RANKING_CHANGE_SET:
+      const hasPrevList = !_.isEmpty(action.listPrev);
+      return {
+        ...state,
+        profiles: _.mapValues(playerOriginal => {
+          const player = {
+            ...playerOriginal,
+            prevRating: _.get(playerOriginal.id, action.rankingsPointsMap),
+          };
+          if (!hasPrevList) {
+            return player; // First time opening this thing and we didn't have any previous data
+          }
+          if (!_.includes(player.id, action.listPrev)) {
+            return { ...player, change: 'NEW' };
+          } else if (!_.includes(player.id, action.listNow)) {
+            // Should NEVER happen, idk if this is possible
+            return { ...player, change: '?' };
+          } else {
+            return {
+              ...player,
+              change: _.indexOf(player.id, action.listPrev) - _.indexOf(player.id, action.listNow),
+            };
+          }
+        }, state.profiles),
+      };
     default:
       return state;
   }
@@ -369,6 +423,7 @@ export const fetchResults = () => {
         results: mappedResults,
         profiles,
       });
+      dispatch(calculateRankingChanges(profiles));
     } catch (error) {
       console.log(error);
       dispatch({ type: ERROR, error });
@@ -380,6 +435,56 @@ export const setFilter = filter => ({
   type: SET_FILTER,
   filter,
 });
+
 export const resetFilter = () => ({
   type: RESET_FILTER,
 });
+
+const getListOfNames = _.map('id');
+const getMapOfRatings = _.flow(
+  _.map(q => [q.id, q.rating]),
+  _.fromPairs
+);
+
+export const calculateRankingChanges = profiles => {
+  return async (dispatch, getState) => {
+    try {
+      const ranking = _.orderBy('ratingRaw', 'desc', _.values(profiles));
+      const [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking] = await Promise.all([
+        localForage.getItem('lastChangedRanking_v3'),
+        localForage.getItem('lastChangedRankingPoints_v3'),
+        localForage.getItem('lastFetchedRanking_v3'),
+      ]);
+      const listNow = getListOfNames(ranking);
+      const listLastFetched = getListOfNames(lastFetchedRanking);
+      const listLastChanged = getListOfNames(lastChangedRanking);
+      const mapPointsNow = getMapOfRatings(ranking);
+      const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
+      const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
+
+      let rankingsPointsMap = mapPointsLastChanged;
+      // console.log(listNow, listLastFetched, listLastChanged);
+      // console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
+      if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
+        // Between this fetch and last fetch there was a CHANGE in ranking
+        localForage.setItem('lastChangedRankingPoints_v3', lastFetchedRanking);
+        rankingsPointsMap = mapPointsLastFetched;
+      }
+      let listPrev = listLastChanged;
+      if (!_.isEqual(listNow, listLastFetched)) {
+        // Between this fetch and last fetch there was a CHANGE in ranking
+        localForage.setItem('lastChangedRanking_v3', lastFetchedRanking);
+        listPrev = listLastFetched;
+      }
+      dispatch({
+        type: RANKING_CHANGE_SET,
+        listNow,
+        listPrev,
+        rankingsPointsMap,
+      });
+      localForage.setItem('lastFetchedRanking_v3', ranking);
+    } catch (error) {
+      console.warn('Cannot get ranking from local storage', error);
+    }
+  };
+};

@@ -93,6 +93,17 @@
       display: flex;
       flex-flow: row wrap;
 
+      .undo-result-button {
+        user-select: none;
+        display: none;
+      }
+      &:hover {
+        .undo-result-button {
+          display: block;
+          cursor: pointer;
+        }
+      }
+
       > .song-name {
         z-index: 2;
         border-radius: 5px;
@@ -105,16 +116,6 @@
         flex-direction: row;
         justify-content: flex-start;
         flex: 0 0 100%;
-
-        .undo-result-button {
-          display: none;
-        }
-        &:hover {
-          .undo-result-button {
-            display: block;
-            cursor: pointer;
-          }
-        }
 
         > .youtube-link {
           align-self: center;

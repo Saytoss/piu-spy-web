@@ -159,14 +159,13 @@ export const processBattles = ({ battles, profiles }) => {
     const ratingDiffId2 = getDictRatingDiffId(enemyScore);
     dictRatingDiff[ratingDiffId1] = (dictRatingDiff[ratingDiffId1] || 0) + dr1 - baseEloP1;
     dictRatingDiff[ratingDiffId2] = (dictRatingDiff[ratingDiffId2] || 0) + dr2 - baseEloP2;
-    if (!score.isIntermediateResult) {
-      score.ratingDiff = dictRatingDiff[ratingDiffId1];
-      score.ratingDiffLast = dr1 - baseEloP1;
-    }
-    if (!enemyScore.isIntermediateResult) {
-      enemyScore.ratingDiff = dictRatingDiff[ratingDiffId2];
-      enemyScore.ratingDiffLast = dr2 - baseEloP2;
-    }
+
+    score.ratingDiff = dictRatingDiff[ratingDiffId1];
+    score.ratingDiffLast = dr1 - baseEloP1;
+
+    enemyScore.ratingDiff = dictRatingDiff[ratingDiffId2];
+    enemyScore.ratingDiffLast = dr2 - baseEloP2;
+
     if (DEBUG) {
       // if (score.sharedChartId === 5292) {
       // if (song.song === 'Club Night') {
