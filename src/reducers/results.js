@@ -26,6 +26,7 @@ const initialState = {
   players: {},
   profiles: {},
   results: [],
+  sharedCharts: {},
 };
 
 export const gradeComparator = {
@@ -337,7 +338,7 @@ const processData = (data, tracklist) => {
   profiles = postProcessProfiles(profiles, tracklist);
   processBattles({ battles, profiles });
 
-  return { top: sortedSongs, mappedResults, profiles };
+  return { sortedSongs, mappedResults, profiles, sharedCharts: top };
 };
 
 export default function reducer(state = initialState, action) {
@@ -361,6 +362,7 @@ export default function reducer(state = initialState, action) {
         players: action.players,
         profiles: action.profiles,
         results: action.results,
+        sharedCharts: action.sharedCharts,
       };
     case SET_FILTER:
       return {
@@ -413,17 +415,18 @@ export const fetchResults = () => {
         throw new Error(data.error);
       }
       const { tracklist } = getState();
-      const { top, mappedResults, profiles } = processData(data, tracklist);
+      const { sortedSongs, sharedCharts, mappedResults, profiles } = processData(data, tracklist);
 
       dispatch({
         type: SUCCESS,
-        data: top,
+        data: sortedSongs,
         players: _.flow(
           _.toPairs,
           _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
         )(data.players),
         results: mappedResults,
         profiles,
+        sharedCharts,
       });
       dispatch(calculateRankingChanges(profiles));
     } catch (error) {

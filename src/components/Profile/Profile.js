@@ -33,6 +33,7 @@ import './profile.scss';
 import Range from 'components/Shared/Range';
 import Loader from 'components/Shared/Loader';
 import Toggle from 'components/Shared/Toggle/Toggle';
+import MostPlayed from './MostPlayed';
 import ExpFaq from './ExpFaq';
 
 // reducers
@@ -833,6 +834,12 @@ class Profile extends Component {
                     this.renderAchievement(achName, profile.achievements[achName])
                   )}
                 </div>
+              </div>
+              <div className="profile-section">
+                <div className="profile-sm-section-header">
+                  <span>часто играемые чарты</span>
+                </div>
+                <MostPlayed playerId={profile.id} />
               </div>
             </div>
           )}
