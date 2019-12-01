@@ -1,7 +1,7 @@
 import _ from 'lodash/fp';
 import localForage from 'localforage';
 
-import { setFilter } from 'reducers/top';
+import { setFilter } from 'reducers/results';
 
 const SELECT_PRESET = `PRESETS/SELECT_PRESET`;
 const LOAD_PRESETS = `PRESETS/LOAD_PRESETS`;

@@ -14,6 +14,7 @@ import {
   FaSearch,
   FaYoutube,
   FaAngleDoubleUp,
+  FaUndoAlt,
 } from 'react-icons/fa';
 
 // styles
@@ -35,7 +36,7 @@ import { SORT } from 'constants/leaderboard';
 import { DEBUG } from 'constants/env';
 
 // reducers
-import { fetchTopScores, setFilter, resetFilter, defaultFilter } from 'reducers/top';
+import { fetchResults, setFilter, resetFilter, defaultFilter } from 'reducers/results';
 import { selectPreset, openPreset } from 'reducers/presets';
 
 // utils
@@ -75,18 +76,19 @@ const sortingOptions = [
 const mapStateToProps = state => {
   return {
     players: playersSelector(state),
+    results: state.results.results,
     filteredData: filteredDataSelector(state),
-    data: state.top.data,
-    filter: state.top.filter,
-    error: state.top.error,
-    isLoading: state.top.isLoading,
+    data: state.results.data,
+    filter: state.results.filter,
+    error: state.results.error,
+    isLoading: state.results.isLoading,
     presets: state.presets.presets,
     currentPreset: state.presets.currentPreset,
   };
 };
 
 const mapDispatchToProps = {
-  fetchTopScores,
+  fetchResults,
   setFilter,
   resetFilter,
   selectPreset,
@@ -98,10 +100,11 @@ class Leaderboard extends Component {
     match: toBe.object,
     data: toBe.array,
     error: toBe.object,
+    results: toBe.array,
     isLoading: toBe.bool.isRequired,
   };
 
-  state = { showItemsCount: 20 };
+  state = { showItemsCount: 20, chartOverrides: {} };
 
   setFilter = _.curry((name, value) => {
     const filter = { ...this.props.filter, [name]: value };
@@ -116,12 +119,52 @@ class Leaderboard extends Component {
 
   onRefresh = () => {
     const { isLoading } = this.props;
-    !isLoading && this.props.fetchTopScores();
+    !isLoading && this.props.fetchResults();
   };
 
   onTypeSongName = _.debounce(300, value => {
     this.setFilter('song', value);
   });
+
+  onUndoLatestResult = chart => {
+    if (_.isEmpty(chart.results)) {
+      this.setState(state => ({
+        chartOverrides: _.omit(chart.sharedChartId, state.chartOverrides),
+      }));
+    }
+    const undoedResultIndex = _.findIndex({ date: chart.latestScoreDate }, chart.results);
+    if (undoedResultIndex < 0) {
+      return;
+    }
+    const { results } = this.props;
+    const undoedResult = chart.results[undoedResultIndex];
+    const undoedPlayerId = undoedResult.playerId;
+    const previousPlayerResult = _.findLast(
+      res =>
+        res.playerId === undoedPlayerId &&
+        res.sharedChartId === chart.sharedChartId &&
+        res.isRank === undoedResult.isRank &&
+        res.date < undoedResult.date,
+      results
+    );
+    const newResults = _.orderBy(
+      'score',
+      'desc',
+      _.compact(_.map(res => (res === undoedResult ? previousPlayerResult : res), chart.results))
+    );
+    const latestScore = _.maxBy('date', newResults);
+    const overrideChart = {
+      ...chart,
+      latestScoreDate: latestScore && latestScore.date,
+      results: newResults,
+    };
+    this.setState(state => ({
+      chartOverrides: {
+        ...state.chartOverrides,
+        [chart.sharedChartId]: overrideChart,
+      },
+    }));
+  };
 
   renderSimpleSearch() {
     const { isLoading, filter } = this.props;
@@ -301,7 +344,7 @@ class Leaderboard extends Component {
 
   render() {
     const { isLoading, filteredData, error, filter } = this.props;
-    const { showItemsCount } = this.state;
+    const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
@@ -356,7 +399,9 @@ class Leaderboard extends Component {
           <div className="top-list">
             {_.isEmpty(filteredData) && !isLoading && (error ? error.message : 'ничего не найдено')}
             {!isLoading &&
-              visibleData.map((chart, chartIndex) => {
+              visibleData.map((chartOriginal, chartIndex) => {
+                const chart = chartOverrides[chartOriginal.sharedChartId] || chartOriginal;
+                if (DEBUG) console.log(chart);
                 let topPlace = 1;
                 const occuredNicknames = [];
                 const results = chart.results.map((res, index) => {
@@ -403,262 +448,274 @@ class Leaderboard extends Component {
                           <FaYoutube />
                         </a>
                       </div>
+                      <div className="_flex-fill" />
+                      <div className="undo-result-button">
+                        <FaUndoAlt onClick={() => this.onUndoLatestResult(chart)} />
+                      </div>
                     </div>
                     <div className="charts">
-                      <div className="chart">
-                        <div className="results">
-                          <table>
-                            {chartIndex === 0 && (
-                              <thead>
-                                <tr>
-                                  <th className="place"></th>
-                                  <th className="nickname"></th>
-                                  <th className="judge"></th>
-                                  <th className="score">score</th>
-                                  <th className="grade"></th>
-                                  <th className="number">miss</th>
-                                  <th className="number">bad</th>
-                                  <th className="number">good</th>
-                                  <th className="number">great</th>
-                                  <th className="number">perfect</th>
-                                  <th className="combo">combo</th>
-                                  <th className="accuracy">accuracy</th>
-                                  <th className="date"></th>
-                                </tr>
-                              </thead>
-                            )}
-                            <tbody>
-                              {results.map((res, index) => {
-                                const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
-                                let placeDifference, newIndex;
-                                if (res.scoreIncrease && res.date === chart.latestScoreDate) {
-                                  const prevScore = res.score - res.scoreIncrease;
-                                  newIndex = _.findLastIndex(res => res.score > prevScore, results);
-                                  placeDifference = newIndex - index;
-                                }
-                                return (
-                                  <tr
-                                    key={res.score + res.nickname}
-                                    className={classNames({
-                                      empty: !res.isExactDate,
-                                      latest: res.date === chart.latestScoreDate,
-                                    })}
-                                  >
-                                    <td className="place">
-                                      {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
-                                    </td>
-                                    <td
-                                      className="nickname"
-                                      style={
-                                        nameIndex > -1
-                                          ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
-                                          : {}
-                                      }
-                                    >
-                                      {res.nickname}
-                                      {!!placeDifference && (
-                                        <span className="change-holder up">
-                                          <span>{placeDifference}</span>
-                                          <FaAngleDoubleUp />
-                                        </span>
-                                      )}
-                                      {DEBUG && (
-                                        <span>
-                                          {' '}
-                                          {res.startingRating &&
-                                            Math.round(res.startingRating)}{' '}
-                                          {res.ratingDiff && Math.round(res.ratingDiff)}{' '}
-                                          {res.ratingDiffLast && Math.round(res.ratingDiffLast)}
-                                        </span>
-                                      )}
-                                      {!DEBUG &&
-                                        showProtagonistRatingChange &&
-                                        res.nickname === protagonistName &&
-                                        res.ratingDiff && (
-                                          <span>
-                                            {` (${res.ratingDiff > 0 ? '+' : ''}${Math.round(
-                                              res.ratingDiff
-                                            )})`}
-                                          </span>
-                                        )}
-                                      {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
-                                        res.nickname === protagonistName &&
-                                        chart.distanceFromProtagonist > 0 && (
-                                          <span className="protagonist-diff">
-                                            {' '}
-                                            -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
-                                          </span>
-                                        )}
-                                    </td>
-                                    <td
-                                      className={classNames('judge', {
-                                        vj: res.isRank,
-                                        hj: res.isHJ,
-                                      })}
-                                    >
-                                      {res.isRank && (
-                                        <div className="inner">
-                                          {res.isExactDate ? (
-                                            'VJ'
-                                          ) : (
-                                            <Tooltip
-                                              content={
-                                                <div>
-                                                  наличие ранка на этом результате было угадано,
-                                                  основываясь на скоре
-                                                </div>
-                                              }
-                                              tooltipClassName="pumpking-tooltip"
-                                            >
-                                              VJ?
-                                            </Tooltip>
-                                          )}
-                                        </div>
-                                      )}
-                                      {res.isHJ && <div className="inner">HJ</div>}
-                                    </td>
-                                    <td className="score">
-                                      <Overlay
-                                        overlayClassName="score-overlay-outer"
-                                        overlayItem={
-                                          <span className="score-span">
-                                            {/* {res.scoreIncrease > res.score * 0.8 && <FaPlus />} */}
-                                            {res.scoreIncrease > res.score * 0.8 && '*'}
-                                            {numeral(res.score).format('0,0')}
-                                          </span>
-                                        }
-                                        placement="top"
-                                      >
-                                        <div className="score-overlay">
-                                          {DEBUG && (
-                                            <>
-                                              <div>
-                                                <span className="_grey">result id: </span>
-                                                {res.id}
-                                              </div>
-                                              <div>
-                                                <span className="_grey">player id: </span>
-                                                {res.playerId}
-                                              </div>
-                                            </>
-                                          )}
-                                          <div>
-                                            <span className="_grey">игрок: </span>
-                                            <NavLink
-                                              exact
-                                              to={routes.profile.getPath({ id: res.playerId })}
-                                            >
-                                              {res.nickname} ({res.nicknameArcade})
-                                            </NavLink>
-                                          </div>
-                                          <div>
-                                            <span className="_grey">опыт: </span>+
-                                            {numeral(getExp(res, chart)).format('0,0')}
-                                          </div>
-                                          {!res.isExactDate && (
-                                            <div className="warning">
-                                              <FaExclamationTriangle />
-                                              рекорд взят с my best. часть данных недоступна
-                                            </div>
-                                          )}
-                                          {!!res.isExactDate && (
-                                            <>
-                                              {!!res.mods && (
-                                                <div>
-                                                  <span className="_grey">моды: </span>
-                                                  {res.mods}
-                                                </div>
-                                              )}
-                                              {!!res.calories && (
-                                                <div>
-                                                  <span className="_grey">ккал: </span>
-                                                  {res.calories}
-                                                </div>
-                                              )}
-                                              {!!res.scoreIncrease && (
-                                                <div>
-                                                  <span className="_grey">прирост: </span>+
-                                                  {numeral(res.scoreIncrease).format('0,0')}
-                                                </div>
-                                              )}
-                                              {res.originalChartMix && (
-                                                <div>
-                                                  <div className="warning">
-                                                    <FaExclamationTriangle />
-                                                    было сыграно на {res.originalChartMix}
-                                                  </div>
-                                                  {res.originalChartLabel && (
-                                                    <div>
-                                                      <span className="_grey">
-                                                        оригинальный чарт:{' '}
-                                                      </span>
-                                                      {res.originalChartLabel}
-                                                    </div>
-                                                  )}
-                                                  {res.originalScore && (
-                                                    <div>
-                                                      <span className="_grey">
-                                                        оригинальный скор:{' '}
-                                                      </span>
-                                                      {res.originalScore}
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
-                                              {res.scoreIncrease > res.score * 0.8 && '* сайтрид'}
-                                            </>
-                                          )}
-                                        </div>
-                                      </Overlay>
-                                    </td>
-                                    <td className="grade">
-                                      <div className="img-holder">
-                                        {res.grade && res.grade !== '?' && (
-                                          <img
-                                            src={`${process.env.PUBLIC_URL}/grades/${res.grade}.png`}
-                                            alt={res.grade}
-                                          />
-                                        )}
-                                        {res.grade === '?' && null}
-                                      </div>
-                                    </td>
-                                    <td className="number miss">{res.miss}</td>
-                                    <td className="number bad">{res.bad}</td>
-                                    <td className="number good">{res.good}</td>
-                                    <td className="number great">{res.great}</td>
-                                    <td className="number perfect">{res.perfect}</td>
-                                    <td className="combo">
-                                      {res.combo}
-                                      {res.combo ? 'x' : ''}
-                                    </td>
-                                    <td className="accuracy">
-                                      {res.accuracy}
-                                      {res.accuracy ? '%' : ''}
-                                    </td>
-                                    <td
-                                      className={classNames('date', {
+                      {!_.isEmpty(results) && (
+                        <div className="chart">
+                          <div className="results">
+                            <table>
+                              {chartIndex === 0 && (
+                                <thead>
+                                  <tr>
+                                    <th className="place"></th>
+                                    <th className="nickname"></th>
+                                    <th className="judge"></th>
+                                    <th className="score">score</th>
+                                    <th className="grade"></th>
+                                    <th className="number">miss</th>
+                                    <th className="number">bad</th>
+                                    <th className="number">good</th>
+                                    <th className="number">great</th>
+                                    <th className="number">perfect</th>
+                                    <th className="combo">combo</th>
+                                    <th className="accuracy">accuracy</th>
+                                    <th className="date"></th>
+                                  </tr>
+                                </thead>
+                              )}
+                              <tbody>
+                                {results.map((res, index) => {
+                                  if (res.isUnknownPlayer && index !== 0) {
+                                    return null;
+                                  }
+                                  const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
+                                  let placeDifference, newIndex;
+                                  if (res.scoreIncrease && res.date === chart.latestScoreDate) {
+                                    const prevScore = res.score - res.scoreIncrease;
+                                    newIndex = _.findLastIndex(
+                                      res => res.score > prevScore,
+                                      results
+                                    );
+                                    placeDifference = newIndex - index;
+                                  }
+                                  return (
+                                    <tr
+                                      key={res.score + res.nickname}
+                                      className={classNames({
+                                        empty: !res.isExactDate,
                                         latest: res.date === chart.latestScoreDate,
                                       })}
                                     >
-                                      <Tooltip
-                                        content={
-                                          res.isExactDate
-                                            ? tooltipFormatter(res.dateObject)
-                                            : tooltipFormatterForBests(res.dateObject)
+                                      <td className="place">
+                                        {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
+                                      </td>
+                                      <td
+                                        className="nickname"
+                                        style={
+                                          nameIndex > -1
+                                            ? { fontWeight: 'bold', color: colorsArray[nameIndex] }
+                                            : {}
                                         }
-                                        tooltipClassName="pumpking-tooltip"
                                       >
-                                        {getTimeAgo(res.dateObject)}
-                                        {res.isExactDate ? '' : '?'}
-                                      </Tooltip>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                        {res.nickname}
+                                        {!!placeDifference && (
+                                          <span className="change-holder up">
+                                            <span>{placeDifference}</span>
+                                            <FaAngleDoubleUp />
+                                          </span>
+                                        )}
+                                        {DEBUG && (
+                                          <span>
+                                            {' '}
+                                            {res.startingRating &&
+                                              Math.round(res.startingRating)}{' '}
+                                            {res.ratingDiff && Math.round(res.ratingDiff)}{' '}
+                                            {res.ratingDiffLast && Math.round(res.ratingDiffLast)}
+                                          </span>
+                                        )}
+                                        {!DEBUG &&
+                                          showProtagonistRatingChange &&
+                                          res.nickname === protagonistName &&
+                                          res.ratingDiff && (
+                                            <span>
+                                              {` (${res.ratingDiff > 0 ? '+' : ''}${Math.round(
+                                                res.ratingDiff
+                                              )})`}
+                                            </span>
+                                          )}
+                                        {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
+                                          res.nickname === protagonistName &&
+                                          chart.distanceFromProtagonist > 0 && (
+                                            <span className="protagonist-diff">
+                                              {' '}
+                                              -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
+                                            </span>
+                                          )}
+                                      </td>
+                                      <td
+                                        className={classNames('judge', {
+                                          vj: res.isRank,
+                                          hj: res.isHJ,
+                                        })}
+                                      >
+                                        {res.isRank && (
+                                          <div className="inner">
+                                            {res.isExactDate ? (
+                                              'VJ'
+                                            ) : (
+                                              <Tooltip
+                                                content={
+                                                  <div>
+                                                    наличие ранка на этом результате было угадано,
+                                                    основываясь на скоре
+                                                  </div>
+                                                }
+                                                tooltipClassName="pumpking-tooltip"
+                                              >
+                                                VJ?
+                                              </Tooltip>
+                                            )}
+                                          </div>
+                                        )}
+                                        {res.isHJ && <div className="inner">HJ</div>}
+                                      </td>
+                                      <td className="score">
+                                        <Overlay
+                                          overlayClassName="score-overlay-outer"
+                                          overlayItem={
+                                            <span className="score-span">
+                                              {/* {res.scoreIncrease > res.score * 0.8 && <FaPlus />} */}
+                                              {res.scoreIncrease > res.score * 0.8 && '*'}
+                                              {numeral(res.score).format('0,0')}
+                                            </span>
+                                          }
+                                          placement="top"
+                                        >
+                                          <div className="score-overlay">
+                                            {DEBUG && (
+                                              <>
+                                                <div>
+                                                  <span className="_grey">result id: </span>
+                                                  {res.id}
+                                                </div>
+                                                <div>
+                                                  <span className="_grey">player id: </span>
+                                                  {res.playerId}
+                                                </div>
+                                              </>
+                                            )}
+                                            <div>
+                                              <span className="_grey">игрок: </span>
+                                              <NavLink
+                                                exact
+                                                to={routes.profile.getPath({ id: res.playerId })}
+                                              >
+                                                {res.nickname} ({res.nicknameArcade})
+                                              </NavLink>
+                                            </div>
+                                            <div>
+                                              <span className="_grey">опыт: </span>+
+                                              {numeral(getExp(res, chart)).format('0,0')}
+                                            </div>
+                                            {!res.isExactDate && (
+                                              <div className="warning">
+                                                <FaExclamationTriangle />
+                                                рекорд взят с my best. часть данных недоступна
+                                              </div>
+                                            )}
+                                            {!!res.isExactDate && (
+                                              <>
+                                                {!!res.mods && (
+                                                  <div>
+                                                    <span className="_grey">моды: </span>
+                                                    {res.mods}
+                                                  </div>
+                                                )}
+                                                {!!res.calories && (
+                                                  <div>
+                                                    <span className="_grey">ккал: </span>
+                                                    {res.calories}
+                                                  </div>
+                                                )}
+                                                {!!res.scoreIncrease && (
+                                                  <div>
+                                                    <span className="_grey">прирост: </span>+
+                                                    {numeral(res.scoreIncrease).format('0,0')}
+                                                  </div>
+                                                )}
+                                                {res.originalChartMix && (
+                                                  <div>
+                                                    <div className="warning">
+                                                      <FaExclamationTriangle />
+                                                      было сыграно на {res.originalChartMix}
+                                                    </div>
+                                                    {res.originalChartLabel && (
+                                                      <div>
+                                                        <span className="_grey">
+                                                          оригинальный чарт:{' '}
+                                                        </span>
+                                                        {res.originalChartLabel}
+                                                      </div>
+                                                    )}
+                                                    {res.originalScore && (
+                                                      <div>
+                                                        <span className="_grey">
+                                                          оригинальный скор:{' '}
+                                                        </span>
+                                                        {res.originalScore}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                                {res.scoreIncrease > res.score * 0.8 && '* сайтрид'}
+                                              </>
+                                            )}
+                                          </div>
+                                        </Overlay>
+                                      </td>
+                                      <td className="grade">
+                                        <div className="img-holder">
+                                          {res.grade && res.grade !== '?' && (
+                                            <img
+                                              src={`${process.env.PUBLIC_URL}/grades/${res.grade}.png`}
+                                              alt={res.grade}
+                                            />
+                                          )}
+                                          {res.grade === '?' && null}
+                                        </div>
+                                      </td>
+                                      <td className="number miss">{res.miss}</td>
+                                      <td className="number bad">{res.bad}</td>
+                                      <td className="number good">{res.good}</td>
+                                      <td className="number great">{res.great}</td>
+                                      <td className="number perfect">{res.perfect}</td>
+                                      <td className="combo">
+                                        {res.combo}
+                                        {res.combo ? 'x' : ''}
+                                      </td>
+                                      <td className="accuracy">
+                                        {res.accuracy}
+                                        {res.accuracy ? '%' : ''}
+                                      </td>
+                                      <td
+                                        className={classNames('date', {
+                                          latest: res.date === chart.latestScoreDate,
+                                        })}
+                                      >
+                                        <Tooltip
+                                          content={
+                                            res.isExactDate
+                                              ? tooltipFormatter(res.dateObject)
+                                              : tooltipFormatterForBests(res.dateObject)
+                                          }
+                                          tooltipClassName="pumpking-tooltip"
+                                        >
+                                          {getTimeAgo(res.dateObject)}
+                                          {res.isExactDate ? '' : '?'}
+                                        </Tooltip>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 );

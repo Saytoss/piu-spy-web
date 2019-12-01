@@ -1,18 +1,18 @@
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 
-import top from 'reducers/top';
 import tracklist from 'reducers/tracklist';
 import ranking from 'reducers/ranking';
 import profiles from 'reducers/profiles';
 import presets from 'reducers/presets';
+import results from 'reducers/results';
 
 const rootReducer = combineReducers({
   presets,
   profiles,
   ranking,
-  top,
   tracklist,
+  results,
 });
 
 export const store = createStore(

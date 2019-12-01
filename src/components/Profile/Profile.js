@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { createSelector } from 'reselect';
 import _ from 'lodash/fp';
+import moment from 'moment';
 
 // styles
 import './profile.scss';
@@ -35,7 +36,7 @@ import Toggle from 'components/Shared/Toggle/Toggle';
 import ExpFaq from './ExpFaq';
 
 // reducers
-import { fetchTopScores } from 'reducers/top';
+import { fetchResults } from 'reducers/results';
 import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 
 // utils
@@ -76,17 +77,16 @@ const cutRange = (array, range) => {
   lastElement = { ...lastElement, date: range[1] };
   const middleElements =
     startIndex > -1 && endIndex > -1 ? array.slice(startIndex, endIndex + 1) : [];
+
   return [firstElement, ...middleElements, lastElement];
 };
 const profileSelector = createSelector(
   (state, props) => _.toInteger(props.match.params.id),
-  state => state.profiles.data,
+  state => state.results.profiles,
   state => state.profiles.filter,
-  state => state.top.players,
-  state => state.ranking.data,
   state => state.tracklist.data,
-  (id, data, filter, players, ranking, tracklist) => {
-    const profile = data[id];
+  (id, profiles, filter, tracklist) => {
+    const profile = profiles[id];
     if (_.isEmpty(profile)) {
       return null;
     }
@@ -177,26 +177,31 @@ const profileSelector = createSelector(
     const lastTickRanking = _.last(profile.rankingHistory).date;
     const lastTick = lastTickRating > lastTickRanking ? lastTickRating : lastTickRanking; // End graph at either point
     const firstTick = _.first(profile.ratingHistory).date; // Start graph from the first battle of this player
+    const lastDay = moment(lastTick).endOf('day');
+    const firstDay = moment(firstTick).startOf('day');
+    const minMaxRange = [firstDay / 1000 / 60 / 60 / 24, lastDay / 1000 / 60 / 60 / 24];
 
-    const minMaxRange = [firstTick / 1000 / 60 / 60 / 24, lastTick / 1000 / 60 / 60 / 24];
-    const filterRange = filter.dayRange || minMaxRange;
-    const dayRangeMs = [filterRange[0] * 1000 * 60 * 60 * 24, filterRange[1] * 1000 * 60 * 60 * 24];
+    const filterRange = filter.dayRange || [
+      Math.max(minMaxRange[0], minMaxRange[1] - 30),
+      minMaxRange[1],
+    ];
+    const dayRangeMs = [
+      +moment(filterRange[0] * 1000 * 60 * 60 * 24).startOf('day'),
+      +moment(filterRange[1] * 1000 * 60 * 60 * 24).endOf('day'),
+    ];
     const placesChanges = cutRange(profile.rankingHistory, dayRangeMs);
     const ratingChanges = cutRange(profile.ratingHistory, dayRangeMs);
-    const rankingIndex = _.findIndex({ id }, ranking);
+    const rank = 1 + _.findIndex({ id }, _.orderBy(['ratingRaw'], ['desc'], _.values(profiles)));
     return {
       ...profile,
+      rank,
       minMaxRange,
+      filterRange,
       levelsDistribution,
       gradesDistribution,
       gradesAndLevelsDistribution,
       placesChanges,
       ratingChanges,
-      player: {
-        ..._.find({ id }, players),
-        rank: rankingIndex + 1,
-        ranking: ranking[rankingIndex],
-      },
     };
   }
 );
@@ -206,13 +211,13 @@ const mapStateToProps = (state, props) => {
     profile: profileSelector(state, props),
     tracklist: state.tracklist.data,
     filter: state.profiles.filter,
-    error: state.top.error,
-    isLoading: state.top.isLoading,
+    error: state.results.error,
+    isLoading: state.results.isLoading,
   };
 };
 
 const mapDispatchToProps = {
-  fetchTopScores,
+  fetchResults,
   setProfilesFilter,
   resetProfilesFilter,
 };
@@ -239,7 +244,7 @@ class Profile extends Component {
 
   onRefresh = () => {
     const { isLoading } = this.props;
-    !isLoading && this.props.fetchTopScores();
+    !isLoading && this.props.fetchResults();
   };
 
   onChangeDayRange = range => {
@@ -634,15 +639,15 @@ class Profile extends Component {
               <div className="profile-header">
                 <div className="profile-name text-with-header">
                   <div className="text-header">игрок</div>
-                  <div>{profile.player.nickname}</div>
+                  <div>{profile.name}</div>
                 </div>
                 <div className="text-with-header">
                   <div className="text-header">ранк</div>
-                  <div>#{profile.player.rank}</div>
+                  <div>#{profile.rank}</div>
                 </div>
                 <div className="text-with-header">
                   <div className="text-header">эло</div>
-                  <div>{profile.player.ranking.rating}</div>
+                  <div>{profile.rating}</div>
                 </div>
                 <div className="text-with-header">
                   <div className="text-header">последняя игра</div>
@@ -782,7 +787,7 @@ class Profile extends Component {
                   </div>
                   <div className="range-container">
                     <Range
-                      range={filter.dayRange || profile.minMaxRange}
+                      range={filter.dayRange || profile.filterRange}
                       min={profile.minMaxRange[0]}
                       max={profile.minMaxRange[1]}
                       onChange={this.onChangeDayRange}

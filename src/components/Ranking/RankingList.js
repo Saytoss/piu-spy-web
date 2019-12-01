@@ -48,6 +48,9 @@ export default function RankingList({ ranking, isLoading }) {
           </thead>
           <tbody>
             {ranking.map((player, playerIndex) => {
+              if (player.count < 10) {
+                return null;
+              }
               return (
                 <tr className="player" key={player.name}>
                   <td className="place">
@@ -97,10 +100,6 @@ export default function RankingList({ ranking, isLoading }) {
                       </span>
                     )}
                   </td>
-                  {/* <td className="total-score">
-                    <div>S: {numeral(player.totalScore.S).format('0,0')}</div>
-                    <div>D: {numeral(player.totalScore.D).format('0,0')}</div>
-                  </td> */}
                   <td className="grades sss">{player.grades.SSS}</td>
                   <td className="grades ss">{player.grades.SS}</td>
                   <td className="grades s">{player.grades.S}</td>
@@ -110,7 +109,6 @@ export default function RankingList({ ranking, isLoading }) {
                   <td className="grades d">{player.grades.D}</td>
                   <td className="grades f">{player.grades.F}</td>
                   <td className="playcount">{player.count}</td>
-                  {/* <td className="calories">{numeral(player.totalScore.calories).format('0,0')}</td> */}
                   <td className="accuracy">
                     {player.accuracy ? `${player.accuracy.toFixed(2)}%` : ''}
                   </td>

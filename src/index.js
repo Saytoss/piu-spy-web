@@ -15,7 +15,7 @@ import App from 'components/App';
 import { CHART_MIN_MAX } from 'constants/leaderboard';
 
 import { store } from 'reducers';
-import { fetchTopScores, setFilter } from 'reducers/top';
+import { fetchResults, setFilter } from 'reducers/results';
 import { fetchTracklist } from 'reducers/tracklist';
 
 localForage
@@ -41,7 +41,7 @@ localForage
   .catch(error => console.error('Cannot get filter from local storage', error));
 
 store.dispatch(fetchTracklist()).then(() => {
-  store.dispatch(fetchTopScores());
+  store.dispatch(fetchResults());
 });
 
 ReactDOM.render(
