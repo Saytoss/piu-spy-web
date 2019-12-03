@@ -17,6 +17,7 @@ import {
   FaBackward,
   FaForward,
 } from 'react-icons/fa';
+import FlipMove from 'react-flip-move';
 
 // styles
 import './leaderboard.scss';
@@ -42,11 +43,12 @@ import { selectPreset, openPreset } from 'reducers/presets';
 
 // utils
 import { getExp } from 'utils/exp';
-import { tooltipFormatter, tooltipFormatterForBests, getTimeAgo } from 'utils/leaderboards';
+import { tooltipFormatter, getTimeAgo } from 'utils/leaderboards';
 import { colorsArray } from 'utils/colors';
 import { playersSelector, filteredDataSelector } from 'reducers/selectors';
 
 // code
+const ANIMATION_DURATION = 250;
 const sortingOptions = [
   {
     label: 'от новых скоров',
@@ -129,7 +131,7 @@ class Leaderboard extends Component {
     this.setFilter('song', value);
   });
 
-  onRedoLatestResult = chart => {
+  onRedoLatestResult = _.throttle(ANIMATION_DURATION + 10, chart => {
     const overrides = _.drop(1, this.state.chartOverrides[chart.sharedChartId]);
     this.setState(state => ({
       chartOverrides: {
@@ -137,20 +139,18 @@ class Leaderboard extends Component {
         [chart.sharedChartId]: _.size(overrides) === 1 ? null : overrides,
       },
     }));
-  };
+  });
 
-  onUndoLatestResult = chart => {
+  onUndoLatestResult = _.throttle(ANIMATION_DURATION + 10, chart => {
     if (_.isEmpty(chart.results)) {
       this.setState(state => ({
         chartOverrides: _.omit(chart.sharedChartId, state.chartOverrides),
       }));
     }
-    const undoedResultIndex = _.findIndex({ date: chart.latestScoreDate }, chart.results);
-    if (undoedResultIndex < 0) {
-      return;
-    }
+    const undoedResult = _.maxBy('date', chart.results);
+    if (!undoedResult) return;
+
     const { results } = this.props;
-    const undoedResult = chart.results[undoedResultIndex];
     const undoedPlayerId = undoedResult.playerId;
     const previousPlayerResult = _.findLast(
       res =>
@@ -171,16 +171,25 @@ class Leaderboard extends Component {
       latestScoreDate: latestScore && latestScore.date,
       results: newResults,
     };
-    this.setState(state => ({
-      chartOverrides: {
-        ...state.chartOverrides,
-        [chart.sharedChartId]: [
-          overrideChart,
-          ...(state.chartOverrides[chart.sharedChartId] || [chart]),
-        ],
-      },
-    }));
-  };
+    if (_.isEmpty(newResults)) {
+      this.setState(state => ({
+        chartOverrides: {
+          ...state.chartOverrides,
+          [chart.sharedChartId]: null,
+        },
+      }));
+    } else {
+      this.setState(state => ({
+        chartOverrides: {
+          ...state.chartOverrides,
+          [chart.sharedChartId]: [
+            overrideChart,
+            ...(state.chartOverrides[chart.sharedChartId] || [chart]),
+          ],
+        },
+      }));
+    }
+  });
 
   renderSimpleSearch() {
     const { isLoading, filter } = this.props;
@@ -466,23 +475,32 @@ class Leaderboard extends Component {
                         </a>
                       </div>
                       <div className="_flex-fill" />
-                      <div
-                        className={classNames('undo-result-button', {
-                          active: !_.isEmpty(overrides),
-                        })}
-                      >
-                        <FaBackward onClick={() => this.onUndoLatestResult(chart)} />
-                        <span className="number">
-                          {!_.isEmpty(overrides)
-                            ? 1 + chart.totalResultsCount - _.size(overrides)
-                            : chart.totalResultsCount}
-                          /{chart.totalResultsCount}
-                        </span>
-                        <FaForward
-                          className="forward-btn"
-                          onClick={() => !_.isEmpty(overrides) && this.onRedoLatestResult(chart)}
-                        />
-                      </div>
+                      {(() => {
+                        const isActive = !_.isEmpty(overrides);
+                        const currentIndex = isActive
+                          ? 1 + chart.totalResultsCount - _.size(overrides)
+                          : chart.totalResultsCount;
+                        const canUndo = !(currentIndex === 1 && chart.totalResultsCount === 1);
+                        return (
+                          <div
+                            className={classNames('undo-result-button', {
+                              active: isActive,
+                            })}
+                          >
+                            <FaBackward
+                              className={classNames('backward-btn', { disabled: !canUndo })}
+                              onClick={() => canUndo && this.onUndoLatestResult(chart)}
+                            />
+                            <span className="number">
+                              {currentIndex}/{chart.totalResultsCount}
+                            </span>
+                            <FaForward
+                              className={classNames('forward-btn', { disabled: !isActive })}
+                              onClick={() => isActive && this.onRedoLatestResult(chart)}
+                            />
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="charts">
                       {!_.isEmpty(results) && (
@@ -508,7 +526,13 @@ class Leaderboard extends Component {
                                   </tr>
                                 </thead>
                               )}
-                              <tbody>
+                              <FlipMove
+                                enterAnimation="fade"
+                                leaveAnimation="fade"
+                                typeName="tbody"
+                                maintainContainerHeight
+                                duration={ANIMATION_DURATION}
+                              >
                                 {results.map((res, index) => {
                                   if (res.isUnknownPlayer && index !== 0) {
                                     return null;
@@ -525,7 +549,7 @@ class Leaderboard extends Component {
                                   }
                                   return (
                                     <tr
-                                      key={res.score + res.nickname}
+                                      key={res.isRank + '_' + res.nickname}
                                       className={classNames({
                                         empty: !res.isExactDate,
                                         latest: res.date === chart.latestScoreDate,
@@ -728,11 +752,7 @@ class Leaderboard extends Component {
                                         })}
                                       >
                                         <Tooltip
-                                          content={
-                                            res.isExactDate
-                                              ? tooltipFormatter(res.dateObject)
-                                              : tooltipFormatterForBests(res.dateObject)
-                                          }
+                                          content={tooltipFormatter(res)}
                                           tooltipClassName="pumpking-tooltip"
                                         >
                                           {getTimeAgo(res.dateObject)}
@@ -742,7 +762,7 @@ class Leaderboard extends Component {
                                     </tr>
                                   );
                                 })}
-                              </tbody>
+                              </FlipMove>
                             </table>
                           </div>
                         </div>

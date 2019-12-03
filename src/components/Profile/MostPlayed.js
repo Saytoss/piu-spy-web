@@ -46,10 +46,6 @@ export default connect(mapStateToProps)(({ playerId, charts }) => {
       {isLoading && <Loader />}
       {data.map(item => {
         const chart = charts[item.shared_chart];
-        const lastResultDate = _.get(
-          'dateObject',
-          _.find({ playerId: _.toNumber(playerId) }, chart.results)
-        );
         return (
           <div className="chart" key={item.shared_chart}>
             <div
@@ -65,7 +61,9 @@ export default connect(mapStateToProps)(({ playerId, charts }) => {
               <span className="chart-number">{chart.chartLevel}</span>
             </div>
             <div className="song-name">{chart.song}</div>
-            <div className="date">{lastResultDate ? getTimeAgo(lastResultDate) : null}</div>
+            <div className="date">
+              {item.latestDate ? getTimeAgo(new Date(item.latestDate)) : null}
+            </div>
             <div className="playcount">
               <FaPlay />
               <span>{item.count}</span>

@@ -279,21 +279,24 @@ const processData = (data, tracklist) => {
         chartTop.results.splice(oldScoreIndex, 1);
       }
       const newScoreIndex = _.sortedLastIndexBy(r => -r.score, result, chartTop.results);
-      chartTop.results.splice(newScoreIndex, 0, result);
-      chartTop.latestScoreDate = result.date;
+      if (!result.isUnknownPlayer || newScoreIndex === 0) {
+        chartTop.results.splice(newScoreIndex, 0, result);
+        chartTop.latestScoreDate = result.date;
+      }
       chartTop.totalResultsCount++;
       topResults[topResultId] = result;
 
-      chartTop.results.forEach(enemyResult => {
-        if (
-          !result.isUnknownPlayer &&
-          !enemyResult.isUnknownPlayer &&
-          enemyResult.isRank === result.isRank &&
-          enemyResult.playerId !== result.playerId
-        ) {
-          battles.push([result, enemyResult, chartTop]);
-        }
-      });
+      if (!result.isUnknownPlayer) {
+        chartTop.results.forEach(enemyResult => {
+          if (
+            !enemyResult.isUnknownPlayer &&
+            enemyResult.isRank === result.isRank &&
+            enemyResult.playerId !== result.playerId
+          ) {
+            battles.push([result, enemyResult, chartTop]);
+          }
+        });
+      }
 
       if (!chartTop.maxScore && isFullScore(result)) {
         chartTop.maxScore = getMaxScore(result, chartTop);

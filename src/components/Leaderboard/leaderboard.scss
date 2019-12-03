@@ -99,6 +99,9 @@
         font-weight: normal;
         user-select: none;
         display: none;
+        &.active {
+          display: flex;
+        }
         > svg {
           margin-bottom: 2px;
         }
@@ -106,25 +109,19 @@
           line-height: 100%;
           text-align: center;
           margin: 0 4px;
-          cursor: auto;
         }
-        > .forward-btn {
-          color: #777;
-          cursor: auto;
-        }
-        &.active {
-          display: flex;
+        > .forward-btn,
+        > .backward-btn {
           cursor: pointer;
-          > .forward-btn {
-            color: inherit;
-            cursor: pointer;
+          &.disabled {
+            color: #777;
+            cursor: auto;
           }
         }
       }
       &:hover {
         .undo-result-button {
           display: flex;
-          cursor: pointer;
         }
       }
 

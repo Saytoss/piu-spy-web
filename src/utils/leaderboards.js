@@ -12,14 +12,27 @@ const timeStyle = {
   gradation: convenient,
   units: ['day', 'week', 'month'],
 };
-export const tooltipFormatter = date => date.toLocaleDateString();
-export const tooltipFormatterForBests = date => (
-  <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
-    <div>точная дата взятия неизвестна</div>
-    <div>скор был записан с my best или machine best</div>
-    <div>дата записи: {date.toLocaleDateString()}</div>
-  </div>
-);
+export const tooltipFormatter = result => {
+  if (!result.isExactDate) {
+    const resultType =
+      result.isMyBest === undefined && result.isMachineBest === undefined
+        ? 'с my best или machine best'
+        : result.isMyBest
+        ? 'с my best'
+        : result.isMachineBest
+        ? 'с machine best'
+        : 'хз откуда';
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+        <div>точная дата взятия неизвестна</div>
+        <div>скор был записан {resultType}</div>
+        <div>дата записи: {result.dateObject.toLocaleDateString()}</div>
+      </div>
+    );
+  } else {
+    return result.dateObject.toLocaleDateString();
+  }
+};
 
 export const getTimeAgo = date => {
   const dayDiff = moment()
