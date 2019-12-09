@@ -7,6 +7,7 @@ import { MdExpandMore } from 'react-icons/md';
 
 import { fetchJson } from 'utils/fetch';
 import { getTimeAgo } from 'utils/leaderboards';
+import { parseDate } from 'utils/date';
 
 import Loader from 'components/Shared/Loader';
 
@@ -62,7 +63,7 @@ export default connect(mapStateToProps)(({ playerId, charts }) => {
             </div>
             <div className="song-name">{chart.song}</div>
             <div className="date">
-              {item.latestDate ? getTimeAgo(new Date(item.latestDate)) : null}
+              {item.latestDate ? getTimeAgo(parseDate(item.latestDate)) : null}
             </div>
             <div className="playcount">
               <FaPlay />

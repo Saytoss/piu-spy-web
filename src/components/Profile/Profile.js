@@ -41,6 +41,7 @@ import { fetchResults } from 'reducers/results';
 import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 
 // utils
+import { parseDate } from 'utils/date';
 import { getTimeAgo } from 'utils/leaderboards';
 import { achievements } from 'utils/achievements';
 import { getRankImg } from 'utils/exp';
@@ -274,7 +275,7 @@ class Profile extends Component {
             dataKey="date"
             type="number"
             domain={['dataMin', 'dataMax']}
-            tickFormatter={value => new Date(value).toLocaleDateString()}
+            tickFormatter={value => parseDate(value).toLocaleDateString()}
           />
           <YAxis
             allowDecimals={false}
@@ -291,7 +292,7 @@ class Profile extends Component {
               }
               return (
                 <div className="history-tooltip">
-                  <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
+                  <div>{parseDate(payload[0].payload.date).toLocaleDateString()}</div>
                   {payload && payload[0] && <div>Rating: {Math.round(payload[0].value)}</div>}
                 </div>
               );
@@ -320,7 +321,7 @@ class Profile extends Component {
             dataKey="date"
             type="number"
             domain={['dataMin', 'dataMax']}
-            tickFormatter={value => new Date(value).toLocaleDateString()}
+            tickFormatter={value => parseDate(value).toLocaleDateString()}
           />
           <YAxis
             allowDecimals={false}
@@ -337,7 +338,7 @@ class Profile extends Component {
               }
               return (
                 <div className="history-tooltip">
-                  <div>{new Date(payload[0].payload.date).toLocaleDateString()}</div>
+                  <div>{parseDate(payload[0].payload.date).toLocaleDateString()}</div>
                   {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
                 </div>
               );

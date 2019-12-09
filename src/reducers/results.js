@@ -4,6 +4,7 @@ import localForage from 'localforage';
 import { fetchJson } from 'utils/fetch';
 import { getExp } from 'utils/exp';
 import { achievements, initialAchievementState } from 'utils/achievements';
+import { parseDate } from 'utils/date';
 
 import { processBattles } from './ranking';
 import { postProcessProfiles } from './profiles';
@@ -90,7 +91,7 @@ const mapResult = (res, players, chart) => {
       nickname: players[res.player].nickname,
       nicknameArcade: players[res.player].arcade_name,
       date: res.gained,
-      dateObject: new Date(res.gained),
+      dateObject: parseDate(res.gained),
       grade: res.grade,
       isExactDate: !!res.exact_gain_date,
       score: res.score,
@@ -110,7 +111,7 @@ const mapResult = (res, players, chart) => {
     originalChartLabel: res.original_label,
     originalScore: res.original_score,
     date: res.gained,
-    dateObject: new Date(res.gained),
+    dateObject: parseDate(res.gained),
     grade: res.grade !== '?' ? res.grade : guessGrade(res),
     isExactDate: !!res.exact_gain_date,
     score: res.score,
