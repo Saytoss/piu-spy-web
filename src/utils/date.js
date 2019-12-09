@@ -1,5 +1,9 @@
 import moment from 'moment';
 
 export const parseDate = textDate => {
-  return moment(textDate, 'YYYY-MM-DD HH:mm:ss').toDate();
+  if (typeof textDate === 'string') {
+    return moment(textDate, 'YYYY-MM-DD HH:mm:ss').toDate();
+  } else {
+    return new Date(textDate);
+  }
 };
