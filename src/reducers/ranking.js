@@ -69,7 +69,7 @@ export const processBattles = ({ battles, profiles }) => {
       }
       if (Math.max(maxScore, score.score, enemyScore.score) !== maxScore) {
         // If calculated max score isn't max score anyway, use current scores as max + cherry on top
-        maxScore = Math.max(..._.map('score', song.results));
+        maxScore = Math.max(maxScore, score.score, enemyScore.score) + 50000;
       }
     }
     // Rating at the start of battle for this score
@@ -175,9 +175,9 @@ export const processBattles = ({ battles, profiles }) => {
         `${song.chartLabel} - ${song.song} (${song.sharedChartId}) - ${
           profiles[score.playerId].name
         } / ${profiles[enemyScore.playerId].name}
-- ${score.score} / ${enemyScore.score} (${maxScore}) - R ${S1.toFixed(2)}/${S2.toFixed(
-          2
-        )} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
+- ${score.score} / ${enemyScore.score} (${Math.floor(maxScore)} (${Math.floor(
+          song.maxScore * scoreMultiplier
+        )})) - R ${S1.toFixed(2)}/${S2.toFixed(2)} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
 - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
           2
         )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}

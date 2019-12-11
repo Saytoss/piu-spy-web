@@ -165,8 +165,7 @@ const isFullScore = score => {
 };
 
 const getMaxScore = score => {
-  const maxScoreAccuracy = ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
-  return maxScoreAccuracy;
+  return ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
 };
 
 const initializeProfile = (result, profiles) => {
@@ -292,16 +291,13 @@ const processData = (data, tracklist) => {
           if (
             !enemyResult.isUnknownPlayer &&
             enemyResult.isRank === result.isRank &&
-            enemyResult.playerId !== result.playerId
+            enemyResult.playerId !== result.playerId &&
+            result.score &&
+            enemyResult.score
           ) {
             battles.push([result, enemyResult, chartTop]);
           }
         });
-      }
-
-      if (!chartTop.maxScore && isFullScore(result)) {
-        chartTop.maxScore = getMaxScore(result, chartTop);
-        chartTop.maxScoreAccuracy = result.accuracyRaw;
       }
     }
     // Getting best grade of player on this chart
@@ -320,29 +316,34 @@ const processData = (data, tracklist) => {
     }
   }
 
-  const sortedSongs = _.orderBy(
-    ['latestScoreDate', 'song', 'chartLevel'],
-    ['desc', 'asc', 'desc'],
-    _.values(top)
-  );
-
   // Loop 2, when the TOP is already set up
-  for (let result of mappedResults) {
-    const chart = top[result.sharedChartId];
-
-    // Getting some info about players
-    if (!result.isUnknownPlayer && !result.isIntermediateResult) {
-      if (!profiles[result.playerId]) {
-        initializeProfile(result, profiles);
+  for (let chartId in top) {
+    const chart = top[chartId];
+    chart.maxScoreWithAccuracy = 0;
+    for (let result of chart.results) {
+      if (result.accuracyRaw && chart.maxScoreWithAccuracy < result.score) {
+        chart.maxScoreResult = result;
+        chart.maxScoreWithAccuracy = result.score;
       }
-      getProfileInfoFromResult(result, chart, profiles);
+      // Getting some info about players
+      if (!result.isUnknownPlayer && !result.isIntermediateResult) {
+        if (!profiles[result.playerId]) {
+          initializeProfile(result, profiles);
+        }
+        getProfileInfoFromResult(result, chart, profiles);
+      }
+    }
+    if (chart.maxScoreWithAccuracy) {
+      chart.maxScore = getMaxScore(chart.maxScoreResult, chart);
     }
   }
+
   // Calculate Progress achievements and bonus for starting Elo
   profiles = postProcessProfiles(profiles, tracklist);
+  // Calculate ELO
   processBattles({ battles, profiles });
 
-  return { sortedSongs, mappedResults, profiles, sharedCharts: top };
+  return { mappedResults, profiles, sharedCharts: top };
 };
 
 export default function reducer(state = initialState, action) {
@@ -419,11 +420,11 @@ export const fetchResults = () => {
         throw new Error(data.error);
       }
       const { tracklist } = getState();
-      const { sortedSongs, sharedCharts, mappedResults, profiles } = processData(data, tracklist);
+      const { sharedCharts, mappedResults, profiles } = processData(data, tracklist);
 
       dispatch({
         type: SUCCESS,
-        data: sortedSongs,
+        data: _.values(sharedCharts),
         players: _.flow(
           _.toPairs,
           _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
