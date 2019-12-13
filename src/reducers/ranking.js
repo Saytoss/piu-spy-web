@@ -69,7 +69,7 @@ export const processBattles = ({ battles, profiles }) => {
       }
       if (Math.max(maxScore, score.score, enemyScore.score) !== maxScore) {
         // If calculated max score isn't max score anyway, use current scores as max + cherry on top
-        maxScore = Math.max(maxScore, score.score, enemyScore.score) + 50000;
+        maxScore = Math.max(maxScore, score.score, enemyScore.score) + 10000;
       }
     }
     // Rating at the start of battle for this score
@@ -130,10 +130,17 @@ export const processBattles = ({ battles, profiles }) => {
       score.score / maxScore > 0.99 &&
       enemyScore.score / maxScore > 0.99
     ) {
-      kMinimizer = Math.min(
-        1,
-        Math.max(100 - (100 * score.score) / maxScore, 100 - (100 * enemyScore.score) / maxScore)
-      );
+      kMinimizer =
+        Math.max(
+          Math.min(
+            1,
+            Math.max(
+              100 - (100 * score.score) / maxScore,
+              100 - (100 * enemyScore.score) / maxScore
+            )
+          ),
+          0
+        ) ** 2;
     }
 
     const K1 = kLevel * kMinimizer;
