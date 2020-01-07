@@ -170,4 +170,9 @@ export const ranks = [
     iconName: '26.png',
     color: 'gold',
   },
+  {
+    threshold: 180000,
+    iconName: '27.png',
+    color: 'green',
+  },
 ];

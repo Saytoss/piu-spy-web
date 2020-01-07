@@ -153,17 +153,6 @@ const mapResult = (res, players, chart) => {
   return _r;
 };
 
-const isFullScore = score => {
-  return (
-    _.isInteger(score.perfect) &&
-    _.isInteger(score.great) &&
-    _.isInteger(score.good) &&
-    _.isInteger(score.bad) &&
-    _.isInteger(score.miss) &&
-    _.isInteger(score.score)
-  );
-};
-
 const getMaxScore = score => {
   return ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
 };

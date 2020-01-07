@@ -123,12 +123,13 @@ export const processBattles = ({ battles, profiles }) => {
 
     // When YOU vs ENEMY both have SS/SSS, and both scores are very close to SSS, this battle will NOT affect ELO too much
     let kMinimizer = 1;
+    const kDropCutoff = 0.98; // Score is 98% of max score or higher -- K will be lower
     if (
       song.maxScore &&
-      score.grade.startsWith('SS') &&
-      enemyScore.grade.startsWith('SS') &&
-      score.score / maxScore > 0.99 &&
-      enemyScore.score / maxScore > 0.99
+      (score.grade.startsWith('SS') || (score.miss === 0 && score.bad === 0)) &&
+      (enemyScore.grade.startsWith('SS') || (enemyScore.miss === 0 && enemyScore.bad === 0)) &&
+      score.score / maxScore > kDropCutoff &&
+      enemyScore.score / maxScore > kDropCutoff
     ) {
       kMinimizer =
         Math.max(
@@ -137,7 +138,8 @@ export const processBattles = ({ battles, profiles }) => {
             Math.max(
               100 - (100 * score.score) / maxScore,
               100 - (100 * enemyScore.score) / maxScore
-            )
+            ) /
+              (100 - kDropCutoff * 100)
           ),
           0
         ) ** 2;
@@ -187,7 +189,9 @@ export const processBattles = ({ battles, profiles }) => {
         )})) - R ${S1.toFixed(2)}/${S2.toFixed(2)} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
 - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
           2
-        )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}
+        )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}${
+          kMinimizer === 1 ? '' : ` (coef ${kMinimizer.toFixed(2)})`
+        }
 - Base elo: ${baseEloP1.toFixed(2)} / ${baseEloP2.toFixed(2)}
 - Elo change: ${(dr1 - baseEloP1).toFixed(2)} / ${(dr2 - baseEloP2).toFixed(2)}
 - New base elo: ${dictChartElo[baseEloId1].toFixed(2)} / ${dictChartElo[baseEloId2].toFixed(2)}
