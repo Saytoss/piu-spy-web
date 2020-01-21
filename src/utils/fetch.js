@@ -1,6 +1,19 @@
-export const fetchJson = async ({ url }) => {
+export const fetchJson = ({ url }) => request({ url, method: 'get' });
+export const postJson = ({ url, body }) =>
+  request({
+    url,
+    method: 'post',
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json;charset=utf-8',
+    },
+  });
+
+const defaultHeaders = {};
+
+export const request = async ({ url, method, body, headers }) => {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { method, body, headers: { ...defaultHeaders, ...headers } });
     if (response.status >= 200 && response.status < 300) {
       const data = await response.json();
       return data;

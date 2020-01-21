@@ -1,18 +1,40 @@
 import React from 'react';
-// import toBe from 'prop-types';
-// import classNames from 'classnames';
+import { connect } from 'react-redux';
 import { NavLink } from 'react-router-dom';
 import GoogleLogin from 'react-google-login';
 import { FaGoogle } from 'react-icons/fa';
 
 import './top-bar.scss';
 
+// routes
 import { routes } from 'constants/routes';
 
-function TopBar() {
-  const onGoogleResponse = res => {
-    console.log(res);
+// reducers
+import * as loginACs from 'reducers/login';
+
+// redux
+const mapStateToProps = state => {
+  return {
+    isLoadingLogin: state.login.isLoading,
+    loginData: state.login.data,
   };
+};
+
+const mapDispatchToProps = {
+  login: loginACs.login,
+};
+
+function TopBar({ isLoadingLogin, loginData, login }) {
+  loginData && console.log('Login data:', loginData);
+
+  const onGoogleResponse = res => {
+    if (res.error) {
+      console.log('Google login response error:', res);
+    } else {
+      login(res);
+    }
+  };
+
   return (
     <header className="top-bar">
       <nav>
@@ -38,7 +60,11 @@ function TopBar() {
           onFailure={onGoogleResponse}
           cookiePolicy={'single_host_origin'}
           render={({ onClick, disabled }) => (
-            <button className="btn btn-dark btn-icon btn-sm" onClick={onClick} disabled={disabled}>
+            <button
+              className="btn btn-dark btn-icon btn-sm"
+              onClick={onClick}
+              disabled={disabled || isLoadingLogin}
+            >
               <FaGoogle />
               <span> login</span>
             </button>
@@ -48,4 +74,7 @@ function TopBar() {
     </header>
   );
 }
-export default TopBar;
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(TopBar);

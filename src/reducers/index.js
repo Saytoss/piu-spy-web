@@ -6,8 +6,10 @@ import ranking from 'reducers/ranking';
 import profiles from 'reducers/profiles';
 import presets from 'reducers/presets';
 import results from 'reducers/results';
+import login from 'reducers/login';
 
 const rootReducer = combineReducers({
+  login,
   presets,
   profiles,
   ranking,
