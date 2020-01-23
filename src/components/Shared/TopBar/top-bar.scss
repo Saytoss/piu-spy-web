@@ -33,5 +33,10 @@
 
   .login-container {
     padding-right: 10px;
+    display: flex;
+    flex-flow: row wrap;
+    .btn + .btn {
+      margin-left: 10px;
+    }
   }
 }

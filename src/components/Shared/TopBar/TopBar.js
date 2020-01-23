@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { NavLink } from 'react-router-dom';
-import GoogleLogin from 'react-google-login';
+import { GoogleLogin, GoogleLogout } from 'react-google-login';
 import { FaGoogle } from 'react-icons/fa';
 
 import './top-bar.scss';
@@ -22,9 +22,10 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = {
   login: loginACs.login,
+  logout: loginACs.logout,
 };
 
-function TopBar({ isLoadingLogin, loginData, login }) {
+function TopBar({ isLoadingLogin, loginData, login, logout }) {
   loginData && console.log('Login data:', loginData);
 
   const onGoogleResponse = res => {
@@ -33,6 +34,11 @@ function TopBar({ isLoadingLogin, loginData, login }) {
     } else {
       login(res);
     }
+  };
+
+  const onLogout = res => {
+    // console.log('Logout response', res);
+    logout(res);
   };
 
   return (
@@ -70,6 +76,28 @@ function TopBar({ isLoadingLogin, loginData, login }) {
             </button>
           )}
         />
+        <button
+          className="btn btn-dark btn-icon btn-sm"
+          onClick={onLogout}
+          disabled={isLoadingLogin}
+        >
+          <span> logout</span>
+        </button>
+        {/* <GoogleLogout
+          clientId="197132042723-cmibep21qf6dald9l2l01rif7l5dtd4s.apps.googleusercontent.com"
+          buttonText="Logout"
+          onLogoutSuccess={onLogout}
+          onFailure={onLogout}
+          render={({ onClick, disabled }) => (
+            <button
+          className="btn btn-dark btn-icon btn-sm"
+          onClick={onClick}
+          disabled={disabled || isLoadingLogin}
+            >
+          <span> logout</span>
+            </button>
+          )}
+        ></GoogleLogout> */}
       </div>
     </header>
   );

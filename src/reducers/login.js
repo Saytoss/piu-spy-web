@@ -55,3 +55,20 @@ export const login = googleResponse => {
     }
   };
 };
+
+export const logout = () => {
+  return async dispatch => {
+    dispatch({ type: LOADING });
+    try {
+      const data = await postJson({
+        url: `${HOST}/logout`,
+      });
+      console.log('/logout response:', data);
+      dispatch({ type: SUCCESS, data });
+      return data;
+    } catch (error) {
+      dispatch({ type: ERROR, error });
+      return null;
+    }
+  };
+};
