@@ -42,7 +42,10 @@ export const login = googleResponse => {
     dispatch({ type: LOADING });
     try {
       console.log('google response:', googleResponse);
-      const data = await postJson({ url: `${HOST}/login`, body: googleResponse });
+      const data = await postJson({
+        url: `${HOST}/login/google`,
+        body: { token: googleResponse.tokenId },
+      });
       console.log('/login response:', data);
       dispatch({ type: SUCCESS, data });
       return data;

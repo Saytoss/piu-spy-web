@@ -13,7 +13,12 @@ const defaultHeaders = {};
 
 export const request = async ({ url, method, body, headers }) => {
   try {
-    const response = await fetch(url, { method, body, headers: { ...defaultHeaders, ...headers } });
+    const response = await fetch(url, {
+      method,
+      body,
+      headers: { ...defaultHeaders, ...headers },
+      credentials: 'include',
+    });
     if (response.status >= 200 && response.status < 300) {
       const data = await response.json();
       return data;
