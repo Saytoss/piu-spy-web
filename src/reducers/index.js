@@ -1,18 +1,23 @@
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
+import _ from 'lodash/fp';
 
 import tracklist from 'reducers/tracklist';
 import ranking from 'reducers/ranking';
 import profiles from 'reducers/profiles';
 import presets from 'reducers/presets';
 import results from 'reducers/results';
+import user from 'reducers/user';
+import login from 'reducers/login';
 
 const rootReducer = combineReducers({
+  login,
   presets,
   profiles,
   ranking,
   tracklist,
   results,
+  user,
 });
 
 export const store = createStore(
@@ -23,6 +28,22 @@ export const store = createStore(
         window.__REDUX_DEVTOOLS_EXTENSION__({
           stateSanitizer: state => ({
             ...state,
+            results: {
+              ...state.results,
+              data: `big array, ${_.size(state.results.data)}`,
+              results: `big array, ${_.size(state.results.results)}`,
+              sharedCharts: 'big object',
+              profiles: _.mapValues(
+                pl => ({
+                  ...pl,
+                  resultsByGrade: '...',
+                  resultsByLevel: '...',
+                  rankingHistory: '...',
+                  ratingHistory: '...',
+                }),
+                state.results.profiles
+              ),
+            },
           }),
         })
       )

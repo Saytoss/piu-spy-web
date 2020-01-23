@@ -30,4 +30,15 @@
       content: '•';
     }
   }
+
+  .login-container {
+    padding-right: 10px;
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    .player-info {
+      margin-right: 10px;
+      font-size: 80%;
+    }
+  }
 }

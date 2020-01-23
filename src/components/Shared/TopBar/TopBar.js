@@ -1,35 +1,62 @@
-import React, { Component } from 'react';
-// import toBe from 'prop-types';
-// import classNames from 'classnames';
+import React from 'react';
+import { connect } from 'react-redux';
 import { NavLink } from 'react-router-dom';
+import _ from 'lodash/fp';
 
 import './top-bar.scss';
 
+// routes
 import { routes } from 'constants/routes';
 
-class TopBar extends Component {
-  static propTypes = {};
+// reducers
+import * as loginACs from 'reducers/login';
 
-  render() {
-    return (
-      <header className="top-bar">
-        <nav>
-          <ul>
-            <li>
-              <NavLink exact to={routes.leaderboard.path}>
-                leaderboard
-              </NavLink>
-            </li>
-            <li>
-              <NavLink exact to={routes.ranking.path}>
-                ranking
-              </NavLink>
-            </li>
-          </ul>
-        </nav>
-      </header>
-    );
-  }
+// redux
+const mapStateToProps = state => {
+  return {
+    isLoadingLogin: state.login.isLoading,
+    isLoadingUser: state.user.isLoading,
+    user: state.user.data,
+  };
+};
+
+const mapDispatchToProps = {
+  login: loginACs.login,
+  logout: loginACs.logout,
+};
+
+function TopBar({ isLoadingLogin, isLoadingUser, user, login, logout }) {
+  return (
+    <header className="top-bar">
+      <nav>
+        <ul>
+          <li>
+            <NavLink exact to={routes.leaderboard.path}>
+              leaderboard
+            </NavLink>
+          </li>
+          <li>
+            <NavLink exact to={routes.ranking.path}>
+              ranking
+            </NavLink>
+          </li>
+        </ul>
+      </nav>
+      <div className="_flex-fill" />
+      <div className="login-container">
+        <div className="player-info">{_.getOr('', 'player.nickname', user)}</div>
+        <button
+          className="btn btn-dark btn-icon btn-sm"
+          onClick={logout}
+          disabled={isLoadingLogin || isLoadingUser}
+        >
+          <span> logout</span>
+        </button>
+      </div>
+    </header>
+  );
 }
-
-export default TopBar;
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(TopBar);
