@@ -1,3 +1,5 @@
+import _ from 'lodash/fp';
+
 export const fetchJson = ({ url }) => request({ url, method: 'get' });
 export const postJson = ({ url, body }) =>
   request({
@@ -23,7 +25,14 @@ export const request = async ({ url, method, body, headers }) => {
       const data = await response.json();
       return data;
     } else {
-      throw Error('HTTP Status ' + response.status);
+      const error = await response.json();
+      if (_.isObject(error) && _.isString(error.error)) {
+        throw new Error(error.error);
+      } else if (_.isString(error)) {
+        throw new Error(error);
+      } else {
+        throw new Error('HTTP Status ' + response.status);
+      }
     }
   } catch (error) {
     console.error(error);

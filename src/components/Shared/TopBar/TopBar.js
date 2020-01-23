@@ -1,8 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { NavLink } from 'react-router-dom';
-import { GoogleLogin, GoogleLogout } from 'react-google-login';
-import { FaGoogle } from 'react-icons/fa';
+import _ from 'lodash/fp';
 
 import './top-bar.scss';
 
@@ -16,7 +15,8 @@ import * as loginACs from 'reducers/login';
 const mapStateToProps = state => {
   return {
     isLoadingLogin: state.login.isLoading,
-    loginData: state.login.data,
+    isLoadingUser: state.user.isLoading,
+    user: state.user.data,
   };
 };
 
@@ -25,22 +25,7 @@ const mapDispatchToProps = {
   logout: loginACs.logout,
 };
 
-function TopBar({ isLoadingLogin, loginData, login, logout }) {
-  loginData && console.log('Login data:', loginData);
-
-  const onGoogleResponse = res => {
-    if (res.error) {
-      console.log('Google login response error:', res);
-    } else {
-      login(res);
-    }
-  };
-
-  const onLogout = res => {
-    // console.log('Logout response', res);
-    logout(res);
-  };
-
+function TopBar({ isLoadingLogin, isLoadingUser, user, login, logout }) {
   return (
     <header className="top-bar">
       <nav>
@@ -59,45 +44,14 @@ function TopBar({ isLoadingLogin, loginData, login, logout }) {
       </nav>
       <div className="_flex-fill" />
       <div className="login-container">
-        <GoogleLogin
-          clientId="197132042723-cmibep21qf6dald9l2l01rif7l5dtd4s.apps.googleusercontent.com"
-          buttonText="Login"
-          onSuccess={onGoogleResponse}
-          onFailure={onGoogleResponse}
-          cookiePolicy={'single_host_origin'}
-          render={({ onClick, disabled }) => (
-            <button
-              className="btn btn-dark btn-icon btn-sm"
-              onClick={onClick}
-              disabled={disabled || isLoadingLogin}
-            >
-              <FaGoogle />
-              <span> login</span>
-            </button>
-          )}
-        />
+        <div className="player-info">{_.getOr('', 'player.nickname', user)}</div>
         <button
           className="btn btn-dark btn-icon btn-sm"
-          onClick={onLogout}
-          disabled={isLoadingLogin}
+          onClick={logout}
+          disabled={isLoadingLogin || isLoadingUser}
         >
           <span> logout</span>
         </button>
-        {/* <GoogleLogout
-          clientId="197132042723-cmibep21qf6dald9l2l01rif7l5dtd4s.apps.googleusercontent.com"
-          buttonText="Logout"
-          onLogoutSuccess={onLogout}
-          onFailure={onLogout}
-          render={({ onClick, disabled }) => (
-            <button
-          className="btn btn-dark btn-icon btn-sm"
-          onClick={onClick}
-          disabled={disabled || isLoadingLogin}
-            >
-          <span> logout</span>
-            </button>
-          )}
-        ></GoogleLogout> */}
       </div>
     </header>
   );

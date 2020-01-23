@@ -35,8 +35,10 @@
     padding-right: 10px;
     display: flex;
     flex-flow: row wrap;
-    .btn + .btn {
-      margin-left: 10px;
+    align-items: center;
+    .player-info {
+      margin-right: 10px;
+      font-size: 80%;
     }
   }
 }
