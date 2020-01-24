@@ -18,7 +18,7 @@ export const request = async ({ url, method, body, headers }) => {
   try {
     const session = cookies.get('session');
     if (session) {
-      defaultHeaders['Session-Cookie'] = `session=${session}`;
+      defaultHeaders['Session'] = session;
     }
     const response = await fetch(url, {
       method,
