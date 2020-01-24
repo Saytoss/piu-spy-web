@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "browser-cookies": "1.2.0",
     "classnames": "2.2.6",
     "javascript-time-ago": "2.0.1",
     "localforage": "1.7.3",

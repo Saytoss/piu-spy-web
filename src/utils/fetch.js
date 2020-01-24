@@ -1,4 +1,5 @@
 import _ from 'lodash/fp';
+import cookies from 'browser-cookies';
 
 export const fetchJson = ({ url }) => request({ url, method: 'get' });
 export const postJson = ({ url, body }) =>
@@ -15,6 +16,10 @@ const defaultHeaders = {};
 
 export const request = async ({ url, method, body, headers }) => {
   try {
+    const session = cookies.get('session');
+    if (session) {
+      defaultHeaders['Session-Cookie'] = `session=${session}`;
+    }
     const response = await fetch(url, {
       method,
       body,

@@ -1,3 +1,5 @@
+import cookies from 'browser-cookies';
+
 import { postJson } from 'utils/fetch';
 
 import { HOST } from 'constants/backend';
@@ -49,6 +51,7 @@ export const login = googleResponse => {
         url: `${HOST}/login/google`,
         body: { token: googleResponse.tokenId },
       });
+      cookies.set('session', data.session);
       dispatch({ type: SUCCESS, data });
       dispatch(fetchUser());
       return data;
