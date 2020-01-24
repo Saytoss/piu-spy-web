@@ -666,6 +666,17 @@ class Leaderboard extends Component {
                                               <span className="_grey">опыт: </span>+
                                               {numeral(getExp(res, chart)).format('0,0')}
                                             </div>
+                                            {_.isNumber(res.startingRating) &&
+                                              _.isNumber(res.ratingDiff) && (
+                                                <div>
+                                                  <span className="_grey">
+                                                    эло: {res.startingRating.toFixed(0)}{' '}
+                                                  </span>
+                                                  {res.ratingDiff >= 0
+                                                    ? `+${res.ratingDiff.toFixed(0)}`
+                                                    : res.ratingDiff.toFixed(0)}
+                                                </div>
+                                              )}
                                             {!res.isExactDate && (
                                               <div className="warning">
                                                 <FaExclamationTriangle />
