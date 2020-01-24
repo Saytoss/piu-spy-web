@@ -51,7 +51,7 @@ export const login = googleResponse => {
         url: `${HOST}/login/google`,
         body: { token: googleResponse.tokenId },
       });
-      cookies.set('session', data.session);
+      cookies.set('session', data.session, { expires: 30 });
       dispatch({ type: SUCCESS, data });
       dispatch(fetchUser());
       return data;
