@@ -39,7 +39,7 @@ export const fetchTracklist = () => {
   return async dispatch => {
     dispatch({ type: LOADING });
     try {
-      const data = await fetchJson({ url: `${HOST}/tracklist/stats/XX` });
+      const data = await dispatch(fetchJson({ url: `${HOST}/tracklist/stats/XX` }));
       dispatch({ type: SUCCESS, data });
       return data;
     } catch (error) {

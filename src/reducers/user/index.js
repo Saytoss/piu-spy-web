@@ -1,11 +1,11 @@
 import { fetchJson } from 'utils/fetch';
 
 import { HOST } from 'constants/backend';
+import { RESET } from './resetAction';
 
 const LOADING = `USER/LOADING`;
 const SUCCESS = `USER/SUCCESS`;
 const ERROR = `USER/ERROR`;
-const RESET = `USER/RESET`;
 
 const initialState = {
   isLoading: false,
@@ -44,7 +44,7 @@ export const fetchUser = () => {
   return async dispatch => {
     dispatch({ type: LOADING });
     try {
-      const data = await fetchJson({ url: `${HOST}/profile` });
+      const data = await dispatch(fetchJson({ url: `${HOST}/profile` }));
       dispatch({ type: SUCCESS, data });
       return data;
     } catch (error) {
@@ -54,4 +54,4 @@ export const fetchUser = () => {
   };
 };
 
-export const resetUser = () => ({ type: RESET });
+export { resetUser } from './resetAction';

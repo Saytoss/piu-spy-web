@@ -15,13 +15,10 @@ import { HOST } from 'constants/backend';
 
 import './most-played.scss';
 
-const mapStateToProps = (state, props) => {
-  return {
-    charts: state.results.sharedCharts,
-  };
-};
-
-export default connect(mapStateToProps)(({ playerId, charts }) => {
+export default connect(
+  state => ({ charts: state.results.sharedCharts }),
+  { fetchJson }
+)(({ playerId, charts, fetchJson }) => {
   const [isLoading, setLoading] = useState(false);
   const [limit, setLimit] = useState(10);
   const [data, setData] = useState([]);
@@ -40,7 +37,7 @@ export default connect(mapStateToProps)(({ playerId, charts }) => {
       .catch(() => {
         setLoading(false);
       });
-  }, [playerId, limit]);
+  }, [playerId, limit, fetchJson]);
 
   return (
     <div className="most-played">

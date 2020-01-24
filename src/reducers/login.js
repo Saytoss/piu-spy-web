@@ -47,10 +47,12 @@ export const login = googleResponse => {
   return async dispatch => {
     dispatch({ type: LOADING });
     try {
-      const data = await postJson({
-        url: `${HOST}/login/google`,
-        body: { token: googleResponse.tokenId },
-      });
+      const data = await dispatch(
+        postJson({
+          url: `${HOST}/login/google`,
+          body: { token: googleResponse.tokenId },
+        })
+      );
       cookies.set('session', data.session, { expires: 30 });
       dispatch({ type: SUCCESS, data });
       dispatch(fetchUser());
@@ -67,9 +69,11 @@ export const logout = () => {
     dispatch({ type: LOADING });
     dispatch(resetUser());
     try {
-      const data = await postJson({
-        url: `${HOST}/logout`,
-      });
+      const data = await dispatch(
+        postJson({
+          url: `${HOST}/logout`,
+        })
+      );
       dispatch({ type: SUCCESS, data });
       return data;
     } catch (error) {

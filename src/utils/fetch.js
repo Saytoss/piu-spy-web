@@ -1,6 +1,8 @@
 import _ from 'lodash/fp';
 import cookies from 'browser-cookies';
 
+import { resetUser } from 'reducers/user/resetAction';
+
 export const fetchJson = ({ url }) => request({ url, method: 'get' });
 export const postJson = ({ url, body }) =>
   request({
@@ -14,7 +16,7 @@ export const postJson = ({ url, body }) =>
 
 const defaultHeaders = {};
 
-export const request = async ({ url, method, body, headers }) => {
+export const request = ({ url, method, body, headers }) => async (dispatch, getState) => {
   try {
     const session = cookies.get('session');
     if (session) {
@@ -40,7 +42,9 @@ export const request = async ({ url, method, body, headers }) => {
       }
     }
   } catch (error) {
-    console.error(error);
+    if (error.message === 'Invalid session') {
+      dispatch(resetUser());
+    }
     return Promise.reject(error);
   }
 };

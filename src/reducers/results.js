@@ -347,6 +347,11 @@ export default function reducer(state = initialState, action) {
         ...state,
         isLoading: false,
         error: action.error,
+        data: initialState.data,
+        players: initialState.players,
+        profiles: initialState.profiles,
+        results: initialState.results,
+        sharedCharts: initialState.sharedCharts,
       };
     case SUCCESS:
       return {
@@ -402,9 +407,11 @@ export const fetchResults = () => {
   return async (dispatch, getState) => {
     dispatch({ type: LOADING });
     try {
-      const data = await fetchJson({
-        url: `${HOST}/results/highscores`,
-      });
+      const data = await dispatch(
+        fetchJson({
+          url: `${HOST}/results/highscores`,
+        })
+      );
       if (data.error) {
         throw new Error(data.error);
       }
