@@ -33,7 +33,7 @@ const filterCharts = (filter, rows) => {
   }, rows);
 };
 
-const getFilteredData = (data, filter) => {
+const getFilteredData = (data, filter, scoreInfo = {}) => {
   // const start = performance.now();
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
@@ -84,11 +84,9 @@ const getFilteredData = (data, filter) => {
     _.orderBy(
       [
         row => {
-          return _.getOr(
-            direction === 'asc' ? Infinity : -Infinity,
-            'ratingDiff',
-            _.find({ nickname: protagonist }, row.results)
-          );
+          const score = _.find({ nickname: protagonist }, row.results);
+          const info = scoreInfo[score.id];
+          return _.getOr(direction === 'asc' ? Infinity : -Infinity, 'ratingDiff', info);
         },
       ],
       [direction]
@@ -153,5 +151,6 @@ const getFilteredData = (data, filter) => {
 export const filteredDataSelector = createSelector(
   state => state.results.data,
   state => state.results.filter,
+  state => state.results.scoreInfo,
   getFilteredData
 );
