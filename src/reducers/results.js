@@ -6,10 +6,11 @@ import { getExp } from 'utils/exp';
 import { achievements, initialAchievementState } from 'utils/achievements';
 import { parseDate } from 'utils/date';
 
-import { processBattles } from './ranking';
-import { postProcessProfiles } from './profiles';
+import WorkerProfilesProcessing from 'workerize-loader!utils/workers/profilesPostProcess'; // eslint-disable-line import/no-webpack-loader-syntax
+import * as profilesProcessing from 'utils/workers/profilesPostProcess';
 
 import { HOST } from 'constants/backend';
+import { DEBUG } from 'constants/env';
 
 const LOADING = `TOP/LOADING`;
 const SUCCESS = `TOP/SUCCESS`;
@@ -17,16 +18,19 @@ const ERROR = `TOP/ERROR`;
 const SET_FILTER = `TOP/SET_FILTER`;
 const RESET_FILTER = `TOP/RESET_FILTER`;
 const RANKING_CHANGE_SET = `TOP/RANKING_CHANGE_SET`;
+const PROFILES_UPDATE = `TOP/PROFILES_UPDATE`;
 
 export const defaultFilter = { showRank: true, showRankAndNorank: true };
 
 const initialState = {
   isLoading: false,
+  isLoadingRanking: false,
   data: [],
   filter: defaultFilter,
   players: {},
   profiles: {},
   results: [],
+  scoreInfo: {},
   sharedCharts: {},
 };
 
@@ -327,12 +331,7 @@ const processData = (data, tracklist) => {
     }
   }
 
-  // Calculate Progress achievements and bonus for starting Elo
-  profiles = postProcessProfiles(profiles, tracklist);
-  // Calculate ELO
-  processBattles({ battles, profiles });
-
-  return { mappedResults, profiles, sharedCharts: top };
+  return { mappedResults, profiles, sharedCharts: top, battles };
 };
 
 export default function reducer(state = initialState, action) {
@@ -352,16 +351,26 @@ export default function reducer(state = initialState, action) {
         profiles: initialState.profiles,
         results: initialState.results,
         sharedCharts: initialState.sharedCharts,
+        scoreInfo: {},
       };
     case SUCCESS:
       return {
         ...state,
         isLoading: false,
+        isLoadingRanking: true,
         data: action.data,
         players: action.players,
         profiles: action.profiles,
         results: action.results,
         sharedCharts: action.sharedCharts,
+        scoreInfo: {},
+      };
+    case PROFILES_UPDATE:
+      return {
+        ...state,
+        isLoadingRanking: false,
+        profiles: action.profiles,
+        scoreInfo: action.scoreInfo,
       };
     case SET_FILTER:
       return {
@@ -416,7 +425,7 @@ export const fetchResults = () => {
         throw new Error(data.error);
       }
       const { tracklist } = getState();
-      const { sharedCharts, mappedResults, profiles } = processData(data, tracklist);
+      const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
 
       dispatch({
         type: SUCCESS,
@@ -429,7 +438,22 @@ export const fetchResults = () => {
         profiles,
         sharedCharts,
       });
-      dispatch(calculateRankingChanges(profiles));
+
+      // Parallelized calculation of ELO and profile data
+      const input = { profiles, tracklist, battles, debug: DEBUG };
+      let promise, worker;
+      if (window.Worker) {
+        worker = new WorkerProfilesProcessing();
+        promise = worker.getProcessedProfiles(input);
+      } else {
+        promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
+      }
+
+      const { processedProfiles, logText, scoreInfo } = await promise;
+      DEBUG && console.log(logText);
+      dispatch({ type: PROFILES_UPDATE, profiles: processedProfiles, scoreInfo });
+      dispatch(calculateRankingChanges(processedProfiles));
+      if (worker) worker.terminate();
     } catch (error) {
       console.log(error);
       dispatch({ type: ERROR, error });

@@ -34,7 +34,8 @@
     "redux": "4.0.4",
     "redux-thunk": "2.3.0",
     "reselect": "4.0.0",
-    "whatwg-fetch": "3.0.0"
+    "whatwg-fetch": "3.0.0",
+    "workerize-loader": "1.1.0"
   },
   "scripts": {
     "start": "react-scripts start",

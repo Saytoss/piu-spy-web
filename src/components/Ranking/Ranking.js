@@ -34,7 +34,8 @@ const mapStateToProps = state => {
   return {
     ranking: rankingSelector(state),
     error: state.results.error || state.tracklist.error,
-    isLoading: state.results.isLoading || state.tracklist.isLoading,
+    isLoading:
+      state.results.isLoading || state.results.isLoadingRanking || state.tracklist.isLoading,
   };
 };
 

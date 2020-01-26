@@ -79,6 +79,7 @@ const sortingOptions = [
 const mapStateToProps = state => {
   return {
     players: playersSelector(state),
+    scoreInfo: state.results.scoreInfo,
     results: state.results.results,
     filteredData: filteredDataSelector(state),
     data: state.results.data,
@@ -101,6 +102,7 @@ const mapDispatchToProps = {
 class Leaderboard extends Component {
   static propTypes = {
     match: toBe.object,
+    scoreInfo: toBe.object,
     data: toBe.array,
     error: toBe.object,
     results: toBe.array,
@@ -368,7 +370,7 @@ class Leaderboard extends Component {
   }
 
   render() {
-    const { isLoading, filteredData, error, filter } = this.props;
+    const { isLoading, filteredData, error, filter, scoreInfo } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
@@ -547,6 +549,7 @@ class Leaderboard extends Component {
                                     );
                                     placeDifference = newIndex - index;
                                   }
+                                  const inf = scoreInfo[res.id] || {};
                                   return (
                                     <tr
                                       key={res.isRank + '_' + res.nickname}
@@ -573,22 +576,21 @@ class Leaderboard extends Component {
                                             <FaAngleDoubleUp />
                                           </span>
                                         )}
-                                        {DEBUG && (
-                                          <span>
+                                        {DEBUG && inf.startingRating && (
+                                          <span className="debug-elo-info">
                                             {' '}
-                                            {res.startingRating &&
-                                              Math.round(res.startingRating)}{' '}
-                                            {res.ratingDiff && Math.round(res.ratingDiff)}{' '}
-                                            {res.ratingDiffLast && Math.round(res.ratingDiffLast)}
+                                            {inf.startingRating && Math.round(inf.startingRating)}
+                                            {' / '}
+                                            {inf.ratingDiff && Math.round(inf.ratingDiff)}{' '}
                                           </span>
                                         )}
                                         {!DEBUG &&
                                           showProtagonistRatingChange &&
                                           res.nickname === protagonistName &&
-                                          res.ratingDiff && (
+                                          inf.ratingDiff && (
                                             <span>
-                                              {` (${res.ratingDiff > 0 ? '+' : ''}${Math.round(
-                                                res.ratingDiff
+                                              {` (${inf.ratingDiff > 0 ? '+' : ''}${Math.round(
+                                                inf.ratingDiff
                                               )})`}
                                             </span>
                                           )}
@@ -666,15 +668,15 @@ class Leaderboard extends Component {
                                               <span className="_grey">опыт: </span>+
                                               {numeral(getExp(res, chart)).format('0,0')}
                                             </div>
-                                            {_.isNumber(res.startingRating) &&
-                                              _.isNumber(res.ratingDiff) && (
+                                            {_.isNumber(inf.startingRating) &&
+                                              _.isNumber(inf.ratingDiff) && (
                                                 <div>
                                                   <span className="_grey">
-                                                    эло: {res.startingRating.toFixed(0)}{' '}
+                                                    эло: {inf.startingRating.toFixed(0)}{' '}
                                                   </span>
-                                                  {res.ratingDiff >= 0
-                                                    ? `+${res.ratingDiff.toFixed(0)}`
-                                                    : res.ratingDiff.toFixed(0)}
+                                                  {inf.ratingDiff >= 0
+                                                    ? `+${inf.ratingDiff.toFixed(0)}`
+                                                    : inf.ratingDiff.toFixed(0)}
                                                 </div>
                                               )}
                                             {!res.isExactDate && (

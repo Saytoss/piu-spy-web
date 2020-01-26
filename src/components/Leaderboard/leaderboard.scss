@@ -225,6 +225,9 @@
               }
               &.nickname {
                 width: 200px;
+                > .debug-elo-info {
+                  color: #888;
+                }
                 > .change-holder {
                   font-size: 80%;
                   margin-left: 0.5em;

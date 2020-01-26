@@ -1,54 +1,15 @@
 import _ from 'lodash/fp';
-import localForage from 'localforage';
 
-import { DEBUG } from 'constants/env';
+import { ranks as expRanks } from 'utils/expRanks';
 
-const SET_RANKINGS = `RANKINGS/SET_RANKINGS`;
-const RANKING_CHANGE_SET = `RANKINGS/RANKING_CHANGE_SET`;
-
-export default function reducer(state = {}, action) {
-  switch (action.type) {
-    case SET_RANKINGS:
-      return {
-        ...state,
-        data: action.ranking,
-      };
-    case RANKING_CHANGE_SET:
-      const hasPrevList = !_.isEmpty(action.listPrev);
-      return {
-        ...state,
-        data: _.map(playerOriginal => {
-          const player = {
-            ...playerOriginal,
-            prevRating: _.get(playerOriginal.id, action.rankingsPointsMap),
-          };
-          if (!hasPrevList) {
-            return player; // First time opening this thing and we didn't have any previous data
-          }
-          if (!_.includes(player.id, action.listPrev)) {
-            return { ...player, change: 'NEW' };
-          } else if (!_.includes(player.id, action.listNow)) {
-            // Should NEVER happen, idk if this is possible
-            return { ...player, change: '?' };
-          } else {
-            return {
-              ...player,
-              change: _.indexOf(player.id, action.listPrev) - _.indexOf(player.id, action.listNow),
-            };
-          }
-        }, state.data),
-      };
-    default:
-      return state;
-  }
-}
-
-export const processBattles = ({ battles, profiles }) => {
+const processBattles = ({ battles, profiles, debug }) => {
+  let logText = '';
   const dictChartElo = {};
   const getDictChartEloId = (score, enemyScore) =>
     `${score.playerId}vs${enemyScore.playerId}-${score.sharedChartId}-${score.isRank}`;
   const dictRatingDiff = {};
   const getDictRatingDiffId = score => `${score.playerId}-${score.sharedChartId}-${score.isRank}`;
+  const dictScoreInfo = {};
   battles.forEach(([score, enemyScore, song]) => {
     // For each battle
     const p1 = profiles[score.playerId];
@@ -72,9 +33,16 @@ export const processBattles = ({ battles, profiles }) => {
         maxScore = Math.max(maxScore, score.score, enemyScore.score) + 10000;
       }
     }
+
+    // Data to be appended to every score outside of this thread
+    if (!dictScoreInfo[score.id]) dictScoreInfo[score.id] = {};
+    if (!dictScoreInfo[enemyScore.id]) dictScoreInfo[enemyScore.id] = {};
+    const scoreInfo = dictScoreInfo[score.id];
+    const enemyScoreInfo = dictScoreInfo[enemyScore.id];
+
     // Rating at the start of battle for this score
-    if (!score.startingRating) score.startingRating = p1.rating;
-    if (!enemyScore.startingRating) enemyScore.startingRating = p2.rating;
+    if (!scoreInfo.startingRating) scoreInfo.startingRating = p1.rating;
+    if (!enemyScoreInfo.startingRating) enemyScoreInfo.startingRating = p2.rating;
 
     // Counting the number of battles
     p1.battleCount++;
@@ -169,34 +137,33 @@ export const processBattles = ({ battles, profiles }) => {
     dictRatingDiff[ratingDiffId1] = (dictRatingDiff[ratingDiffId1] || 0) + dr1 - baseEloP1;
     dictRatingDiff[ratingDiffId2] = (dictRatingDiff[ratingDiffId2] || 0) + dr2 - baseEloP2;
 
-    score.ratingDiff = dictRatingDiff[ratingDiffId1];
-    score.ratingDiffLast = dr1 - baseEloP1;
+    // Q
+    scoreInfo.ratingDiff = dictRatingDiff[ratingDiffId1];
+    scoreInfo.ratingDiffLast = dr1 - baseEloP1;
 
-    enemyScore.ratingDiff = dictRatingDiff[ratingDiffId2];
-    enemyScore.ratingDiffLast = dr2 - baseEloP2;
+    enemyScoreInfo.ratingDiff = dictRatingDiff[ratingDiffId2];
+    enemyScoreInfo.ratingDiffLast = dr2 - baseEloP2;
 
-    if (DEBUG) {
+    if (debug) {
       // if (score.sharedChartId === 5292) {
       // if (song.song === 'Club Night') {
       // if (score.nickname === 'Liza' || enemyScore.nickname === 'Liza') {
       // if (!song.maxScore) {
-      console.log(
-        `${song.chartLabel} - ${song.song} (${song.sharedChartId}) - ${
-          profiles[score.playerId].name
-        } / ${profiles[enemyScore.playerId].name}
+      logText += `${song.chartLabel} - ${song.song} (${song.sharedChartId}) - ${
+        profiles[score.playerId].name
+      } / ${profiles[enemyScore.playerId].name}
 - ${score.score} / ${enemyScore.score} (${Math.floor(maxScore)} (${Math.floor(
-          song.maxScore * scoreMultiplier
-        )})) - R ${S1.toFixed(2)}/${S2.toFixed(2)} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
+        song.maxScore * scoreMultiplier
+      )})) - R ${S1.toFixed(2)}/${S2.toFixed(2)} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
 - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
-          2
-        )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}${
-          kMinimizer === 1 ? '' : ` (coef ${kMinimizer.toFixed(2)})`
-        }
+        2
+      )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}${
+        kMinimizer === 1 ? '' : ` (coef ${kMinimizer.toFixed(2)})`
+      }
 - Base elo: ${baseEloP1.toFixed(2)} / ${baseEloP2.toFixed(2)}
 - Elo change: ${(dr1 - baseEloP1).toFixed(2)} / ${(dr2 - baseEloP2).toFixed(2)}
 - New base elo: ${dictChartElo[baseEloId1].toFixed(2)} / ${dictChartElo[baseEloId2].toFixed(2)}
-- RD: ${dictRatingDiff[ratingDiffId1].toFixed(2)} / ${dictRatingDiff[ratingDiffId2].toFixed(2)}`
-      );
+- RD: ${dictRatingDiff[ratingDiffId1].toFixed(2)} / ${dictRatingDiff[ratingDiffId2].toFixed(2)}\n`;
     }
     // Rating floor
     p1.rating = Math.max(100, p1.rating);
@@ -252,57 +219,114 @@ export const processBattles = ({ battles, profiles }) => {
       ];
     })
   )(profiles);
+  return { logText, scoreInfo: dictScoreInfo };
 };
 
-export const setRankingsAction = ranking => ({
-  type: SET_RANKINGS,
-  ranking,
-});
+const postProcessProfiles = (profiles, tracklist) => {
+  const getBonusForLevel = level => (30 * (1 + 2 ** (level / 4))) / 11;
+  const getMinimumNumber = totalCharts =>
+    Math.round(
+      Math.min(totalCharts, 1 + totalCharts / 20 + Math.sqrt(Math.max(totalCharts - 1, 0)) * 0.7)
+    );
 
-const getListOfNames = _.map('id');
-const getMapOfRatings = _.flow(
-  _.map(q => [q.id, q.rating]),
-  _.fromPairs
-);
-export const setRankings = ranking => {
-  return async (dispatch, getState) => {
-    dispatch(setRankingsAction(ranking));
-    try {
-      const [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking] = await Promise.all([
-        localForage.getItem('lastChangedRanking_v3'),
-        localForage.getItem('lastChangedRankingPoints_v3'),
-        localForage.getItem('lastFetchedRanking_v3'),
-      ]);
-      const listNow = getListOfNames(ranking);
-      const listLastFetched = getListOfNames(lastFetchedRanking);
-      const listLastChanged = getListOfNames(lastChangedRanking);
-      const mapPointsNow = getMapOfRatings(ranking);
-      const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
-      const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
-
-      let rankingsPointsMap = mapPointsLastChanged;
-      // console.log(listNow, listLastFetched, listLastChanged);
-      // console.log(mapPointsNow, mapPointsLastFetched, mapPointsLastChanged);
-      if (!_.isEqual(mapPointsNow, mapPointsLastFetched)) {
-        // Between this fetch and last fetch there was a CHANGE in ranking
-        localForage.setItem('lastChangedRankingPoints_v3', lastFetchedRanking);
-        rankingsPointsMap = mapPointsLastFetched;
+  const newProfiles = _.mapValues(profile => {
+    const neededGrades = ['A', 'A+', 'S', 'SS', 'SSS'];
+    profile.expRank = _.findLast(rank => rank.threshold <= profile.exp, expRanks);
+    profile.expRankNext = _.find(rank => rank.threshold > profile.exp, expRanks);
+    profile.progress = {
+      double: {
+        SS: {},
+        S: {},
+        'A+': {},
+        A: {},
+      },
+      single: {
+        SS: {},
+        S: {},
+        'A+': {},
+        A: {},
+      },
+    };
+    const gradeIncrementMap = {
+      SSS: ['SS', 'S', 'A+', 'A'],
+      SS: ['SS', 'S', 'A+', 'A'],
+      S: ['S', 'A+', 'A'],
+      'A+': ['A+', 'A'],
+      A: ['A'],
+    };
+    const incrementLevel = (l, g, chartType) => {
+      const prog =
+        chartType === 'S' || chartType === 'SP'
+          ? profile.progress.single
+          : chartType === 'D' || chartType === 'DP'
+          ? profile.progress.double
+          : null;
+      if (prog) {
+        prog[g][l] = prog[g][l] ? prog[g][l] + 1 : 1;
       }
-      let listPrev = listLastChanged;
-      if (!_.isEqual(listNow, listLastFetched)) {
-        // Between this fetch and last fetch there was a CHANGE in ranking
-        localForage.setItem('lastChangedRanking_v3', lastFetchedRanking);
-        listPrev = listLastFetched;
-      }
-      dispatch({
-        type: RANKING_CHANGE_SET,
-        listNow,
-        listPrev,
-        rankingsPointsMap,
+    };
+    _.keys(profile.resultsByLevel).forEach(level => {
+      profile.resultsByLevel[level].forEach(res => {
+        const thisGrade = res.result.grade;
+        const thisPlayerId = res.result.playerId;
+        const otherResults = res.chart.results.filter(r => r.playerId === thisPlayerId);
+        if (otherResults.length > 1) {
+          const sortedResults = otherResults.sort(
+            (a, b) => neededGrades.indexOf(b.grade) - neededGrades.indexOf(a.grade)
+          );
+          if (sortedResults[0].grade !== thisGrade) {
+            return; // Don't do anything when we have a different result with better grade
+          }
+        }
+        const gradeIncArray = gradeIncrementMap[thisGrade];
+        if (gradeIncArray) {
+          gradeIncArray.forEach(gradeInc => {
+            incrementLevel(level, gradeInc, res.chart.chartType);
+          });
+        }
       });
-      localForage.setItem('lastFetchedRanking_v3', ranking);
-    } catch (error) {
-      console.warn('Cannot get ranking from local storage', error);
-    }
-  };
+    });
+    ['single', 'double'].forEach(chartType => {
+      profile.progress[`${chartType}-bonus`] = 0;
+      _.keys(profile.progress[chartType]).forEach(grade => {
+        profile.progress[chartType][`${grade}-bonus`] = 0;
+        _.keys(profile.progress[chartType][grade]).forEach(level => {
+          const number = profile.progress[chartType][grade][level];
+          const totalCharts = tracklist.data[`${chartType}sLevels`][level];
+          const minimumNumber = getMinimumNumber(totalCharts);
+          const bonusCoefficientNumber = Math.min(1, number / minimumNumber);
+          const rawBonus = getBonusForLevel(level);
+          const bonus = rawBonus * bonusCoefficientNumber;
+          profile.progress[chartType][grade][`${level}-bonus`] = bonus;
+          profile.progress[chartType][grade][`${level}-bonus-coef`] = bonusCoefficientNumber;
+          profile.progress[chartType][grade][`${level}-min-number`] = minimumNumber;
+          profile.progress[chartType][grade][`${level}-achieved-number`] = number;
+          if (bonus >= profile.progress[chartType][`${grade}-bonus`]) {
+            profile.progress[chartType][`${grade}-bonus`] = bonus;
+            profile.progress[chartType][`${grade}-bonus-level`] = level;
+            profile.progress[chartType][`${grade}-bonus-level-coef`] = bonusCoefficientNumber;
+            profile.progress[chartType][`${grade}-bonus-level-min-number`] = minimumNumber;
+            profile.progress[chartType][`${grade}-bonus-level-achieved-number`] = number;
+          }
+        });
+        profile.progress[`${chartType}-bonus`] += profile.progress[chartType][`${grade}-bonus`];
+      });
+    });
+    profile.progress.bonus = profile.progress['double-bonus'] + profile.progress['single-bonus'];
+    profile.rating = 850 + profile.progress.bonus;
+    profile.accuracy =
+      profile.countAcc > 0
+        ? Math.round((profile.sumAccuracy / profile.countAcc) * 100) / 100
+        : null;
+    return profile;
+  }, profiles);
+  return newProfiles;
+};
+
+export const getProcessedProfiles = ({ profiles, tracklist, battles, debug }) => {
+  // Calculate Progress achievements and bonus for starting Elo
+  const processedProfiles = postProcessProfiles(profiles, tracklist);
+  // Calculate ELO
+  const { logText, scoreInfo } = processBattles({ battles, profiles: processedProfiles, debug });
+  return { processedProfiles, logText, scoreInfo };
 };

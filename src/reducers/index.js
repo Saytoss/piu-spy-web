@@ -3,7 +3,6 @@ import thunk from 'redux-thunk';
 import _ from 'lodash/fp';
 
 import tracklist from 'reducers/tracklist';
-import ranking from 'reducers/ranking';
 import profiles from 'reducers/profiles';
 import presets from 'reducers/presets';
 import results from 'reducers/results';
@@ -14,7 +13,6 @@ const rootReducer = combineReducers({
   login,
   presets,
   profiles,
-  ranking,
   tracklist,
   results,
   user,

@@ -84,12 +84,13 @@ const cutRange = (array, range) => {
 };
 const profileSelector = createSelector(
   (state, props) => _.toInteger(props.match.params.id),
+  state => state.results.isLoading || state.results.isLoadingRanking,
   state => state.results.profiles,
   state => state.profiles.filter,
   state => state.tracklist.data,
-  (id, profiles, filter, tracklist) => {
+  (id, isLoading, profiles, filter, tracklist) => {
     const profile = profiles[id];
-    if (_.isEmpty(profile)) {
+    if (_.isEmpty(profile) || isLoading) {
       return null;
     }
     const levelsDistribution = _.flow(
@@ -214,7 +215,8 @@ const mapStateToProps = (state, props) => {
     tracklist: state.tracklist.data,
     filter: state.profiles.filter,
     error: state.results.error || state.tracklist.error,
-    isLoading: state.results.isLoading || state.tracklist.isLoading,
+    isLoading:
+      state.results.isLoading || state.results.isLoadingRanking || state.tracklist.isLoading,
   };
 };
 
@@ -608,25 +610,225 @@ class Profile extends Component {
     );
   }
 
-  render() {
-    const { isLoading, profile, error, filter } = this.props;
+  renderProfile() {
+    const { profile, filter } = this.props;
     const { isLevelGraphCombined } = this.state;
-
-    if (_.isEmpty(profile)) {
-      return null;
-    }
-
     const expProgress = profile.expRankNext
       ? (profile.exp - profile.expRank.threshold) /
         (profile.expRankNext.threshold - profile.expRank.threshold)
       : 100;
+    return (
+      <div className="profile">
+        <div className="profile-header">
+          <div className="profile-name text-with-header">
+            <div className="text-header">игрок</div>
+            <div>{profile.name}</div>
+          </div>
+          <div className="text-with-header">
+            <div className="text-header">ранк</div>
+            <div>#{profile.rank}</div>
+          </div>
+          <div className="text-with-header">
+            <div className="text-header">эло</div>
+            <div>{profile.rating}</div>
+          </div>
+          <div className="text-with-header">
+            <div className="text-header">последняя игра</div>
+            <div>{profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}</div>
+          </div>
+        </div>
+        <div className="profile-section">
+          <div className="profile-sm-section-header _flex-row _align-center">
+            <span>опыт</span>
+            <div className="_flex-fill" />
+            <div onClick={this.onShowFaq} className="_clickable">
+              <FaQuestionCircle onClick={this.onShowFaq} />
+            </div>
+            <ReactModal
+              ariaHideApp={false}
+              className="Modal faq-modal"
+              overlayClassName="Overlay"
+              isOpen={this.state.showFaq}
+              onRequestClose={this.onHideFaq}
+            >
+              <div className="close-btn" onClick={this.onHideFaq}>
+                <FaTimes />
+              </div>{' '}
+              <ExpFaq />
+            </ReactModal>
+          </div>
+          <div className="exp-range">
+            <div className="rank exp-rank">
+              {getRankImg(profile.expRank)}
+              {profile.expRank && <div>{profile.expRank.threshold}</div>}
+            </div>
+            <div className="exp-line-with-label">
+              <div className="exp-label">
+                {profile.expRankNext ? (
+                  <>
+                    <span className="taken-num">
+                      {Math.round(profile.exp - profile.expRank.threshold)}
+                    </span>
+                    {` / ${profile.expRankNext.threshold - profile.expRank.threshold}`}
+                  </>
+                ) : null}
+              </div>
+              <div className="exp-line">
+                <div className="taken" style={{ width: Math.floor(100 * expProgress) + '%' }}></div>
+                <div
+                  className="rest"
+                  style={{ width: 100 - Math.ceil(100 * expProgress) + '%' }}
+                ></div>
+              </div>
+              <div className="exp-label">
+                total: <span className="taken-num">{Math.round(profile.exp)}</span>
+              </div>
+            </div>
+            {profile.expRankNext && (
+              <div className="rank exp-rank">
+                {getRankImg(profile.expRankNext)}
+                {profile.expRankNext && <div>{profile.expRankNext.threshold}</div>}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="profile-section-horizontal-container">
+          <div className="profile-section">
+            <div className="profile-section-content">
+              {!isLevelGraphCombined ? (
+                <>
+                  <div className="profile-section-2">
+                    <div className="profile-sm-section-header flex">
+                      <span>уровни</span>
+                      <div className="toggle-holder">
+                        <Toggle
+                          className="combine-toggle"
+                          checked={isLevelGraphCombined}
+                          onChange={() =>
+                            this.setState(state => ({
+                              isLevelGraphCombined: !state.isLevelGraphCombined,
+                            }))
+                          }
+                        >
+                          объединить графики
+                        </Toggle>
+                      </div>
+                    </div>
+                    <div className="chart-container">{this.renderLevels()}</div>
+                  </div>
+                  <div className="profile-section-2">
+                    <div className="profile-sm-section-header">
+                      <span>оценки</span>
+                    </div>
+                    <div className="chart-container">{this.renderGrades()}</div>
+                  </div>
+                </>
+              ) : (
+                <div className="profile-section-2">
+                  <div className="profile-sm-section-header flex">
+                    <span>оценки</span>
+                    <div className="toggle-holder">
+                      <Toggle
+                        className="combine-toggle"
+                        checked={isLevelGraphCombined}
+                        onChange={() =>
+                          this.setState(state => ({
+                            isLevelGraphCombined: !state.isLevelGraphCombined,
+                          }))
+                        }
+                      >
+                        объединить графики
+                      </Toggle>
+                    </div>
+                  </div>
+                  <div className="chart-container single-double-labels">
+                    {this.renderGradesWithLevels()}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="profile-section">
+            <div className="profile-section-content">
+              <div className="profile-section-2">
+                <div className="profile-sm-section-header">
+                  <span>эло</span>
+                </div>
+                <div className="chart-container">{this.renderRankingHistory()}</div>
+              </div>
+              <div className="profile-section-2">
+                <div className="profile-sm-section-header">
+                  <span>место в топе</span>
+                </div>
+                <div className="chart-container">{this.renderPlaceHistory()}</div>
+              </div>
+            </div>
+            <div className="range-container">
+              <Range
+                range={filter.dayRange || profile.filterRange}
+                min={profile.minMaxRange[0]}
+                max={profile.minMaxRange[1]}
+                onChange={this.onChangeDayRange}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="profile-section progress-section">
+          <div className="profile-sm-section-header">
+            <span>достижения по уровням</span>
+          </div>
+          <div className="progress-blocks-single-double">
+            <div className="progress-block">
+              <div className="achievements-grades single">
+                {this.renderGradeBlock('single', 'A')}
+                {this.renderGradeBlock('single', 'A+')}
+                {this.renderGradeBlock('single', 'S')}
+                {this.renderGradeBlock('single', 'SS')}
+              </div>
+            </div>
+            <div className="progress-block">
+              <div className="achievements-grades double">
+                {this.renderGradeBlock('double', 'A')}
+                {this.renderGradeBlock('double', 'A+')}
+                {this.renderGradeBlock('double', 'S')}
+                {this.renderGradeBlock('double', 'SS')}
+              </div>
+            </div>
+          </div>
+          <div className="bonus-faq">
+            * суммарный бонус (+{Math.round(profile.progress.bonus)}) добавляется к стартовому Эло
+            <br />* для получения ачивки нужно сыграть около 10% всех чартов данного левела на
+            нужный грейд
+          </div>
+        </div>
+        <div className="profile-section">
+          <div className="profile-sm-section-header">
+            <span>достижения</span>
+          </div>
+          <div className="achievements">
+            {_.keys(profile.achievements).map(achName =>
+              this.renderAchievement(achName, profile.achievements[achName])
+            )}
+          </div>
+        </div>
+        <div className="profile-section">
+          <div className="profile-sm-section-header">
+            <span>часто играемые чарты</span>
+          </div>
+          <MostPlayed playerId={profile.id} />
+        </div>
+      </div>
+    );
+  }
+
+  render() {
+    const { isLoading, profile, error } = this.props;
     return (
       <div className="profile-page">
         <div className="content">
           {error && error.message}
           <div className="top-controls">
             <div className="_flex-fill" />
-            {/* <div className="beta">страница в бета-версии</div> */}
             <button
               disabled={isLoading}
               className="btn btn-sm btn-dark btn-icon"
@@ -636,214 +838,8 @@ class Profile extends Component {
             </button>
           </div>
           {isLoading && <Loader />}
-          {!isLoading && (
-            <div className="profile">
-              <div className="profile-header">
-                <div className="profile-name text-with-header">
-                  <div className="text-header">игрок</div>
-                  <div>{profile.name}</div>
-                </div>
-                <div className="text-with-header">
-                  <div className="text-header">ранк</div>
-                  <div>#{profile.rank}</div>
-                </div>
-                <div className="text-with-header">
-                  <div className="text-header">эло</div>
-                  <div>{profile.rating}</div>
-                </div>
-                <div className="text-with-header">
-                  <div className="text-header">последняя игра</div>
-                  <div>
-                    {profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}
-                  </div>
-                </div>
-              </div>
-              <div className="profile-section">
-                <div className="profile-sm-section-header _flex-row _align-center">
-                  <span>опыт</span>
-                  <div className="_flex-fill" />
-                  <div onClick={this.onShowFaq} className="_clickable">
-                    <FaQuestionCircle onClick={this.onShowFaq} />
-                  </div>
-                  <ReactModal
-                    ariaHideApp={false}
-                    className="Modal faq-modal"
-                    overlayClassName="Overlay"
-                    isOpen={this.state.showFaq}
-                    onRequestClose={this.onHideFaq}
-                  >
-                    <div className="close-btn" onClick={this.onHideFaq}>
-                      <FaTimes />
-                    </div>{' '}
-                    <ExpFaq />
-                  </ReactModal>
-                </div>
-                <div className="exp-range">
-                  <div className="rank exp-rank">
-                    {getRankImg(profile.expRank)}
-                    {profile.expRank && <div>{profile.expRank.threshold}</div>}
-                  </div>
-                  <div className="exp-line-with-label">
-                    <div className="exp-label">
-                      {profile.expRankNext ? (
-                        <>
-                          <span className="taken-num">
-                            {Math.round(profile.exp - profile.expRank.threshold)}
-                          </span>
-                          {` / ${profile.expRankNext.threshold - profile.expRank.threshold}`}
-                        </>
-                      ) : null}
-                    </div>
-                    <div className="exp-line">
-                      <div
-                        className="taken"
-                        style={{ width: Math.floor(100 * expProgress) + '%' }}
-                      ></div>
-                      <div
-                        className="rest"
-                        style={{ width: 100 - Math.ceil(100 * expProgress) + '%' }}
-                      ></div>
-                    </div>
-                    <div className="exp-label">
-                      total: <span className="taken-num">{Math.round(profile.exp)}</span>
-                    </div>
-                  </div>
-                  {profile.expRankNext && (
-                    <div className="rank exp-rank">
-                      {getRankImg(profile.expRankNext)}
-                      {profile.expRankNext && <div>{profile.expRankNext.threshold}</div>}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="profile-section-horizontal-container">
-                <div className="profile-section">
-                  <div className="profile-section-content">
-                    {!isLevelGraphCombined ? (
-                      <>
-                        <div className="profile-section-2">
-                          <div className="profile-sm-section-header flex">
-                            <span>уровни</span>
-                            <div className="toggle-holder">
-                              <Toggle
-                                className="combine-toggle"
-                                checked={isLevelGraphCombined}
-                                onChange={() =>
-                                  this.setState(state => ({
-                                    isLevelGraphCombined: !state.isLevelGraphCombined,
-                                  }))
-                                }
-                              >
-                                объединить графики
-                              </Toggle>
-                            </div>
-                          </div>
-                          <div className="chart-container">{this.renderLevels()}</div>
-                        </div>
-                        <div className="profile-section-2">
-                          <div className="profile-sm-section-header">
-                            <span>оценки</span>
-                          </div>
-                          <div className="chart-container">{this.renderGrades()}</div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="profile-section-2">
-                        <div className="profile-sm-section-header flex">
-                          <span>оценки</span>
-                          <div className="toggle-holder">
-                            <Toggle
-                              className="combine-toggle"
-                              checked={isLevelGraphCombined}
-                              onChange={() =>
-                                this.setState(state => ({
-                                  isLevelGraphCombined: !state.isLevelGraphCombined,
-                                }))
-                              }
-                            >
-                              объединить графики
-                            </Toggle>
-                          </div>
-                        </div>
-                        <div className="chart-container single-double-labels">
-                          {this.renderGradesWithLevels()}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="profile-section">
-                  <div className="profile-section-content">
-                    <div className="profile-section-2">
-                      <div className="profile-sm-section-header">
-                        <span>эло</span>
-                      </div>
-                      <div className="chart-container">{this.renderRankingHistory()}</div>
-                    </div>
-                    <div className="profile-section-2">
-                      <div className="profile-sm-section-header">
-                        <span>место в топе</span>
-                      </div>
-                      <div className="chart-container">{this.renderPlaceHistory()}</div>
-                    </div>
-                  </div>
-                  <div className="range-container">
-                    <Range
-                      range={filter.dayRange || profile.filterRange}
-                      min={profile.minMaxRange[0]}
-                      max={profile.minMaxRange[1]}
-                      onChange={this.onChangeDayRange}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="profile-section progress-section">
-                <div className="profile-sm-section-header">
-                  <span>достижения по уровням</span>
-                </div>
-                <div className="progress-blocks-single-double">
-                  <div className="progress-block">
-                    <div className="achievements-grades single">
-                      {this.renderGradeBlock('single', 'A')}
-                      {this.renderGradeBlock('single', 'A+')}
-                      {this.renderGradeBlock('single', 'S')}
-                      {this.renderGradeBlock('single', 'SS')}
-                    </div>
-                  </div>
-                  <div className="progress-block">
-                    <div className="achievements-grades double">
-                      {this.renderGradeBlock('double', 'A')}
-                      {this.renderGradeBlock('double', 'A+')}
-                      {this.renderGradeBlock('double', 'S')}
-                      {this.renderGradeBlock('double', 'SS')}
-                    </div>
-                  </div>
-                </div>
-                <div className="bonus-faq">
-                  * суммарный бонус (+{Math.round(profile.progress.bonus)}) добавляется к стартовому
-                  Эло
-                  <br />* для получения ачивки нужно сыграть около 10% всех чартов данного левела на
-                  нужный грейд
-                </div>
-              </div>
-              <div className="profile-section">
-                <div className="profile-sm-section-header">
-                  <span>достижения</span>
-                </div>
-                <div className="achievements">
-                  {_.keys(profile.achievements).map(achName =>
-                    this.renderAchievement(achName, profile.achievements[achName])
-                  )}
-                </div>
-              </div>
-              <div className="profile-section">
-                <div className="profile-sm-section-header">
-                  <span>часто играемые чарты</span>
-                </div>
-                <MostPlayed playerId={profile.id} />
-              </div>
-            </div>
-          )}
+          {!isLoading && _.isEmpty(profile) && <div className="profile">Profile not found</div>}
+          {!isLoading && !_.isEmpty(profile) && this.renderProfile()}
         </div>
       </div>
     );
