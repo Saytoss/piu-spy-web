@@ -2,6 +2,9 @@ export const routes = {
   leaderboard: {
     path: `/leaderboard`,
   },
+  songs: {
+    path: `/songs`,
+  },
   ranking: {
     path: `/ranking`,
     faq: {

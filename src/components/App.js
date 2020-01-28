@@ -10,6 +10,7 @@ import './App.scss';
 import { routes } from 'constants/routes';
 import { CHART_MIN_MAX } from 'constants/leaderboard';
 
+import SongsTop from 'components/SongsTop/SongsTop';
 import Leaderboard from 'components/Leaderboard/Leaderboard';
 import Ranking from 'components/Ranking/Ranking';
 import Profile from 'components/Profile/Profile';
@@ -88,6 +89,7 @@ function App(props) {
       <Route path={routes.leaderboard.path} component={Leaderboard} />
       <Route path={routes.ranking.path} component={Ranking} />
       <Route path={routes.profile.path} component={Profile} />
+      <Route path={routes.songs.path} component={SongsTop} />
     </div>
   );
 }

@@ -40,11 +40,22 @@ function TopBar({ isLoadingLogin, isLoadingUser, user, login, logout }) {
               ranking
             </NavLink>
           </li>
+          <li>
+            <NavLink exact to={routes.songs.path}>
+              songs
+            </NavLink>
+          </li>
         </ul>
       </nav>
       <div className="_flex-fill" />
       <div className="login-container">
-        <div className="player-info">{_.getOr('', 'player.nickname', user)}</div>
+        <NavLink
+          className="player-info"
+          exact
+          to={routes.profile.getPath({ id: _.get('player.id', user) })}
+        >
+          {_.getOr('', 'player.nickname', user)}
+        </NavLink>
         <button
           className="btn btn-dark btn-icon btn-sm"
           onClick={logout}

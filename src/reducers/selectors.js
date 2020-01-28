@@ -141,7 +141,7 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
         }),
       _.filter(row => _.size(row.results)),
       ...sortingFunctions,
-      filter.song && (items => matchSorter(items, filter.song, { keys: ['song'] })),
+      filter.song && (items => matchSorter(items, filter.song.trim(), { keys: ['song'] })),
     ])
   )(data);
   // console.log('Elapsed:', performance.now() - start);
