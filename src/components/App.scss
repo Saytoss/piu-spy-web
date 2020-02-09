@@ -25,6 +25,10 @@
   text-align: center;
 }
 
+._grey-text {
+  color: #aaa;
+}
+
 .exp-rank {
   img {
     width: 100%;
@@ -37,6 +41,16 @@
     &.silver {
       filter: drop-shadow(0px 0px 2px #fff5);
     }
+  }
+}
+
+.change {
+  font-weight: 600;
+  &.pos {
+    color: #169c16;
+  }
+  &.neg {
+    color: #af2928;
   }
 }
 

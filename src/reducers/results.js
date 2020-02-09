@@ -1,5 +1,7 @@
 import _ from 'lodash/fp';
 import localForage from 'localforage';
+import lev from 'fast-levenshtein';
+import queryString from 'query-string';
 
 import { fetchJson } from 'utils/fetch';
 import { getExp } from 'utils/exp';
@@ -363,6 +365,7 @@ export default function reducer(state = initialState, action) {
         profiles: action.profiles,
         results: action.results,
         sharedCharts: action.sharedCharts,
+        originalData: action.originalData,
         scoreInfo: {},
       };
     case PROFILES_UPDATE:
@@ -424,40 +427,223 @@ export const fetchResults = () => {
       if (data.error) {
         throw new Error(data.error);
       }
-      const { tracklist } = getState();
-      const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
-
-      dispatch({
-        type: SUCCESS,
-        data: _.values(sharedCharts),
-        players: _.flow(
-          _.toPairs,
-          _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
-        )(data.players),
-        results: mappedResults,
-        profiles,
-        sharedCharts,
-      });
-
-      // Parallelized calculation of ELO and profile data
-      const input = { profiles, tracklist, battles, debug: DEBUG };
-      let promise, worker;
-      if (window.Worker) {
-        worker = new WorkerProfilesProcessing();
-        promise = worker.getProcessedProfiles(input);
-      } else {
-        promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
-      }
-
-      const { processedProfiles, logText, scoreInfo } = await promise;
-      DEBUG && console.log(logText);
-      dispatch({ type: PROFILES_UPDATE, profiles: processedProfiles, scoreInfo });
-      dispatch(calculateRankingChanges(processedProfiles));
-      if (worker) worker.terminate();
+      // HACK for test
+      // data.results = _.dropRight(152, data.results);
+      dispatch(processResultsData(data));
     } catch (error) {
       console.log(error);
       dispatch({ type: ERROR, error });
     }
+  };
+};
+
+export const appendNewResults = () => {
+  return async (dispatch, getState) => {
+    const { originalData, sharedCharts } = getState().results;
+    const lastDate = _.get('gained', _.last(originalData.results));
+    if (!lastDate) {
+      return dispatch(fetchResults());
+    }
+
+    dispatch({ type: LOADING });
+    try {
+      const data = await dispatch(
+        fetchJson({
+          url: `${HOST}/results/highscores?${queryString.stringify({ start_date: lastDate })}`,
+        })
+      );
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const appendedResults = _.filter(result => {
+        const currentResults = sharedCharts[result.shared_chart];
+        if (!currentResults) {
+          return true;
+        }
+        return !_.some(
+          r =>
+            r.playerId === result.player &&
+            r.isRank === !!result.rank_mode &&
+            r.score > result.score,
+          currentResults.results
+        );
+      }, data.results);
+
+      const mergedData = {
+        players: data.players,
+        results: [...originalData.results, ...appendedResults],
+        shared_charts: { ...originalData.shared_charts, ...data.shared_charts },
+      };
+      dispatch(processResultsData(mergedData));
+    } catch (error) {
+      console.log(error);
+      dispatch({ type: ERROR, error });
+    }
+  };
+};
+
+export const appendResultFromSocket = (socketData, newSongTop) => {
+  return async (dispatch, getState) => {
+    const { originalData } = getState().results;
+    console.log(originalData, socketData, newSongTop);
+
+    const newSharedCharts = { ...originalData.shared_charts };
+    let newResults = [...originalData.results];
+
+    const processSocketResult = socketResult => {
+      // // HACK:
+      // socketData.gained = '2019-11-30 20:04:49';
+
+      console.log('processing new result from sockets', socketResult);
+      const score = socketResult.result.score;
+      const name = socketResult.result.player_name;
+      const playerId = _.flow(
+        _.toPairs,
+        _.minBy(([id, { arcade_name }]) => lev.get(arcade_name, name)),
+        _.first,
+        _.toNumber
+      )(originalData.players);
+      const chartData = _.flow(
+        _.toPairs,
+        _.find(([chartId, chart]) => chart.chart_label === socketResult.chart_label)
+      )(newSongTop.results);
+      const searchQuery = {
+        gained: socketData.gained.replace(' ', 'T'),
+        score,
+        player: playerId,
+      };
+      console.log('match query for result', searchQuery);
+      const thisResult = _.find(searchQuery, _.get('[1].results', chartData));
+      if (thisResult) {
+        console.log('new result found');
+        // This new result appeared in top, we need to add it to total results list
+        let [chartId, chart] = chartData;
+        chartId = _.toNumber(chartId);
+        if (!newSharedCharts[chartId]) {
+          newSharedCharts[chartId] = {
+            chart_label: chart.chart_label,
+            track_name: chart.track,
+            duration: chart.duration,
+          };
+          console.log('adding new shared chart', chartId, newSharedCharts[chartId]);
+        }
+
+        let previousTopScoreIndex = -1;
+        let previousTopScore = 0;
+        let previousTopResult = null;
+        originalData.results.forEach((res, index) => {
+          if (
+            res.shared_chart === chartId &&
+            res.rank_mode === thisResult.rank_mode &&
+            res.player === thisResult.player &&
+            res.score > previousTopScore
+          ) {
+            previousTopScore = res.score;
+            previousTopResult = res.score;
+            previousTopScoreIndex = index;
+          }
+        });
+        if (previousTopResult) {
+          console.log('changing prev result', previousTopResult);
+          newResults = [
+            ...newResults.slice(0, previousTopScoreIndex),
+            _.pick(
+              [
+                'gained',
+                'exact_gain_date',
+                'shared_chart',
+                'player',
+                'rank_mode',
+                'score',
+                'grade',
+                'id',
+              ],
+              previousTopResult
+            ),
+            ...newResults.slice(previousTopScoreIndex + 1),
+          ];
+        }
+        console.log('adding new result', thisResult);
+        newResults.push({
+          player: playerId,
+          shared_chart: chartId,
+          gained: socketData.gained,
+          exact_gain_date: 1,
+          rank_mode: _.includes('VJ', socketResult.result.mods_list),
+          ..._.pick(
+            [
+              'grade',
+              'recognition_notes',
+              'mods_list',
+              'score',
+              'misses',
+              'bads',
+              'goods',
+              'greats',
+              'perfects',
+              'max_combo',
+              'calories',
+              'score_increase',
+              'exact_gain_date',
+            ],
+            socketResult.result
+          ),
+        });
+      }
+    };
+
+    if (socketData.left) {
+      processSocketResult(socketData.left);
+    }
+
+    if (socketData.right) {
+      processSocketResult(socketData.right);
+    }
+
+    const data = {
+      players: originalData.players, // will not be changed i think
+      results: newResults,
+      shared_charts: newSharedCharts,
+    };
+
+    dispatch(processResultsData(data));
+  };
+};
+
+const processResultsData = data => {
+  return async (dispatch, getState) => {
+    const { tracklist } = getState();
+    const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
+
+    dispatch({
+      type: SUCCESS,
+      data: _.values(sharedCharts),
+      players: _.flow(
+        _.toPairs,
+        _.map(([id, player]) => ({ ...player, id: _.toInteger(id) }))
+      )(data.players),
+      results: mappedResults,
+      profiles,
+      sharedCharts,
+      originalData: data,
+    });
+
+    // Parallelized calculation of ELO and profile data
+    const input = { profiles, tracklist, battles, debug: DEBUG };
+    let promise, worker;
+    if (window.Worker) {
+      worker = new WorkerProfilesProcessing();
+      promise = worker.getProcessedProfiles(input);
+    } else {
+      promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
+    }
+
+    const { processedProfiles, logText, scoreInfo } = await promise;
+    DEBUG && console.log(logText);
+    dispatch({ type: PROFILES_UPDATE, profiles: processedProfiles, scoreInfo });
+    dispatch(calculateRankingChanges(processedProfiles));
+    if (worker) worker.terminate();
   };
 };
 

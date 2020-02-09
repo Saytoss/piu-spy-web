@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
-import { FaPlay, FaRegStar } from 'react-icons/fa';
+import { FaPlay } from 'react-icons/fa';
 import classNames from 'classnames';
 
 // styles

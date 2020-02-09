@@ -26,12 +26,13 @@ export const getExp = (result, chart) => {
   return exp;
 };
 
-export const getRankImg = rank => (
-  <img
-    className={rank.color}
-    src={`${process.env.PUBLIC_URL}/ranks/${rank.iconName}`}
-    alt={rank.threshold}
-  />
-);
+export const getRankImg = rank =>
+  rank && (
+    <img
+      className={rank.color}
+      src={`${process.env.PUBLIC_URL}/ranks/${rank.iconName}`}
+      alt={rank.threshold}
+    />
+  );
 
 export { ranks } from './expRanks';

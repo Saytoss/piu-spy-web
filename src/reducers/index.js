@@ -9,14 +9,16 @@ import presets from 'reducers/presets';
 import results from 'reducers/results';
 import user from 'reducers/user';
 import login from 'reducers/login';
+import topPerSong from 'reducers/topPerSong';
 
 const rootReducer = combineReducers({
+  topPerSong,
   login,
   presets,
   profiles,
-  tracklist,
-  trackStats,
   results,
+  trackStats,
+  tracklist,
   user,
 });
 

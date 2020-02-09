@@ -11,6 +11,7 @@ import './index.scss';
 import App from 'components/App';
 
 import { store } from 'reducers';
+
 ReactDOM.render(
   <Provider store={store}>
     <HashRouter>

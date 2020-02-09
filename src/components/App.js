@@ -17,6 +17,7 @@ import Profile from 'components/Profile/Profile';
 import TopBar from 'components/Shared/TopBar/TopBar';
 import Loader from 'components/Shared/Loader';
 import LoginScreen from 'components/LoginScreen/LoginScreen';
+import SocketTracker from 'components/SocketTracker/SocketTracker';
 
 import { fetchResults, setFilter } from 'reducers/results';
 import { fetchTracklist } from 'reducers/tracklist';
@@ -80,6 +81,10 @@ function App(props) {
 
   if (!data || !data.player) {
     return <LoginScreen />;
+  }
+
+  if (process.env.REACT_APP_SOCKET) {
+    return <SocketTracker />;
   }
 
   return (

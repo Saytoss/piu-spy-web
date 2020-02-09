@@ -5,6 +5,7 @@
   "dependencies": {
     "browser-cookies": "1.2.0",
     "classnames": "2.2.6",
+    "fast-levenshtein": "^2.0.6",
     "javascript-time-ago": "2.0.1",
     "localforage": "1.7.3",
     "lodash": "4.17.15",
@@ -38,6 +39,8 @@
     "workerize-loader": "1.1.0"
   },
   "scripts": {
+    "socket-start": "set REACT_APP_SOCKET=true && npm run start",
+    "socket-build": "set REACT_APP_SOCKET=true && npm run build",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
