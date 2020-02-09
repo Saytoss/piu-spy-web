@@ -127,13 +127,25 @@ function TrackerApp({
       setLeftData({ ...leftData, rating: leftProfile.rating, prevRating: leftData.rating });
     }
     if (leftProfile.exp && leftProfile.exp !== leftData.exp) {
-      setLeftData({ ...leftData, exp: leftProfile.exp, prevExp: leftData.exp });
+      setLeftData({
+        ...leftData,
+        exp: leftProfile.exp,
+        prevExp: leftData.exp,
+        expRank: leftProfile.expRank,
+        expRankNext: leftProfile.expRankNext,
+      });
     }
     if (rightProfile.rating && rightProfile.rating !== rightData.rating) {
       setRightData({ ...rightData, rating: rightProfile.rating, prevRating: rightData.rating });
     }
     if (rightProfile.exp && rightProfile.exp !== rightData.exp) {
-      setRightData({ ...rightData, exp: rightProfile.exp, prevExp: rightData.exp });
+      setRightData({
+        ...rightData,
+        exp: rightProfile.exp,
+        prevExp: rightData.exp,
+        expRank: rightProfile.expRank,
+        expRankNext: rightProfile.expRankNext,
+      });
     }
     if (leftData.name !== leftProfile.name) {
       setLeftData({
@@ -141,6 +153,8 @@ function TrackerApp({
         rating: leftProfile.rating,
         prevRating: null,
         exp: leftProfile.exp,
+        expRank: leftProfile.expRank,
+        expRankNext: leftProfile.expRankNext,
         prevExp: null,
         name: leftProfile.name,
       });
@@ -151,10 +165,13 @@ function TrackerApp({
         rating: rightProfile.rating,
         prevRating: null,
         exp: rightProfile.exp,
+        expRank: rightProfile.expRank,
+        expRankNext: rightProfile.expRankNext,
         prevExp: null,
         name: rightProfile.name,
       });
     }
+    /* eslint-disable */
   }, [
     leftProfile.rating,
     rightProfile.rating,
@@ -165,12 +182,7 @@ function TrackerApp({
     leftData,
     rightData,
   ]);
-
-  useEffect(() => {
-    fetchTracklist().then(() => {
-      fetchResults();
-    });
-  }, [fetchTracklist, fetchResults]);
+  /* eslint-enable */
 
   useEffect(() => {
     socketRef.current = new WebSocket(SOCKET_SERVER_IP);
@@ -229,14 +241,14 @@ function TrackerApp({
     };
   }, [recognizedSongName, fetchTopPerSong, restartTimeout, appendNewResults]);
 
-  useEffect(() => {
-    setTimeout(() => {
-      socketRef.current.onmessage({
-        data:
-          '{"type": "chart_selected", "data": {"text": "Uranium", "leftLabel": "D17", "rightLabel": "D20", "leftPlayer": "GRUMD", "rightPlayer": "DINO"}}',
-      });
-    }, 2000);
-  }, []);
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     socketRef.current.onmessage({
+  //       data:
+  //         '{"type": "chart_selected", "data": {"text": "Uranium", "leftLabel": "D17", "rightLabel": "D20", "leftPlayer": "GRUMD", "rightPlayer": "DINO"}}',
+  //     });
+  //   }, 2000);
+  // }, []);
 
   const resultsContainerRef = useRef(null);
   const leftResultRef = useRef(null);
@@ -306,21 +318,21 @@ function TrackerApp({
     };
 
     const renderExpLine = () => {
-      if (!profile.expRank || !profile.exp) {
+      if (!data.expRank || !data.exp) {
         return null;
       }
 
-      let takenWidth = profile.expRankNext
-        ? (profile.exp - profile.expRank.threshold) /
-          (profile.expRankNext.threshold - profile.expRank.threshold)
+      let takenWidth = data.expRankNext
+        ? (data.exp - data.expRank.threshold) /
+          (data.expRankNext.threshold - data.expRank.threshold)
         : 1;
       const emptyWidth = 1 - takenWidth;
       let diffWidth = 0;
 
       if (data.prevExp) {
-        takenWidth = profile.expRankNext
-          ? (data.prevExp - profile.expRank.threshold) /
-            (profile.expRankNext.threshold - profile.expRank.threshold)
+        takenWidth = data.expRankNext
+          ? (data.prevExp - data.expRank.threshold) /
+            (data.expRankNext.threshold - data.expRank.threshold)
           : 1;
         diffWidth = 1 - emptyWidth - takenWidth;
       }
@@ -350,9 +362,9 @@ function TrackerApp({
                 {label && renderChartLabel(...label.match(/(\D+)|(\d+)/g))}
               </div>
             </div>
-            {data.exp && profile.expRank && (
+            {data.exp && data.expRank && (
               <div className="exp exp-rank">
-                {getRankImg(profile.expRank)}
+                {getRankImg(data.expRank)}
                 {renderExpLine()}
               </div>
             )}
