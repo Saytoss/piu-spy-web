@@ -90,6 +90,7 @@ const mapResult = (res, players, chart) => {
     // Short result, minimum info, only for ELO calculation
     // Will be replaced with better result later
     return {
+      id: res.id,
       isUnknownPlayer: players[res.player].arcade_name === 'PUMPITUP',
       isIntermediateResult: true,
       sharedChartId: res.shared_chart,
