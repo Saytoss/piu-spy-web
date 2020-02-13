@@ -203,7 +203,6 @@ const getProfileInfoFromResult = (result, chart, profiles) => {
     profile.sumAccuracy += result.accuracy;
   }
   profile.grades[result.grade.replace('+', '')]++;
-
   if (chart.chartType !== 'COOP' && result.isBestGradeOnChart) {
     profile.resultsByGrade[result.grade] = [
       ...(profile.resultsByGrade[result.grade] || []),
@@ -269,18 +268,19 @@ const processData = (data, tracklist) => {
     const topResultId = getTopResultId(result);
     const currentTopResult = topResults[topResultId];
     if (!currentTopResult || currentTopResult.score < result.score) {
-      let oldScoreIndex = -1;
       if (currentTopResult) {
-        oldScoreIndex = chartTop.results.indexOf(currentTopResult);
-        chartTop.results.splice(oldScoreIndex, 1);
+        const oldScoreIndex = chartTop.results.indexOf(currentTopResult);
+        if (oldScoreIndex !== -1) {
+          chartTop.results.splice(oldScoreIndex, 1);
+        }
       }
       const newScoreIndex = _.sortedLastIndexBy(r => -r.score, result, chartTop.results);
       if (!result.isUnknownPlayer || newScoreIndex === 0) {
         chartTop.results.splice(newScoreIndex, 0, result);
         chartTop.latestScoreDate = result.date;
+        chartTop.totalResultsCount++;
+        topResults[topResultId] = result;
       }
-      chartTop.totalResultsCount++;
-      topResults[topResultId] = result;
 
       if (!result.isUnknownPlayer) {
         chartTop.results.forEach(enemyResult => {
@@ -296,6 +296,7 @@ const processData = (data, tracklist) => {
         });
       }
     }
+
     // Getting best grade of player on this chart
     if (!result.isIntermediateResult) {
       const bestGradeResultId = getBestGradeResultId(result);

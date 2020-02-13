@@ -28,6 +28,7 @@ import moment from 'moment';
 import './profile.scss';
 
 // constants
+import { DEBUG } from 'constants/env';
 
 // components
 import Range from 'components/Shared/Range';
@@ -823,6 +824,7 @@ class Profile extends Component {
 
   render() {
     const { isLoading, profile, error } = this.props;
+    DEBUG && console.log('profile:', profile);
     return (
       <div className="profile-page">
         <div className="content">
