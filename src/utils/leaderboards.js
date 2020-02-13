@@ -39,6 +39,9 @@ export const getTimeAgo = date => {
     .startOf('day')
     .diff(moment(date).startOf('day'), 'days');
   const hour = moment(date).hour();
+  if (moment().hour() < 5) {
+    return dayDiff <= 1 ? 'сегодня' : timeAgo.format(date, timeStyle);
+  }
   return dayDiff === 0
     ? hour < 5
       ? 'вчера ночью'
