@@ -14,10 +14,11 @@
 
   > .sidebar {
     height: 100%;
-    width: 260px;
+    width: 280px;
     margin-right: 5px;
     display: flex;
     flex-flow: column nowrap;
+    font-size: 130%;
     > .player-container {
       display: flex;
       flex-flow: column nowrap;
@@ -27,12 +28,13 @@
       background: #353535;
       border-radius: 8px;
       > .name-with-label {
-        font-size: 130%;
+        font-size: 120%;
         display: flex;
         flex-flow: row wrap;
         justify-content: space-between;
         align-items: center;
         > .name {
+          font-size: 110%;
           font-weight: 600;
         }
         margin-bottom: 15px;
@@ -90,7 +92,9 @@
           flex-flow: row nowrap;
           background: #424242;
           &.current-player {
-            font-size: 110%;
+            background: #646464;
+            color: white;
+            font-weight: 600;
           }
           > .place {
             flex: 0 0 auto;
@@ -128,7 +132,7 @@
       margin-bottom: 8px;
       padding: 8px;
       display: flex;
-      flex-flow: row wrap;
+      flex-flow: column nowrap;
 
       + .song-block {
         margin-left: 10px;
@@ -145,7 +149,7 @@
         align-items: baseline;
         flex-direction: row;
         justify-content: flex-start;
-        flex: 0 0 100%;
+        flex: 0 0 auto;
 
         > .chart-name {
           margin-right: 10px;
@@ -178,13 +182,11 @@
           }
           > .results {
             position: relative;
-            width: 100%;
-            table {
-              width: 100%;
-            }
             td,
             th {
-              padding: 2px 4px 0 4px;
+              width: 1px !important;
+              white-space: nowrap !important;
+              padding: 2px 8px 0 8px;
               &.place {
                 color: #888;
                 width: 33px;
@@ -207,7 +209,8 @@
                 text-align: right;
               }
               &.nickname {
-                width: 200px;
+                width: 1px;
+                white-space: nowrap;
                 > .change-holder {
                   font-size: 80%;
                   margin-left: 0.5em;
@@ -227,7 +230,7 @@
                 font-size: 80%;
               }
               &.score {
-                width: 110px;
+                width: 1px;
                 text-align: right;
                 cursor: pointer;
                 .score-span {
