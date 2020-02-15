@@ -106,8 +106,8 @@ function TrackerApp({
     rightProfile = _.minBy(p => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
   }
 
-  const [leftData, setLeftData] = useState({ name: leftProfile.name, rating: null, exp: null });
-  const [rightData, setRightData] = useState({ name: rightProfile.name, rating: null, exp: null });
+  const [leftData, setLeftData] = useState({ name: leftProfile.name, ratingRaw: null, exp: null });
+  const [rightData, setRightData] = useState({ name: rightProfile.name, ratingRaw: null, exp: null });
 
   const restartTimeout = useCallback(() => {
     setAlive(true);
@@ -123,35 +123,47 @@ function TrackerApp({
   console.log(leftProfile, rightProfile);
 
   useEffect(() => {
-    if (leftProfile.rating && leftProfile.rating !== leftData.rating) {
-      setLeftData({ ...leftData, rating: leftProfile.rating, prevRating: leftData.rating });
+    if (leftProfile.ratingRaw && leftProfile.ratingRaw !== leftData.ratingRaw) {
+      setLeftData({
+        ...leftData,
+        ratingRaw: leftProfile.ratingRaw,
+        prevRatingRaw: leftData.ratingRaw,
+        expRank: leftProfile.expRank,
+        expRankNext: leftProfile.expRankNext,
+      });
     }
     if (leftProfile.exp && leftProfile.exp !== leftData.exp) {
       setLeftData({
         ...leftData,
         exp: leftProfile.exp,
         prevExp: leftData.exp,
-        expRank: leftProfile.expRank,
-        expRankNext: leftProfile.expRankNext,
+        expRank: leftProfile.expRank || leftData.expRank,
+        expRankNext: leftProfile.expRankNext || leftData.expRankNext,
       });
     }
-    if (rightProfile.rating && rightProfile.rating !== rightData.rating) {
-      setRightData({ ...rightData, rating: rightProfile.rating, prevRating: rightData.rating });
+    if (rightProfile.ratingRaw && rightProfile.ratingRaw !== rightData.ratingRaw) {
+      setRightData({
+        ...rightData,
+        ratingRaw: rightProfile.ratingRaw,
+        prevRatingRaw: rightData.ratingRaw,
+        expRank: rightProfile.expRank,
+        expRankNext: rightProfile.expRankNext,
+      });
     }
     if (rightProfile.exp && rightProfile.exp !== rightData.exp) {
       setRightData({
         ...rightData,
         exp: rightProfile.exp,
         prevExp: rightData.exp,
-        expRank: rightProfile.expRank,
-        expRankNext: rightProfile.expRankNext,
+        expRank: rightProfile.expRank || rightData.expRank,
+        expRankNext: rightProfile.expRankNext || rightData.expRankNext,
       });
     }
     if (leftData.name !== leftProfile.name) {
       setLeftData({
         ...leftData,
-        rating: leftProfile.rating,
-        prevRating: null,
+        ratingRaw: leftProfile.ratingRaw,
+        prevRatingRaw: null,
         exp: leftProfile.exp,
         expRank: leftProfile.expRank,
         expRankNext: leftProfile.expRankNext,
@@ -162,8 +174,8 @@ function TrackerApp({
     if (rightData.name !== rightProfile.name) {
       setRightData({
         ...rightData,
-        rating: rightProfile.rating,
-        prevRating: null,
+        ratingRaw: rightProfile.ratingRaw,
+        prevRatingRaw: null,
         exp: rightProfile.exp,
         expRank: rightProfile.expRank,
         expRankNext: rightProfile.expRankNext,
@@ -173,8 +185,8 @@ function TrackerApp({
     }
     /* eslint-disable */
   }, [
-    leftProfile.rating,
-    rightProfile.rating,
+    leftProfile.ratingRaw,
+    rightProfile.ratingRaw,
     leftProfile.exp,
     rightProfile.exp,
     leftProfile.name,
@@ -312,7 +324,7 @@ function TrackerApp({
       const delta = n - prevN;
       return (
         <span className={`change ${delta >= 0 ? 'pos' : 'neg'}`}>
-          {delta < 0 ? Math.round(delta) : `+${Math.round(delta)}`}
+          {delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`}
         </span>
       );
     };
@@ -370,14 +382,14 @@ function TrackerApp({
             )}
             {data.exp && (
               <div className="exp-text">
-                <span className="_grey-text">exp:</span> {Math.floor(data.exp)}{' '}
+                <span className="_grey-text">exp:</span> {Math.round(data.exp)}{' '}
                 {renderDeltaText(data.exp, data.prevExp)}
               </div>
             )}
-            {data.rating && (
+            {data.ratingRaw && (
               <div className="rating">
-                <span className="_grey-text">elo:</span> {Math.floor(data.rating)}{' '}
-                {renderDeltaText(data.rating, data.prevRating)}
+                <span className="_grey-text">elo:</span> {Math.round(data.ratingRaw)}{' '}
+                {renderDeltaText(data.ratingRaw, data.prevRatingRaw)}
               </div>
             )}
             <div className="closest-players">
@@ -471,17 +483,6 @@ function TrackerApp({
                 <div className="song-name">
                   {renderChartLabel(chart.chartType, chart.chartLevel)}
                   <div>{chart.song}</div>
-                  <div className="youtube-link">
-                    <a
-                      href={`https://youtube.com/results?search_query=${chart.song
-                        .replace(/ /g, '+')
-                        .replace(/-/g, '')}+${chart.chartLabel}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <FaYoutube />
-                    </a>
-                  </div>
                 </div>
                 <div className="charts">
                   <div className="chart">
