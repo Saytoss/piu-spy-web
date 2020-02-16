@@ -24,11 +24,7 @@ const STATE_RESET_TIMEOUT = 10 * 60 * 1000; // 5 minutes
 // redux
 const mapStateToProps = state => {
   return {
-    isLoading:
-      state.results.isLoading ||
-      state.results.isLoadingRanking ||
-      state.tracklist.isLoading ||
-      state.topPerSong.isLoading,
+    isLoading: state.topPerSong.isLoading,
     songTopData: state.topPerSong.data,
     error: state.topPerSong.error,
     profiles: state.results.profiles,

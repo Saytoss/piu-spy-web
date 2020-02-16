@@ -1,53 +1,40 @@
-import _ from "lodash/fp";
-import TimeAgo from "javascript-time-ago";
-import ru from "javascript-time-ago/locale/ru";
-import { convenient } from "javascript-time-ago/gradation";
-import moment from "moment";
+import { useState, useEffect } from 'react';
+import _ from 'lodash/fp';
+import TimeAgo from 'javascript-time-ago';
+import ru from 'javascript-time-ago/locale/ru';
+import { convenient } from 'javascript-time-ago/gradation';
+import moment from 'moment';
 
 TimeAgo.addLocale(ru);
-const timeAgo = new TimeAgo("ru-RU");
+const timeAgo = new TimeAgo('ru-RU');
 const timeStyle = {
-  flavour: "long",
+  flavour: 'long',
   gradation: convenient,
-  units: ["day", "week", "month"]
+  units: ['day', 'week', 'month'],
 };
 export const getTimeAgo = date => {
   const dayDiff = moment()
-    .startOf("day")
-    .diff(moment(date).startOf("day"), "days");
-  return dayDiff === 0
-    ? "сегодня"
-    : dayDiff === 1
-    ? "вчера"
-    : timeAgo.format(date, timeStyle);
+    .startOf('day')
+    .diff(moment(date).startOf('day'), 'days');
+  return dayDiff === 0 ? 'сегодня' : dayDiff === 1 ? 'вчера' : timeAgo.format(date, timeStyle);
 };
 
 export const preprocessData = data => ({
   ...data,
   results: _.flow(
-    _.get("results"),
+    _.get('results'),
     _.values,
     _.map(item => {
       const fullRes = _.find(
-        r =>
-          _.every(_.isNumber, [
-            r.perfects,
-            r.greats,
-            r.goods,
-            r.bads,
-            r.misses
-          ]),
+        r => _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses]),
         item.results
       );
       const stepSum =
         fullRes &&
-        [
-          fullRes.perfects,
-          fullRes.greats,
-          fullRes.goods,
-          fullRes.bads,
-          fullRes.misses
-        ].reduce((sum, n) => sum + n, 0);
+        [fullRes.perfects, fullRes.greats, fullRes.goods, fullRes.bads, fullRes.misses].reduce(
+          (sum, n) => sum + n,
+          0
+        );
 
       const [chartType, chartLevel] = item.chart_label.match(/(\D+)|(\d+)/g);
 
@@ -61,13 +48,7 @@ export const preprocessData = data => ({
         results: item.results.map((res, index) => {
           let resultInfoOverrides = {};
           if (stepSum) {
-            const infos = [
-              res.perfects,
-              res.greats,
-              res.goods,
-              res.bads,
-              res.misses
-            ];
+            const infos = [res.perfects, res.greats, res.goods, res.bads, res.misses];
             let fixableIndex = -1;
             let localStepSum = 0;
             const canFix =
@@ -80,9 +61,8 @@ export const preprocessData = data => ({
                 return false;
               }).length === 1;
             if (canFix) {
-              resultInfoOverrides[
-                ["perfect", "great", "good", "bad", "miss"][fixableIndex]
-              ] = stepSum - localStepSum;
+              resultInfoOverrides[['perfect', 'great', 'good', 'bad', 'miss'][fixableIndex]] =
+                stepSum - localStepSum;
             }
           }
           return {
@@ -108,10 +88,10 @@ export const preprocessData = data => ({
             combo: res.max_combo,
             mods: res.mods_list,
             isRank: !!res.rank_mode,
-            isHJ: (res.mods_list || "").split(" ").includes("HJ"),
-            ...resultInfoOverrides
+            isHJ: (res.mods_list || '').split(' ').includes('HJ'),
+            ...resultInfoOverrides,
           };
-        })
+        }),
       };
     }),
     _.map(song => {
@@ -122,44 +102,45 @@ export const preprocessData = data => ({
           song.results[0].date
         ),
         results: song.results.map(res => {
-          const perfects =
-            (Math.sqrt(res.perfect) * _.toInteger(song.chartLevel)) / 2;
+          const perfects = (Math.sqrt(res.perfect) * _.toInteger(song.chartLevel)) / 2;
           const acc = perfects
             ? Math.floor(
-                ((perfects * 100 +
-                  res.great * 60 +
-                  res.good * 30 +
-                  res.miss * -20) /
+                ((perfects * 100 + res.great * 60 + res.good * 30 + res.miss * -20) /
                   (perfects + res.great + res.good + res.bad + res.miss)) *
                   100
               ) / 100
             : null;
           const accRaw = res.perfect
             ? Math.floor(
-                ((res.perfect * 100 +
-                  res.great * 60 +
-                  res.good * 30 +
-                  res.miss * -20) /
+                ((res.perfect * 100 + res.great * 60 + res.good * 30 + res.miss * -20) /
                   (res.perfect + res.great + res.good + res.bad + res.miss)) *
                   100
               ) / 100
             : null;
           return {
             ...res,
-            accuracy:
-              acc < 0 ? 0 : accRaw === 100 ? 100 : acc && +acc.toFixed(2),
+            accuracy: acc < 0 ? 0 : accRaw === 100 ? 100 : acc && +acc.toFixed(2),
             accuracyRaw: accRaw,
-            hasRankScore: _.some(
-              { playerId: res.playerId, isRank: true },
-              song.results
-            )
+            hasRankScore: _.some({ playerId: res.playerId, isRank: true }, song.results),
           };
-        })
+        }),
       };
     }),
-    _.orderBy(
-      ["latestScoreDate", "song", "chartLevel"],
-      ["desc", "asc", "desc"]
-    )
-  )(data)
+    _.orderBy(['latestScoreDate', 'song', 'chartLevel'], ['desc', 'asc', 'desc'])
+  )(data),
 });
+
+export const useTracked = (data, onChange) => {
+  const [prevData, setPrevData] = useState(data);
+  const [currData, setCurrData] = useState(data);
+
+  useEffect(() => {
+    if (!_.isEmpty(data) && data !== currData) {
+      setPrevData(currData);
+      setCurrData(data);
+      onChange(data, currData);
+    }
+  }, [data, onChange, currData, prevData]);
+
+  return [currData, prevData];
+};

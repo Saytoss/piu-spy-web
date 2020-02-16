@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
 import toBe from 'prop-types';
 import { connect } from 'react-redux';
-import { FaSearch, FaQuestionCircle, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaQuestionCircle, FaTimes, FaCaretLeft, FaCaretRight } from 'react-icons/fa';
 import { withRouter } from 'react-router-dom';
 import classNames from 'classnames';
 import ReactModal from 'react-modal';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
+import Select from 'react-select';
 import {
   BarChart,
   Bar,
@@ -20,14 +21,15 @@ import {
   ResponsiveContainer,
   Label,
 } from 'recharts';
-import { createSelector } from 'reselect';
 import _ from 'lodash/fp';
 import moment from 'moment';
+import { createSelector } from 'reselect';
 
 // styles
 import './profile.scss';
 
 // constants
+import { routes } from 'constants/routes';
 import { DEBUG } from 'constants/env';
 
 // components
@@ -42,6 +44,7 @@ import { fetchResults } from 'reducers/results';
 import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 
 // utils
+import { profileSelectorCreator } from 'utils/profiles';
 import { parseDate } from 'utils/date';
 import { getTimeAgo } from 'utils/leaderboards';
 import { achievements } from 'utils/achievements';
@@ -49,170 +52,29 @@ import { getRankImg } from 'utils/exp';
 
 // code
 const MIN_GRAPH_HEIGHT = undefined;
-const defaultGradesDistribution = {
-  SSS: 0,
-  SS: 0,
-  S: 0,
-  'A+': 0,
-  A: 0,
-  B: 0,
-  C: 0,
-  D: 0,
-  F: 0,
-};
-const defaultGradesWithLevelsDistribution = _.flow(
-  _.flatMap(type => {
-    return _.flow(
-      _.toPairs,
-      _.map(([grade, value]) => [`${type}-${grade}`, value])
-    )(defaultGradesDistribution);
-  }),
-  _.fromPairs
-)(['S', 'D']);
 
-const cutRange = (array, range) => {
-  const startIndex = _.findIndex(item => item.date > range[0], array);
-  const endIndex = _.findLastIndex(item => item.date < range[1], array);
-  let firstElement =
-    startIndex > 0 ? array[startIndex - 1] : startIndex === 0 ? array[startIndex] : _.last(array);
-  let lastElement = endIndex > -1 ? array[endIndex] : _.first(array);
-  firstElement = { ...firstElement, date: range[0] };
-  lastElement = { ...lastElement, date: range[1] };
-  const middleElements =
-    startIndex > -1 && endIndex > -1 ? array.slice(startIndex, endIndex + 1) : [];
+const profileSelector = profileSelectorCreator('id');
 
-  return [firstElement, ...middleElements, lastElement];
-};
-const profileSelector = createSelector(
-  (state, props) => _.toInteger(props.match.params.id),
-  state => state.results.isLoading || state.results.isLoadingRanking,
-  state => state.results.profiles,
-  state => state.profiles.filter,
-  state => state.tracklist.data,
-  (id, isLoading, profiles, filter, tracklist) => {
-    const profile = profiles[id];
-    if (_.isEmpty(profile) || isLoading) {
-      return null;
-    }
-    const levelsDistribution = _.flow(
-      _.get('resultsByLevel'),
+export const otherPlayersSelector = createSelector(
+  state => state.results.players,
+  (state, props) => _.toNumber(props.match.params.id),
+  (players, id) =>
+    _.flow(
       _.toPairs,
-      _.map(([x, y]) => ({
-        x: _.toInteger(x),
-        S:
-          (_.size(_.filter(res => res.chart.chartType === 'S' || res.chart.chartType === 'SP', y)) /
-            tracklist.singlesLevels[x]) *
-          100,
-        D:
-          (-_.size(
-            _.filter(res => res.chart.chartType === 'D' || res.chart.chartType === 'DP', y)
-          ) /
-            tracklist.doublesLevels[x]) *
-          100,
-      }))
-    )(profile);
-    const gradesData = _.flow(
-      _.get('resultsByLevel'),
-      _.toPairs,
-      _.map(
-        _.update('[1].result.grade', grade =>
-          grade && grade.includes('+') && grade !== 'A+' ? grade.replace('+', '') : grade
-        )
-      )
-    )(profile);
-    const gradesDistribution = _.flow(
-      _.map(([x, y]) => ({
-        x: _.toInteger(x),
-        ...defaultGradesDistribution,
-        ..._.omit('?', _.mapValues(_.size, _.groupBy('result.grade', y))),
+      _.map(([ind, { nickname, arcade_name, id }]) => ({
+        label: `${nickname} (${arcade_name})`,
+        value: nickname,
+        id: _.toNumber(id),
       })),
-      _.map(item => {
-        const grades = _.pick(Object.keys(defaultGradesDistribution), item);
-        const sum = _.sum(_.values(grades));
-        return {
-          ...item,
-          gradesValues: grades,
-          ...(sum === 0 ? grades : _.mapValues(value => (100 * value) / sum, grades)),
-        };
-      })
-    )(gradesData);
-    const gradesAndLevelsDistribution = _.flow(
-      _.map(([x, y]) => {
-        const groupedResults = _.groupBy('result.grade', y);
-        const counts = _.omit(
-          '?',
-          _.mapValues(
-            _.countBy(res => {
-              return res.chart.chartType === 'S' || res.chart.chartType === 'SP'
-                ? 'S'
-                : res.chart.chartType === 'D' || res.chart.chartType === 'DP'
-                ? 'D'
-                : 'Other';
-            }),
-            groupedResults
-          )
-        );
-        const reduced = _.reduce(
-          (acc, [grade, levelsData]) => {
-            const accData = _.flow(
-              _.toPairs,
-              _.map(([type, count]) => [
-                `${type}-${grade}`,
-                type === 'S'
-                  ? (count / tracklist.singlesLevels[x]) * 100
-                  : (-count / tracklist.doublesLevels[x]) * 100,
-              ]),
-              _.fromPairs
-            )(levelsData);
-            return { ...acc, ...accData };
-          },
-          {},
-          _.toPairs(counts)
-        );
-
-        return {
-          x: _.toInteger(x),
-          ...defaultGradesWithLevelsDistribution,
-          ...reduced,
-        };
-      })
-    )(gradesData);
-    const lastTickRating = _.last(profile.ratingHistory).date;
-    const lastTickRanking = _.last(profile.rankingHistory).date;
-    const lastTick = lastTickRating > lastTickRanking ? lastTickRating : lastTickRanking; // End graph at either point
-    const firstTick = _.first(profile.ratingHistory).date; // Start graph from the first battle of this player
-    const lastDay = moment(lastTick).endOf('day');
-    const firstDay = moment(firstTick).startOf('day');
-    const minMaxRange = [firstDay / 1000 / 60 / 60 / 24, lastDay / 1000 / 60 / 60 / 24];
-
-    const filterRange = filter.dayRange || [
-      Math.max(minMaxRange[0], minMaxRange[1] - 30),
-      minMaxRange[1],
-    ];
-    const dayRangeMs = [
-      +moment(filterRange[0] * 1000 * 60 * 60 * 24).startOf('day'),
-      +moment(filterRange[1] * 1000 * 60 * 60 * 24).endOf('day'),
-    ];
-    const placesChanges = cutRange(profile.rankingHistory, dayRangeMs);
-    const ratingChanges = cutRange(profile.ratingHistory, dayRangeMs);
-    const rank = 1 + _.findIndex({ id }, _.orderBy(['ratingRaw'], ['desc'], _.values(profiles)));
-    return {
-      ...profile,
-      rank,
-      minMaxRange,
-      filterRange,
-      levelsDistribution,
-      gradesDistribution,
-      gradesAndLevelsDistribution,
-      placesChanges,
-      ratingChanges,
-    };
-  }
+      _.remove(it => it.id === id),
+      _.sortBy(it => _.toLower(it.label))
+    )(players)
 );
 
 const mapStateToProps = (state, props) => {
   return {
     profile: profileSelector(state, props),
+    otherPlayers: otherPlayersSelector(state, props),
     tracklist: state.tracklist.data,
     filter: state.profiles.filter,
     error: state.results.error || state.tracklist.error,
@@ -612,7 +474,7 @@ class Profile extends Component {
   }
 
   renderProfile() {
-    const { profile, filter } = this.props;
+    const { profile, filter, otherPlayers } = this.props;
     const { isLevelGraphCombined } = this.state;
     const expProgress = profile.expRankNext
       ? (profile.exp - profile.expRank.threshold) /
@@ -636,6 +498,24 @@ class Profile extends Component {
           <div className="text-with-header">
             <div className="text-header">последняя игра</div>
             <div>{profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}</div>
+          </div>
+          <div className="_flex-fill"></div>
+          <div className="text-with-header -select">
+            <div className="text-header">сравнить с</div>
+            <div>
+              <Select
+                closeMenuOnSelect
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                options={otherPlayers}
+                onChange={value => {
+                  this.props.history.push(
+                    routes.profile.compare.getPath({ id: profile.id, compareToId: value.id })
+                  );
+                }}
+              />
+            </div>
           </div>
         </div>
         <div className="profile-section">
@@ -764,14 +644,54 @@ class Profile extends Component {
                 <div className="chart-container">{this.renderPlaceHistory()}</div>
               </div>
             </div>
-            <div className="range-container">
-              <Range
-                range={filter.dayRange || profile.filterRange}
-                min={profile.minMaxRange[0]}
-                max={profile.minMaxRange[1]}
-                onChange={this.onChangeDayRange}
-              />
-            </div>
+            {(() => {
+              const currentRange = filter.dayRange || profile.filterRange;
+              const dateL = moment(currentRange[0] * 1000 * 60 * 60 * 24).format('L');
+              const dateR = moment(currentRange[1] * 1000 * 60 * 60 * 24).format('L');
+              const l1 = Math.max(currentRange[0] - 1, profile.minMaxRange[0]);
+              const l2 = Math.min(currentRange[0] + 1, currentRange[1]);
+              const r1 = Math.max(currentRange[1] - 1, currentRange[0]);
+              const r2 = Math.min(currentRange[1] + 1, profile.minMaxRange[1]);
+              return (
+                <div className="range-container">
+                  <Range
+                    range={currentRange}
+                    min={profile.minMaxRange[0]}
+                    max={profile.minMaxRange[1]}
+                    onChange={this.onChangeDayRange}
+                  />
+                  <div className="range-controls _flex-row">
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([l1, currentRange[1]])}
+                    >
+                      <FaCaretLeft />
+                    </button>
+                    <span className="date-text">{dateL}</span>
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([l2, currentRange[1]])}
+                    >
+                      <FaCaretRight />
+                    </button>
+                    <div className="_flex-fill"></div>
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([currentRange[0], r1])}
+                    >
+                      <FaCaretLeft />
+                    </button>
+                    <span className="date-text">{dateR}</span>
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([currentRange[0], r2])}
+                    >
+                      <FaCaretRight />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
         <div className="profile-section progress-section">

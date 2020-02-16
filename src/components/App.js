@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Route, Redirect } from 'react-router-dom';
+import { Route, Redirect, Switch } from 'react-router-dom';
 import { connect } from 'react-redux';
 import localForage from 'localforage';
 import _ from 'lodash/fp';
@@ -14,6 +14,7 @@ import SongsTop from 'components/SongsTop/SongsTop';
 import Leaderboard from 'components/Leaderboard/Leaderboard';
 import Ranking from 'components/Ranking/Ranking';
 import Profile from 'components/Profile/Profile';
+import ProfileCompare from 'components/ProfileCompare/ProfileCompare';
 import TopBar from 'components/Shared/TopBar/TopBar';
 import Loader from 'components/Shared/Loader';
 import LoginScreen from 'components/LoginScreen/LoginScreen';
@@ -93,7 +94,12 @@ function App(props) {
       <Route exact path="/" render={() => <Redirect to={routes.leaderboard.path} />} />
       <Route path={routes.leaderboard.path} component={Leaderboard} />
       <Route path={routes.ranking.path} component={Ranking} />
-      <Route path={routes.profile.path} component={Profile} />
+      <Route path={routes.profile.path}>
+        <Switch>
+          <Route path={routes.profile.path} exact component={Profile} />
+          <Route path={routes.profile.compare.path} exact component={ProfileCompare} />
+        </Switch>
+      </Route>
       <Route path={routes.songs.path} component={SongsTop} />
     </div>
   );
