@@ -486,6 +486,11 @@
   margin-bottom: 10px;
   .score-overlay {
     padding: 8px;
+    .important {
+      font-weight: bold;
+      background: #666;
+      padding: 2px 4px;
+    }
     ._grey {
       color: #aaa;
     }

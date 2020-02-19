@@ -370,20 +370,18 @@ class Leaderboard extends Component {
   }
 
   render() {
-    const { isLoading, filteredData, error, filter, scoreInfo } = this.props;
+    const { isLoading, filteredData, error, filter /* scoreInfo */ } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
-    const showProtagonistRatingChange = [SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC].includes(
-      _.get('sortingType.value', filter)
-    );
+    const sortingType = _.get('sortingType.value', filter);
     const highlightProtagonist = [
       SORT.PROTAGONIST,
       SORT.RANK_ASC,
       SORT.RANK_DESC,
       SORT.NEW_SCORES_PLAYER,
-    ].includes(_.get('sortingType.value', filter));
+    ].includes(sortingType);
     const protagonistName = _.get('protagonist.value', filter);
     const uniqueSelectedNames = _.slice(
       0,
@@ -549,7 +547,7 @@ class Leaderboard extends Component {
                                     );
                                     placeDifference = newIndex - index;
                                   }
-                                  const inf = scoreInfo[res.id] || {};
+                                  // const inf = scoreInfo[res.id] || {};
                                   return (
                                     <tr
                                       key={res.isRank + '_' + res.nickname}
@@ -576,37 +574,17 @@ class Leaderboard extends Component {
                                             <FaAngleDoubleUp />
                                           </span>
                                         )}
-                                        {DEBUG && res.pp && (
+                                        {res.pp && DEBUG && (
                                           <span className="debug-elo-info">
                                             {' '}
-                                            {res.pp.toFixed(1)}pp
+                                            {res.pp.ppFixed}pp
                                           </span>
                                         )}
-                                        {/* {DEBUG && inf.startingRating && (
-                                          <span className="debug-elo-info">
-                                            {' '}
-                                            {inf.startingRating && Math.round(inf.startingRating)}
-                                            {' / '}
-                                            {inf.ratingDiff && Math.round(inf.ratingDiff)}{' '}
-                                          </span>
-                                        )} */}
-                                        {!DEBUG &&
-                                          showProtagonistRatingChange &&
-                                          res.nickname === protagonistName &&
-                                          inf.ratingDiff && (
-                                            <span>
-                                              {` (${inf.ratingDiff > 0 ? '+' : ''}${Math.round(
-                                                inf.ratingDiff
-                                              )})`}
-                                            </span>
-                                          )}
-                                        {_.get('sortingType.value', filter) === SORT.PROTAGONIST &&
-                                          res.nickname === protagonistName &&
-                                          chart.distanceFromProtagonist > 0 && (
-                                            <span className="protagonist-diff">
-                                              {' '}
-                                              -{(chart.distanceFromProtagonist * 100).toFixed(1)}%
-                                            </span>
+                                        {res.pp &&
+                                          (sortingType === SORT.RANK_DESC ||
+                                            sortingType === SORT.RANK_ASC) &&
+                                          res.nickname === protagonistName && (
+                                            <span> ({res.pp.ppFixed}pp)</span>
                                           )}
                                       </td>
                                       <td
@@ -670,21 +648,18 @@ class Leaderboard extends Component {
                                                 {res.nickname} ({res.nicknameArcade})
                                               </NavLink>
                                             </div>
-                                            <div>
-                                              <span className="_grey">опыт: </span>+
-                                              {numeral(getExp(res, chart)).format('0,0')}
-                                            </div>
-                                            {_.isNumber(inf.startingRating) &&
-                                              _.isNumber(inf.ratingDiff) && (
-                                                <div>
-                                                  <span className="_grey">
-                                                    эло: {inf.startingRating.toFixed(0)}{' '}
-                                                  </span>
-                                                  {inf.ratingDiff >= 0
-                                                    ? `+${inf.ratingDiff.toFixed(0)}`
-                                                    : inf.ratingDiff.toFixed(0)}
-                                                </div>
-                                              )}
+                                            {!!getExp(res, chart) && (
+                                              <div className="important">
+                                                <span className="_grey">опыт: </span>+
+                                                {numeral(getExp(res, chart)).format('0,0')}
+                                              </div>
+                                            )}
+                                            {res.pp && (
+                                              <div className="important">
+                                                <span className="_grey">pp: </span>
+                                                <span>{res.pp.ppFixed}pp</span>
+                                              </div>
+                                            )}
                                             {!res.isExactDate && (
                                               <div className="warning">
                                                 <FaExclamationTriangle />

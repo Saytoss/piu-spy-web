@@ -84,12 +84,11 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
     _.orderBy(
       [
         row => {
-          const score = _.find({ nickname: protagonist }, row.results);
-          const info = scoreInfo[score.id];
-          return _.getOr(direction === 'asc' ? Infinity : -Infinity, 'ratingDiff', info);
+          const result = _.find({ nickname: protagonist }, row.results);
+          return _.getOr(-Infinity, direction, result);
         },
       ],
-      [direction]
+      ['desc']
     ),
   ];
   const sortingFunctions =
@@ -97,8 +96,8 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
       [SORT.DEFAULT]: defaultSorting,
       [SORT.NEW_SCORES_PLAYER]: newScoresProtagonistSorting,
       [SORT.PROTAGONIST]: protagonistSorting,
-      [SORT.RANK_ASC]: getScoreSorting('asc'),
-      [SORT.RANK_DESC]: getScoreSorting('desc'),
+      [SORT.RANK_ASC]: getScoreSorting('pp.potentialPP'),
+      [SORT.RANK_DESC]: getScoreSorting('pp.pp'),
     }[sortingType] || defaultSorting;
 
   const result = _.flow(

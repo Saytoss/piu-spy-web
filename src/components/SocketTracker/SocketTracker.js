@@ -102,8 +102,18 @@ function TrackerApp({
     rightProfile = _.minBy(p => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
   }
 
+  // const leftData = {
+  //   name: useTracked(leftProfile.name),
+  //   ratingRaw: useTracked(leftProfile.ratingRaw),
+  //   ratingRaw: useTracked(leftProfile.ratingRaw),
+  // };
+
   const [leftData, setLeftData] = useState({ name: leftProfile.name, ratingRaw: null, exp: null });
-  const [rightData, setRightData] = useState({ name: rightProfile.name, ratingRaw: null, exp: null });
+  const [rightData, setRightData] = useState({
+    name: rightProfile.name,
+    ratingRaw: null,
+    exp: null,
+  });
 
   const restartTimeout = useCallback(() => {
     setAlive(true);

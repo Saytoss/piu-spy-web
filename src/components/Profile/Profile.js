@@ -134,7 +134,10 @@ class Profile extends Component {
     const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
-        <LineChart data={profile.ratingChanges} margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
+        <LineChart
+          data={/*profile.ratingChanges*/ []}
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -180,7 +183,10 @@ class Profile extends Component {
     const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
-        <LineChart data={profile.placesChanges} margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
+        <LineChart
+          data={/*profile.placesChanges*/ []}
+          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -633,13 +639,13 @@ class Profile extends Component {
             <div className="profile-section-content">
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
-                  <span>эло</span>
+                  <span>эло (временно отключено)</span>
                 </div>
                 <div className="chart-container">{this.renderRankingHistory()}</div>
               </div>
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
-                  <span>место в топе</span>
+                  <span>место в топе (временно отключено)</span>
                 </div>
                 <div className="chart-container">{this.renderPlaceHistory()}</div>
               </div>
