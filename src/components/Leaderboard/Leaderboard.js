@@ -576,14 +576,20 @@ class Leaderboard extends Component {
                                             <FaAngleDoubleUp />
                                           </span>
                                         )}
-                                        {DEBUG && inf.startingRating && (
+                                        {DEBUG && res.pp && (
+                                          <span className="debug-elo-info">
+                                            {' '}
+                                            {res.pp.toFixed(1)}pp
+                                          </span>
+                                        )}
+                                        {/* {DEBUG && inf.startingRating && (
                                           <span className="debug-elo-info">
                                             {' '}
                                             {inf.startingRating && Math.round(inf.startingRating)}
                                             {' / '}
                                             {inf.ratingDiff && Math.round(inf.ratingDiff)}{' '}
                                           </span>
-                                        )}
+                                        )} */}
                                         {!DEBUG &&
                                           showProtagonistRatingChange &&
                                           res.nickname === protagonistName &&

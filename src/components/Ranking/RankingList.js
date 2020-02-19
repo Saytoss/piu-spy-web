@@ -83,7 +83,7 @@ export default function RankingList({ ranking, isLoading }) {
                       {player.nameArcade}
                     </NavLink>
                   </td>
-                  <td className="rating">{player.rating}</td>
+                  <td className="rating">{Math.round(player.bestScoresTotalPP)}</td>
                   <td className="rating-change-cell">
                     {!!player.prevRating && player.prevRating !== player.rating && (
                       <span

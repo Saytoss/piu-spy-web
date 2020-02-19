@@ -26,7 +26,8 @@ const rankingSelector = createSelector(
   state => state.results.profiles,
   _.flow(
     _.values,
-    _.orderBy(['ratingRaw'], ['desc'])
+    _.remove(profile => !profile.bestScoresTotalPP),
+    _.orderBy(['bestScoresTotalPP'], ['desc'])
   )
 );
 

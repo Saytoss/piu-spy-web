@@ -618,6 +618,68 @@ const processResultsData = data => {
     const { tracklist } = getState();
     const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
 
+    console.log(sharedCharts, profiles);
+
+    for (const chartId in sharedCharts) {
+      const chart = sharedCharts[chartId];
+      const chartResults = chart.results;
+      const chartLevel = Number(chart.chartLevel);
+      const maxPP = chartLevel ** 1.7 / 3; // divide by 4 for normalization, to align with previous elo versrion
+      if (chart.maxScore) {
+        // This chart has scores with accuracy
+        for (const result of chartResults) {
+          if (!result.isRank && result.accuracyRaw && result.grade) {
+            const maxScore = chart.maxScoreResult.score;
+            const K1 = Math.max(0, result.accuracyRaw - 80) / 20; // [0, 1] - accuracy [60, 100]
+            const K2 =
+              {
+                SSS: 1,
+                SS: 0.95,
+                S: 0.9,
+                'A+': 0.85,
+                A: 0.8,
+                B: 0.6,
+              }[result.grade] || 0.5;
+            const K3 = Math.max(0, Math.min(1, result.score / maxScore) - 0.75) * 4;
+            const Kavg = (2 * K1 + K2 + 2 * K3) / 5; // (K1 + K2 + K3) / 3;
+            const Kmul = K1 * K2 * K3;
+            const K = (Kavg + Kmul) / 2;
+            // const K = (2 * K1 + K2 + 2 * K3) / 5;
+            const pp = K * maxPP;
+            result.pp = pp;
+            const profile = profiles[result.playerId];
+            if (profile) {
+              if (!profile.bestScores) {
+                profile.bestScores = [];
+              }
+              profile.bestScores.push({
+                pp_: Number(pp.toFixed(1)),
+                s: chart.song,
+                l: chart.chartLabel,
+                pp,
+                result,
+                chart,
+                k: { K1, K2, K3, K },
+              });
+            }
+          }
+        }
+      }
+    }
+    for (const playerId in profiles) {
+      const profile = profiles[playerId];
+      if (profile.bestScores) {
+        profile.bestScores.sort((a, b) => b.pp - a.pp);
+        let totalPP = 0;
+        profile.bestScores.forEach((score, index) => {
+          totalPP += 0.95 ** index * score.pp;
+        });
+        profile.bestScoresTotalPP = totalPP;
+      }
+    }
+
+    console.log(Object.values(profiles).sort((a, b) => b.bestScoresTotalPP - a.bestScoresTotalPP));
+
     dispatch({
       type: SUCCESS,
       data: _.values(sharedCharts),
