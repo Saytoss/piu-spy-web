@@ -79,16 +79,16 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
     }),
     _.orderBy(['distanceFromProtagonist'], ['desc']),
   ];
-  const getScoreSorting = direction => [
+  const getScoreSorting = (field, direction = 'desc') => [
     _.filter(row => _.map('nickname', row.results).includes(protagonist)),
     _.orderBy(
       [
         row => {
           const result = _.find({ nickname: protagonist }, row.results);
-          return _.getOr(-Infinity, direction, result);
+          return _.getOr(direction === 'desc' ? -Infinity : Infinity, field, result);
         },
       ],
-      ['desc']
+      [direction]
     ),
   ];
   const sortingFunctions =
@@ -96,7 +96,7 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
       [SORT.DEFAULT]: defaultSorting,
       [SORT.NEW_SCORES_PLAYER]: newScoresProtagonistSorting,
       [SORT.PROTAGONIST]: protagonistSorting,
-      [SORT.RANK_ASC]: getScoreSorting('pp.potentialPP'),
+      [SORT.RANK_ASC]: getScoreSorting('pp.ppRatio', 'asc'),
       [SORT.RANK_DESC]: getScoreSorting('pp.pp'),
     }[sortingType] || defaultSorting;
 

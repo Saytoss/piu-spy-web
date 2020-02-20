@@ -683,7 +683,8 @@ const processResultsData = data => {
               kX: { K1, K2, K3 },
               maxScore,
               maxPP,
-              potentialPP: maxPP - pp,
+              ppPotential: maxPP - pp,
+              ppRatio: pp / maxPP,
               ppFixed: Number(pp.toFixed(1)),
             };
             const profile = profiles[result.playerId];
