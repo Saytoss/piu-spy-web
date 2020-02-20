@@ -660,9 +660,9 @@ const processResultsData = data => {
               SS: 0.97,
               S: 0.95,
               'A+': 0.9,
-              A: 0.85,
-              B: 0.7,
-              C: 0.6,
+              A: 0.84,
+              B: 0.77,
+              C: 0.63,
               D: 0.4,
               F: 0,
             }[result.grade];
