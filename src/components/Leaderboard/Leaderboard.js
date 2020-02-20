@@ -574,18 +574,25 @@ class Leaderboard extends Component {
                                             <FaAngleDoubleUp />
                                           </span>
                                         )}
-                                        {res.pp && DEBUG && (
+                                        {/* {res.pp && DEBUG && (
                                           <span className="debug-elo-info">
                                             {' '}
                                             {res.pp.ppFixed}pp
                                           </span>
-                                        )}
+                                        )} */}
                                         {res.pp &&
-                                          (sortingType === SORT.RANK_DESC ||
-                                            sortingType === SORT.RANK_ASC) &&
-                                          res.nickname === protagonistName && (
-                                            <span> ({res.pp.ppFixed}pp)</span>
-                                          )}
+                                        (sortingType === SORT.RANK_DESC ||
+                                          sortingType === SORT.RANK_ASC) &&
+                                        res.nickname === protagonistName ? (
+                                          <span> ({res.pp.ppFixed}pp)</span>
+                                        ) : (
+                                          res.pp && (
+                                            <span className="debug-elo-info">
+                                              {' '}
+                                              {res.pp.ppFixed}pp
+                                            </span>
+                                          )
+                                        )}
                                       </td>
                                       <td
                                         className={classNames('judge', {

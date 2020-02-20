@@ -125,6 +125,7 @@ const mapResult = (res, players, chart) => {
     isExactDate: !!res.exact_gain_date,
     score: res.score,
     scoreRaw: getScoreWithoutBonus(res.score, res.grade),
+    maxScore: res.max_score,
     scoreIncrease: res.score_increase,
     calories: res.calories && res.calories / 1000,
     perfect: res.perfects,
@@ -165,6 +166,9 @@ const mapResult = (res, players, chart) => {
 
 const getMaxScore = score => {
   return ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
+};
+const getMaxRawScore = score => {
+  return ((score.scoreRaw / score.accuracy) * 100) / (score.isRank ? 1.2 : 1);
 };
 
 const initializeProfile = (result, profiles) => {
@@ -342,7 +346,7 @@ const processData = (data, tracklist) => {
       chart.maxScore = getMaxScore(chart.maxScoreResult, chart);
     }
     if (chart.maxNonRankScore) {
-      chart.maxNonRankScore = getMaxScore(chart.maxNonRankScoreResult, chart);
+      chart.maxNonRankScore = getMaxRawScore(chart.maxNonRankScoreResult, chart);
     }
   }
 
@@ -635,36 +639,49 @@ const processResultsData = data => {
       const chart = sharedCharts[chartId];
       const chartResults = chart.results;
       const chartLevel = Number(chart.chartLevel);
-      const maxPP = chartLevel ** 1.9 / 3; // divide by 4 for normalization, to align with previous elo versrion
+      const maxPP = chartLevel ** 2.2 / 7; // divide by 4 for normalization, to align with previous elo versrion
       if (chart.maxNonRankScore) {
-        const maxScore = chart.maxNonRankScoreResult.scoreRaw;
-        const K3scaler = Math.min(3, chartResults.length);
+        const maxScore = chart.maxNonRankScore;
+        // const maxScore = chart.maxNonRankScoreResult.scoreRaw;
+
+        // const K3scaler = chartResults.length === 1 ? 0.3 : Math.min(3, chartResults.length);
+        // const K3MulScaler = chartResults.length === 1 ? 0.3 : Math.min(3, chartResults.length);
         for (const result of chartResults) {
-          if (!result.isRank && result.accuracyRaw && result.grade) {
-            const K1 = (Math.max(0, result.accuracyRaw - 85) / 15) ** 1.4; // [0, 1] - accuracy [60, 100]
-            const K2 =
-              {
-                SSS: 1,
-                SS: 0.97,
-                S: 0.95,
-                'A+': 0.9,
-                A: 0.85,
-                B: 0.7,
-                C: 0.6,
-                D: 0.4,
-                F: 0,
-              }[result.grade] || 0.4;
-            const K3 = Math.max(0, Math.min(1, result.scoreRaw / maxScore - 0.8) / 0.2);
+          // const maxScore = Math.max(
+          //   chart.maxScore,
+          //   chart.maxNonRankScoreResult.scoreRaw,
+          //   result.maxScore - 300000
+          // );
+          // const maxScore = result.maxScore - 300000;
+          if (!result.isRank && result.accuracyRaw && result.grade && maxScore) {
+            const K1 = Math.max(0, result.accuracyRaw - 60) / 40; // [0, 1] - accuracy [60, 100]
+            let K2 = {
+              SSS: 1,
+              SS: 0.97,
+              S: 0.95,
+              'A+': 0.9,
+              A: 0.85,
+              B: 0.7,
+              C: 0.6,
+              D: 0.4,
+              F: 0,
+            }[result.grade];
+            K2 = K2 === undefined ? 0.4 : K2;
+            const K3 = Math.max(0, Math.min(1, result.scoreRaw / maxScore - 0.3) / 0.7);
             // const Kavg = (2.5 * K1 + K2 + 2 * K3) / 5.5; // (K1 + K2 + K3) / 3;
+            const K = K2 * K3;
             // const Kmul = K1 * K2 * K3;
             // const K = (2 * Kavg + Kmul) / 3;
-            const K = (4 * K1 + 1 * K2 + K3scaler * K3) / (4 + 1 + K3scaler);
+            // const K = (1 * K1 + 1 * K2 + K3scaler * K3) / (1 + 1 + K3scaler);
+
             // Final PP value
             const pp = K * maxPP;
             // Record result data
             result.pp = {
               pp,
               k: K,
+              kX: { K1, K2, K3 },
+              maxScore,
               maxPP,
               potentialPP: maxPP - pp,
               ppFixed: Number(pp.toFixed(1)),
@@ -681,7 +698,7 @@ const processResultsData = data => {
                 pp,
                 result,
                 chart,
-                k: { K1, K2, K3, K, K3scaler },
+                k: { K1, K2, K3, K },
               });
             }
           }
@@ -696,7 +713,7 @@ const processResultsData = data => {
         profile.pp.pp = 0;
         profile.pp.scores.forEach((score, index) => {
           let mod = 0;
-          if (index < 200) {
+          if (index < 500) {
             mod = 0.95 ** index;
           }
           profile.pp.pp += mod * score.pp;
@@ -735,7 +752,11 @@ const processResultsData = data => {
     dispatch(calculateRankingChanges(processedProfiles));
     if (worker) worker.terminate();
 
-    // console.log(Object.values(profiles).sort((a, b) => b.bestScoresTotalPP - a.bestScoresTotalPP));
+    console.log(
+      Object.values(profiles)
+        .filter(q => q.pp)
+        .sort((a, b) => b.pp.pp - a.pp.pp)
+    );
   };
 };
 

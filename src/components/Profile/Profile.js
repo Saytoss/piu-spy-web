@@ -131,7 +131,7 @@ class Profile extends Component {
   };
 
   renderRankingHistory() {
-    const { profile } = this.props;
+    // const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
         <LineChart
@@ -180,7 +180,7 @@ class Profile extends Component {
   }
 
   renderPlaceHistory() {
-    const { profile } = this.props;
+    // const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
         <LineChart

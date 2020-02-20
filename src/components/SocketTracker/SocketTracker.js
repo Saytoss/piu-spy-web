@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import classNames from 'classnames';
 import numeral from 'numeral';
 import _ from 'lodash/fp';
-import { FaYoutube, FaAngleDoubleUp } from 'react-icons/fa';
+import { FaAngleDoubleUp } from 'react-icons/fa';
 import lev from 'fast-levenshtein';
 
 import './socket.scss';
