@@ -30,7 +30,7 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="exp-rank">rank</th>
               <th className="name">name</th>
               <th className="name2">piu name</th>
-              <th className="rating">elo</th>
+              <th className="rating">pp</th>
               <th className="rating-change-cell"></th>
               {/* <th className="total-score">total score</th> */}
               <th className="grades sss">{getGradeImg('SSS')}</th>
