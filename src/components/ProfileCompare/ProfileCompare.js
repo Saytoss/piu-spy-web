@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import toBe from 'prop-types';
 import { connect } from 'react-redux';
-import { FaSearch, FaCaretLeft, FaCaretRight } from 'react-icons/fa';
+import { FaSearch } from 'react-icons/fa';
 import { withRouter } from 'react-router-dom';
-import moment from 'moment';
 import {
   BarChart,
   Bar,
@@ -28,7 +27,6 @@ import { DEBUG } from 'constants/env';
 // components
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
 import Toggle from 'components/Shared/Toggle/Toggle';
-import Range from 'components/Shared/Range';
 import Loader from 'components/Shared/Loader';
 
 // reducers
@@ -177,45 +175,6 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
     return {};
   }
 
-  let rc1 = p1.ratingChanges[0].rating;
-  let rc2 = p2.ratingChanges[0].rating;
-  const allRC = _.flow(
-    _.sortBy('date'),
-    _.map(item => {
-      if (item.rating) {
-        rc1 = item.rating;
-      }
-      if (item.rating2) {
-        rc2 = item.rating2;
-      }
-      return {
-        rating1: rc1,
-        rating2: rc2,
-        date: item.date,
-      };
-    }),
-    _.sortedUniqBy('date')
-  )([...p1.ratingChanges, ...p2.ratingChanges.map(it => ({ date: it.date, rating2: it.rating }))]);
-
-  rc1 = p1.placesChanges[0].place;
-  rc2 = p2.placesChanges[0].place;
-  const allPC = _.flow(
-    _.sortBy('date'),
-    _.map(item => {
-      if (item.place) {
-        rc1 = item.place;
-      }
-      if (item.place2) {
-        rc2 = item.place2;
-      }
-      return {
-        place1: rc1,
-        place2: rc2,
-        date: item.date,
-      };
-    })
-  )([...p1.placesChanges, ...p2.placesChanges.map(it => ({ date: it.date, place2: it.place }))]);
-
   const perLevelComparison = _.fromPairs(Array.from({ length: 28 }).map((x, i) => [i + 1, {}]));
   _.keys(perLevelComparison).forEach(level => {
     const charts = _.flow(
@@ -295,8 +254,6 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
   });
 
   return {
-    ratingChanges: allRC,
-    placesChanges: allPC,
     perLevelComparison: _.values(perLevelComparison),
   };
 });
@@ -551,7 +508,7 @@ class ProfileCompare extends Component {
   }
 
   renderProfile() {
-    const { profile, profile2, filter } = this.props;
+    const { profile, profile2 } = this.props;
     const { compareBarsMode } = this.state;
     return (
       <div className="profile">
@@ -678,63 +635,13 @@ class ProfileCompare extends Component {
                 <div className="profile-sm-section-header">
                   <span>эло</span>
                 </div>
-                <div className="chart-container">{this.renderRankingHistory()}</div>
               </div>
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
                   <span>место в топе</span>
                 </div>
-                <div className="chart-container">{this.renderPlaceHistory()}</div>
               </div>
             </div>
-            {(() => {
-              const currentRange = filter.dayRange || profile.filterRange;
-              const dateL = moment(currentRange[0] * 1000 * 60 * 60 * 24).format('L');
-              const dateR = moment(currentRange[1] * 1000 * 60 * 60 * 24).format('L');
-              const l1 = Math.max(currentRange[0] - 1, profile.minMaxRange[0]);
-              const l2 = Math.min(currentRange[0] + 1, currentRange[1]);
-              const r1 = Math.max(currentRange[1] - 1, currentRange[0]);
-              const r2 = Math.min(currentRange[1] + 1, profile.minMaxRange[1]);
-              return (
-                <div className="range-container">
-                  <Range
-                    range={currentRange}
-                    min={profile.minMaxRange[0]}
-                    max={profile.minMaxRange[1]}
-                    onChange={this.onChangeDayRange}
-                  />
-                  <div className="range-controls _flex-row">
-                    <button
-                      className="btn btn-sm btn-dark"
-                      onClick={() => this.onChangeDayRange([l1, currentRange[1]])}
-                    >
-                      <FaCaretLeft />
-                    </button>
-                    <span className="date-text">{dateL}</span>
-                    <button
-                      className="btn btn-sm btn-dark"
-                      onClick={() => this.onChangeDayRange([l2, currentRange[1]])}
-                    >
-                      <FaCaretRight />
-                    </button>
-                    <div className="_flex-fill"></div>
-                    <button
-                      className="btn btn-sm btn-dark"
-                      onClick={() => this.onChangeDayRange([currentRange[0], r1])}
-                    >
-                      <FaCaretLeft />
-                    </button>
-                    <span className="date-text">{dateR}</span>
-                    <button
-                      className="btn btn-sm btn-dark"
-                      onClick={() => this.onChangeDayRange([currentRange[0], r2])}
-                    >
-                      <FaCaretRight />
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         </div>
       </div>

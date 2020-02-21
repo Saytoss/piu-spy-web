@@ -6,14 +6,17 @@ import { SORT, CHART_MIN_MAX, DURATION_DEFAULT } from 'constants/leaderboard';
 
 export const playersSelector = createSelector(
   state => state.results.players,
-  _.flow(
-    _.toPairs,
-    _.map(([id, { nickname, arcade_name }]) => ({
-      label: `${nickname} (${arcade_name})`,
-      value: nickname,
-    })),
-    _.sortBy(it => _.toLower(it.label))
-  )
+  state => state.user.data.player.id,
+  (players, playerId) =>
+    _.flow(
+      _.toPairs,
+      _.map(([, { nickname, arcade_name, id }]) => ({
+        label: `${nickname} (${arcade_name})`,
+        value: nickname,
+        isCurrentPlayer: playerId === id,
+      })),
+      _.sortBy(it => (it.isCurrentPlayer ? '___000' : _.toLower(it.label)))
+    )(players)
 );
 
 const filterCharts = (filter, rows) => {
@@ -33,7 +36,7 @@ const filterCharts = (filter, rows) => {
   }, rows);
 };
 
-const getFilteredData = (data, filter, scoreInfo = {}) => {
+const getFilteredData = (data, filter, resultInfo = {}) => {
   // const start = performance.now();
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
@@ -85,7 +88,8 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
       [
         row => {
           const result = _.find({ nickname: protagonist }, row.results);
-          return _.getOr(direction === 'desc' ? -Infinity : Infinity, field, result);
+          const info = resultInfo[result.id] || {};
+          return _.getOr(direction === 'desc' ? -Infinity : Infinity, field, info);
         },
       ],
       [direction]
@@ -150,6 +154,6 @@ const getFilteredData = (data, filter, scoreInfo = {}) => {
 export const filteredDataSelector = createSelector(
   state => state.results.data,
   state => state.results.filter,
-  state => state.results.scoreInfo,
+  state => state.results.resultInfo,
   getFilteredData
 );

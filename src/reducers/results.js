@@ -1,6 +1,5 @@
 import _ from 'lodash/fp';
 import localForage from 'localforage';
-import lev from 'fast-levenshtein';
 import queryString from 'query-string';
 
 import { fetchJson } from 'utils/fetch';
@@ -33,7 +32,7 @@ const initialState = {
   players: {},
   profiles: {},
   results: [],
-  scoreInfo: {},
+  resultInfo: {},
   sharedCharts: {},
 };
 
@@ -240,8 +239,6 @@ const processData = (data, tracklist) => {
   const bestGradeResults = {}; // Temp object
   const top = {}; // Main top scores pbject
 
-  // Battles for ELO calculation
-  const battles = [];
   // Profiles for every player
   let profiles = {};
 
@@ -287,20 +284,6 @@ const processData = (data, tracklist) => {
         chartTop.latestScoreDate = result.date;
         chartTop.totalResultsCount++;
         topResults[topResultId] = result;
-      }
-
-      if (!result.isUnknownPlayer) {
-        chartTop.results.forEach(enemyResult => {
-          if (
-            !enemyResult.isUnknownPlayer &&
-            enemyResult.isRank === result.isRank &&
-            enemyResult.playerId !== result.playerId &&
-            result.score &&
-            enemyResult.score
-          ) {
-            battles.push([result, enemyResult, chartTop]);
-          }
-        });
       }
     }
 
@@ -350,7 +333,7 @@ const processData = (data, tracklist) => {
     }
   }
 
-  return { mappedResults, profiles, sharedCharts: top, battles };
+  return { mappedResults, profiles, sharedCharts: top };
 };
 
 export default function reducer(state = initialState, action) {
@@ -390,7 +373,7 @@ export default function reducer(state = initialState, action) {
         ...state,
         isLoadingRanking: false,
         profiles: action.profiles,
-        scoreInfo: action.scoreInfo,
+        resultInfo: action.resultInfo,
       };
     case SET_FILTER:
       return {
@@ -500,227 +483,10 @@ export const appendNewResults = () => {
   };
 };
 
-export const appendResultFromSocket = (socketData, newSongTop) => {
-  return async (dispatch, getState) => {
-    const { originalData } = getState().results;
-    console.log(originalData, socketData, newSongTop);
-
-    const newSharedCharts = { ...originalData.shared_charts };
-    let newResults = [...originalData.results];
-
-    const processSocketResult = socketResult => {
-      // // HACK:
-      // socketData.gained = '2019-11-30 20:04:49';
-
-      console.log('processing new result from sockets', socketResult);
-      const score = socketResult.result.score;
-      const name = socketResult.result.player_name;
-      const playerId = _.flow(
-        _.toPairs,
-        _.minBy(([id, { arcade_name }]) => lev.get(arcade_name, name)),
-        _.first,
-        _.toNumber
-      )(originalData.players);
-      const chartData = _.flow(
-        _.toPairs,
-        _.find(([chartId, chart]) => chart.chart_label === socketResult.chart_label)
-      )(newSongTop.results);
-      const searchQuery = {
-        gained: socketData.gained.replace(' ', 'T'),
-        score,
-        player: playerId,
-      };
-      console.log('match query for result', searchQuery);
-      const thisResult = _.find(searchQuery, _.get('[1].results', chartData));
-      if (thisResult) {
-        console.log('new result found');
-        // This new result appeared in top, we need to add it to total results list
-        let [chartId, chart] = chartData;
-        chartId = _.toNumber(chartId);
-        if (!newSharedCharts[chartId]) {
-          newSharedCharts[chartId] = {
-            chart_label: chart.chart_label,
-            track_name: chart.track,
-            duration: chart.duration,
-          };
-          console.log('adding new shared chart', chartId, newSharedCharts[chartId]);
-        }
-
-        let previousTopScoreIndex = -1;
-        let previousTopScore = 0;
-        let previousTopResult = null;
-        originalData.results.forEach((res, index) => {
-          if (
-            res.shared_chart === chartId &&
-            res.rank_mode === thisResult.rank_mode &&
-            res.player === thisResult.player &&
-            res.score > previousTopScore
-          ) {
-            previousTopScore = res.score;
-            previousTopResult = res.score;
-            previousTopScoreIndex = index;
-          }
-        });
-        if (previousTopResult) {
-          console.log('changing prev result', previousTopResult);
-          newResults = [
-            ...newResults.slice(0, previousTopScoreIndex),
-            _.pick(
-              [
-                'gained',
-                'exact_gain_date',
-                'shared_chart',
-                'player',
-                'rank_mode',
-                'score',
-                'grade',
-                'id',
-              ],
-              previousTopResult
-            ),
-            ...newResults.slice(previousTopScoreIndex + 1),
-          ];
-        }
-        console.log('adding new result', thisResult);
-        newResults.push({
-          player: playerId,
-          shared_chart: chartId,
-          gained: socketData.gained,
-          exact_gain_date: 1,
-          rank_mode: _.includes('VJ', socketResult.result.mods_list),
-          ..._.pick(
-            [
-              'grade',
-              'recognition_notes',
-              'mods_list',
-              'score',
-              'misses',
-              'bads',
-              'goods',
-              'greats',
-              'perfects',
-              'max_combo',
-              'calories',
-              'score_increase',
-              'exact_gain_date',
-            ],
-            socketResult.result
-          ),
-        });
-      }
-    };
-
-    if (socketData.left) {
-      processSocketResult(socketData.left);
-    }
-
-    if (socketData.right) {
-      processSocketResult(socketData.right);
-    }
-
-    const data = {
-      players: originalData.players, // will not be changed i think
-      results: newResults,
-      shared_charts: newSharedCharts,
-    };
-
-    dispatch(processResultsData(data));
-  };
-};
-
 const processResultsData = data => {
   return async (dispatch, getState) => {
     const { tracklist } = getState();
-    const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
-
-    console.log(sharedCharts, profiles);
-
-    for (const chartId in sharedCharts) {
-      const chart = sharedCharts[chartId];
-      const chartResults = chart.results;
-      const chartLevel = Number(chart.chartLevel);
-      const maxPP = chartLevel ** 2.2 / 7; // divide by 4 for normalization, to align with previous elo versrion
-      if (chart.maxNonRankScore) {
-        const maxScore = chart.maxNonRankScore;
-        // const maxScore = chart.maxNonRankScoreResult.scoreRaw;
-
-        // const K3scaler = chartResults.length === 1 ? 0.3 : Math.min(3, chartResults.length);
-        // const K3MulScaler = chartResults.length === 1 ? 0.3 : Math.min(3, chartResults.length);
-        for (const result of chartResults) {
-          // const maxScore = Math.max(
-          //   chart.maxScore,
-          //   chart.maxNonRankScoreResult.scoreRaw,
-          //   result.maxScore - 300000
-          // );
-          // const maxScore = result.maxScore - 300000;
-          if (!result.isRank && result.accuracyRaw && result.grade && maxScore) {
-            const K1 = Math.max(0, result.accuracyRaw - 60) / 40; // [0, 1] - accuracy [60, 100]
-            let K2 = {
-              SSS: 1,
-              SS: 0.97,
-              S: 0.95,
-              'A+': 0.9,
-              A: 0.84,
-              B: 0.77,
-              C: 0.63,
-              D: 0.4,
-              F: 0,
-            }[result.grade];
-            K2 = K2 === undefined ? 0.4 : K2;
-            const K3 = Math.max(0, Math.min(1, result.scoreRaw / maxScore - 0.3) / 0.7);
-            // const Kavg = (2.5 * K1 + K2 + 2 * K3) / 5.5; // (K1 + K2 + K3) / 3;
-            const K = K2 * K3;
-            // const Kmul = K1 * K2 * K3;
-            // const K = (2 * Kavg + Kmul) / 3;
-            // const K = (1 * K1 + 1 * K2 + K3scaler * K3) / (1 + 1 + K3scaler);
-
-            // Final PP value
-            const pp = K * maxPP;
-            // Record result data
-            result.pp = {
-              pp,
-              k: K,
-              kX: { K1, K2, K3 },
-              maxScore,
-              maxPP,
-              ppPotential: maxPP - pp,
-              ppRatio: pp / maxPP,
-              ppFixed: Number(pp.toFixed(1)),
-            };
-            const profile = profiles[result.playerId];
-            if (profile) {
-              if (!profile.pp) {
-                profile.pp = { scores: [], pp: 0 };
-              }
-              profile.pp.scores.push({
-                pp_: Number(pp.toFixed(1)),
-                s: chart.song,
-                l: chart.chartLabel,
-                pp,
-                result,
-                chart,
-                k: { K1, K2, K3, K },
-              });
-            }
-          }
-        }
-      }
-    }
-    // Calculate total pp
-    for (const playerId in profiles) {
-      const profile = profiles[playerId];
-      if (profile.pp) {
-        profile.pp.scores.sort((a, b) => b.pp - a.pp);
-        profile.pp.pp = 0;
-        profile.pp.scores.forEach((score, index) => {
-          let mod = 0;
-          if (index < 500) {
-            mod = 0.95 ** index;
-          }
-          profile.pp.pp += mod * score.pp;
-        });
-      }
-    }
+    const { sharedCharts, mappedResults, profiles } = processData(data, tracklist);
 
     dispatch({
       type: SUCCESS,
@@ -735,10 +501,8 @@ const processResultsData = data => {
       originalData: data,
     });
 
-    // console.log(Object.values(profiles).sort((a, b) => b.bestScoresTotalPP - a.bestScoresTotalPP));
-
     // Parallelized calculation of ELO and profile data
-    const input = { profiles, tracklist, battles, debug: DEBUG };
+    const input = { sharedCharts, profiles, tracklist };
     let promise, worker;
     if (window.Worker) {
       worker = new WorkerProfilesProcessing();
@@ -747,17 +511,16 @@ const processResultsData = data => {
       promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
     }
 
-    const { processedProfiles, logText, scoreInfo } = await promise;
-    DEBUG && console.log(logText);
-    dispatch({ type: PROFILES_UPDATE, profiles: processedProfiles, scoreInfo });
+    const { processedProfiles, resultInfo } = await promise;
+    DEBUG &&
+      console.log(
+        Object.values(processedProfiles)
+          .filter(q => q.pp)
+          .sort((a, b) => b.pp.pp - a.pp.pp)
+      );
+    dispatch({ type: PROFILES_UPDATE, profiles: processedProfiles, resultInfo });
     dispatch(calculateRankingChanges(processedProfiles));
     if (worker) worker.terminate();
-
-    console.log(
-      Object.values(profiles)
-        .filter(q => q.pp)
-        .sort((a, b) => b.pp.pp - a.pp.pp)
-    );
   };
 };
 
@@ -785,12 +548,14 @@ export const calculateRankingChanges = profiles => {
         localForage.getItem('lastChangedRankingPoints_v3'),
         localForage.getItem('lastFetchedRanking_v3'),
       ]);
+      console.log(ranking, [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking]);
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
       const mapPointsNow = getMapOfRatings(ranking);
       const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
       const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
+      console.log(listNow);
 
       let rankingsPointsMap = mapPointsLastChanged;
       // console.log(listNow, listLastFetched, listLastChanged);

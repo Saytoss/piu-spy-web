@@ -11,7 +11,7 @@ import './socket.scss';
 import { SOCKET_SERVER_IP } from 'constants/backend';
 import Loader from 'components/Shared/Loader';
 
-import { fetchResults, appendResultFromSocket, appendNewResults } from 'reducers/results';
+import { fetchResults, appendNewResults } from 'reducers/results';
 import { fetchTopPerSong } from 'reducers/topPerSong';
 import { fetchTracklist } from 'reducers/tracklist';
 
@@ -36,7 +36,6 @@ const mapDispatchToProps = {
   fetchTopPerSong,
   fetchTracklist,
   appendNewResults,
-  appendResultFromSocket,
 };
 
 // component
@@ -62,7 +61,6 @@ function TrackerApp({
   fetchResults,
   fetchTracklist,
   fetchTopPerSong,
-  appendResultFromSocket,
   appendNewResults,
   songTopData,
   error,

@@ -79,7 +79,7 @@ const sortingOptions = [
 const mapStateToProps = state => {
   return {
     players: playersSelector(state),
-    scoreInfo: state.results.scoreInfo,
+    resultInfo: state.results.resultInfo,
     results: state.results.results,
     filteredData: filteredDataSelector(state),
     data: state.results.data,
@@ -102,7 +102,7 @@ const mapDispatchToProps = {
 class Leaderboard extends Component {
   static propTypes = {
     match: toBe.object,
-    scoreInfo: toBe.object,
+    resultInfo: toBe.object,
     data: toBe.array,
     error: toBe.object,
     results: toBe.array,
@@ -228,7 +228,7 @@ class Leaderboard extends Component {
 
   renderFilters() {
     const { players, filter } = this.props;
-
+    console.log(players);
     return (
       <div className="filters">
         <div className="people-filters">
@@ -370,7 +370,7 @@ class Leaderboard extends Component {
   }
 
   render() {
-    const { isLoading, filteredData, error, filter /* scoreInfo */ } = this.props;
+    const { isLoading, filteredData, error, filter, resultInfo } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
@@ -547,7 +547,7 @@ class Leaderboard extends Component {
                                     );
                                     placeDifference = newIndex - index;
                                   }
-                                  // const inf = scoreInfo[res.id] || {};
+                                  const inf = resultInfo[res.id] || {};
                                   return (
                                     <tr
                                       key={res.isRank + '_' + res.nickname}
@@ -580,16 +580,16 @@ class Leaderboard extends Component {
                                             {res.pp.ppFixed}pp
                                           </span>
                                         )} */}
-                                        {res.pp &&
+                                        {inf.pp &&
                                         (sortingType === SORT.RANK_DESC ||
                                           sortingType === SORT.RANK_ASC) &&
                                         res.nickname === protagonistName ? (
-                                          <span> ({res.pp.ppFixed}pp)</span>
+                                          <span> ({inf.pp.ppFixed}pp)</span>
                                         ) : (
-                                          res.pp && (
+                                          inf.pp && (
                                             <span className="debug-elo-info">
                                               {' '}
-                                              {res.pp.ppFixed}pp
+                                              {inf.pp.ppFixed}pp
                                             </span>
                                           )
                                         )}
@@ -661,10 +661,10 @@ class Leaderboard extends Component {
                                                 {numeral(getExp(res, chart)).format('0,0')}
                                               </div>
                                             )}
-                                            {res.pp && (
+                                            {inf.pp && (
                                               <div className="important">
                                                 <span className="_grey">pp: </span>
-                                                <span>{res.pp.ppFixed}pp</span>
+                                                <span>{inf.pp.ppFixed}pp</span>
                                               </div>
                                             )}
                                             {!res.isExactDate && (
