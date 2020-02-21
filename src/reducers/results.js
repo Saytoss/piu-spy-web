@@ -428,7 +428,7 @@ export const fetchResults = () => {
         throw new Error(data.error);
       }
       // HACK for test
-      // data.results = _.dropRight(152, data.results);
+      // data.results = _.dropRight(500, data.results);
       dispatch(processResultsData(data));
     } catch (error) {
       console.log(error);
@@ -469,6 +469,8 @@ export const appendNewResults = () => {
           currentResults.results
         );
       }, data.results);
+
+      console.log('Received results:', data, '; Will append:', appendedResults);
 
       const mergedData = {
         players: data.players,
@@ -514,6 +516,7 @@ const processResultsData = data => {
     const { processedProfiles, resultInfo } = await promise;
     DEBUG &&
       console.log(
+        'Processed profiles:',
         Object.values(processedProfiles)
           .filter(q => q.pp)
           .sort((a, b) => b.pp.pp - a.pp.pp)
@@ -548,14 +551,12 @@ export const calculateRankingChanges = profiles => {
         localForage.getItem('lastChangedRankingPoints_v3'),
         localForage.getItem('lastFetchedRanking_v3'),
       ]);
-      console.log(ranking, [lastChangedRanking, lastChangedRankingPoints, lastFetchedRanking]);
       const listNow = getListOfNames(ranking);
       const listLastFetched = getListOfNames(lastFetchedRanking);
       const listLastChanged = getListOfNames(lastChangedRanking);
       const mapPointsNow = getMapOfRatings(ranking);
       const mapPointsLastFetched = getMapOfRatings(lastFetchedRanking);
       const mapPointsLastChanged = getMapOfRatings(lastChangedRankingPoints);
-      console.log(listNow);
 
       let rankingsPointsMap = mapPointsLastChanged;
       // console.log(listNow, listLastFetched, listLastChanged);
