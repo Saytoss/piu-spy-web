@@ -28,6 +28,7 @@ const mapStateToProps = state => {
     songTopData: state.topPerSong.data,
     error: state.topPerSong.error,
     profiles: state.results.profiles,
+    resultInfo: state.results.resultInfo,
   };
 };
 
@@ -65,6 +66,7 @@ function TrackerApp({
   songTopData,
   error,
   profiles,
+  resultInfo = {},
 }) {
   const [message, setMessage] = useState('');
   const [socketErrorMessage, setSocketErrorMessage] = useState('');
@@ -100,12 +102,6 @@ function TrackerApp({
     rightProfile = _.minBy(p => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
   }
 
-  // const leftData = {
-  //   name: useTracked(leftProfile.name),
-  //   ratingRaw: useTracked(leftProfile.ratingRaw),
-  //   ratingRaw: useTracked(leftProfile.ratingRaw),
-  // };
-
   const [leftData, setLeftData] = useState({ name: leftProfile.name, ratingRaw: null, exp: null });
   const [rightData, setRightData] = useState({
     name: rightProfile.name,
@@ -123,8 +119,6 @@ function TrackerApp({
       // this.setState(defaultState);
     }, STATE_RESET_TIMEOUT);
   }, []);
-
-  console.log(leftProfile, rightProfile);
 
   useEffect(() => {
     if (leftProfile.ratingRaw && leftProfile.ratingRaw !== leftData.ratingRaw) {
@@ -392,7 +386,7 @@ function TrackerApp({
             )}
             {data.ratingRaw && (
               <div className="rating">
-                <span className="_grey-text">elo:</span> {Math.round(data.ratingRaw)}{' '}
+                <span className="_grey-text">pp:</span> {Math.round(data.ratingRaw)}{' '}
                 {renderDeltaText(data.ratingRaw, data.prevRatingRaw)}
               </div>
             )}
@@ -500,6 +494,7 @@ function TrackerApp({
                               newIndex = _.findLastIndex(res => res.score > prevScore, results);
                               placeDifference = newIndex - index;
                             }
+                            const pp = _.getOr('', `[${res.id}].pp.ppFixed`, resultInfo);
                             return (
                               <tr
                                 key={res.score + res.nickname}
@@ -510,9 +505,6 @@ function TrackerApp({
                                   right: res.nickname === rightProfile.name,
                                 })}
                               >
-                                <td className="place">
-                                  {res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}
-                                </td>
                                 <td className="nickname">
                                   {res.nickname}
                                   {!!placeDifference && (
@@ -521,6 +513,10 @@ function TrackerApp({
                                       <FaAngleDoubleUp />
                                     </span>
                                   )}
+                                </td>
+                                <td className="pp">
+                                  {pp}
+                                  {pp && <span className="_grey">pp</span>}
                                 </td>
                                 <td
                                   className={classNames('judge', {

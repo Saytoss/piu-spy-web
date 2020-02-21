@@ -1,4 +1,5 @@
 .tracker-container {
+  color: white;
   font-size: 22px;
   display: flex;
   flex-flow: row nowrap;
@@ -33,11 +34,14 @@
         flex-flow: row wrap;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 15px;
         > .name {
           font-size: 110%;
           font-weight: 600;
         }
-        margin-bottom: 15px;
+        > .chart-label {
+          font-size: 80%;
+        }
       }
       > .exp {
         display: flex;
@@ -153,16 +157,7 @@
 
         > .chart-name {
           margin-right: 10px;
-        }
-
-        > .youtube-link {
-          align-self: center;
-          margin-left: 0.5vw;
-          > a {
-            display: block;
-            line-height: 80%;
-            color: #ccc;
-          }
+          font-size: 110%;
         }
       }
       > .charts {
@@ -186,19 +181,22 @@
             th {
               width: 1px !important;
               white-space: nowrap !important;
-              padding: 2px 8px 0 8px;
-              &.place {
-                color: #888;
-                width: 33px;
+              padding: 0.1em 0.5em 0.1em 0.5em;
+              &.pp {
+                font-size: 110%;
+                font-weight: bold;
+                > ._grey {
+                  color: #aaa;
+                }
               }
               &.grade {
-                width: 41px;
+                width: 43px;
                 .img-holder {
                   display: flex;
                   align-items: center;
                   justify-content: center;
                   img {
-                    height: 24px;
+                    height: 26px;
                   }
                 }
               }
@@ -209,6 +207,7 @@
                 text-align: right;
               }
               &.nickname {
+                font-size: 110%;
                 width: 1px;
                 white-space: nowrap;
                 > .change-holder {
@@ -230,6 +229,8 @@
                 font-size: 80%;
               }
               &.score {
+                font-size: 110%;
+                font-weight: bold;
                 width: 1px;
                 text-align: right;
                 cursor: pointer;
