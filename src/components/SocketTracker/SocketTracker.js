@@ -222,7 +222,7 @@ function TrackerApp({
           setLeftLabel(leftLabel);
           setRightLabel(rightLabel);
           setRecognizedSongName(songName);
-          appendNewResults(); // Fetch results that we don't have here yet (to calculate
+          appendNewResults(data.data.gained); // Fetch results that we don't have here yet (to calculate elo)
           fetchTopPerSong(songName, leftLabel, rightLabel);
         } else if (data.type === 'chart_selected') {
           setSocketErrorMessage(data.data.error || '');

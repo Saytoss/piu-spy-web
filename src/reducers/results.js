@@ -437,10 +437,9 @@ export const fetchResults = () => {
   };
 };
 
-export const appendNewResults = () => {
+export const appendNewResults = (lastDate) => {
   return async (dispatch, getState) => {
     const { originalData, sharedCharts } = getState().results;
-    const lastDate = _.get('gained', _.last(originalData.results));
     if (!lastDate) {
       return dispatch(fetchResults());
     }
