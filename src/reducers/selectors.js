@@ -15,7 +15,7 @@ export const playersSelector = createSelector(
         value: nickname,
         isCurrentPlayer: playerId === id,
       })),
-      _.sortBy(it => (it.isCurrentPlayer ? '___000' : _.toLower(it.label)))
+      _.sortBy(it => (it.isCurrentPlayer ? '!' : _.toLower(it.label)))
     )(players)
 );
 
