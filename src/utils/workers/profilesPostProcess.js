@@ -1,6 +1,5 @@
 import _ from 'lodash/fp';
 import regression from 'regression';
-import interpolate from 'interpolating-polynomial';
 
 import { ranks as expRanks } from 'utils/expRanks';
 

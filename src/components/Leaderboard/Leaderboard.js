@@ -18,6 +18,7 @@ import {
   FaForward,
 } from 'react-icons/fa';
 import FlipMove from 'react-flip-move';
+import queryString from 'query-string';
 
 // styles
 import './leaderboard.scss';
@@ -477,9 +478,12 @@ class Leaderboard extends Component {
                       </div>
                       <div className="youtube-link">
                         <a
-                          href={`https://youtube.com/results?search_query=${chart.song
-                            .replace(/ /g, '+')
-                            .replace(/-/g, '')}+${chart.chartLabel}`}
+                          href={`https://youtube.com/results?${queryString.stringify({
+                            search_query: `${chart.song} ${chart.chartLabel}`.replace(
+                              /( -)|(- )/g,
+                              ' '
+                            ),
+                          })}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
