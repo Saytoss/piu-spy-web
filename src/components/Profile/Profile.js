@@ -177,26 +177,27 @@ class Profile extends Component {
     );
   }
 
-  renderPlaceHistory() {
-    // const { profile } = this.props;
+  renderPlaceHistory(q) {
+    const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
         <LineChart
-          data={/*profile.placesChanges*/ []}
+          data={q ? profile.accuracyPointsInterpolated : profile.accuracyPoints}
           margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
-            dataKey="date"
+            dataKey="[0]"
             type="number"
-            domain={['dataMin', 'dataMax']}
-            tickFormatter={value => parseDate(value).toLocaleDateString()}
+            domain={[1, 28]}
+            tickFormatter={value => Math.round(value)}
           />
           <YAxis
-            allowDecimals={false}
-            domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
-            interval={0}
-            reversed
+            domain={[0, 100]}
+            // allowDecimals={false}
+            // domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
+            // interval={0}
+            // reversed
             width={40}
           />
           <RechartsTooltip
@@ -207,16 +208,16 @@ class Profile extends Component {
               }
               return (
                 <div className="history-tooltip">
-                  <div>{parseDate(payload[0].payload.date).toLocaleDateString()}</div>
-                  {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
+                  <div>{payload[0].payload[0]}</div>
+                  {payload && payload[0] && <div>Acc: #{payload[0].value}</div>}
                 </div>
               );
             }}
           />
           <Line
             isAnimationActive={false}
-            type="stepAfter"
-            dataKey="place"
+            // type="stepAfter"
+            dataKey="[1]"
             stroke="#88d3ff"
             strokeWidth={3}
             dot={false}
@@ -637,11 +638,13 @@ class Profile extends Component {
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
                   <span>эло (временно отключено)</span>
+                  {this.renderPlaceHistory()}
                 </div>
               </div>
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
                   <span>место в топе (временно отключено)</span>
+                  {this.renderPlaceHistory(1)}
                 </div>
               </div>
             </div>
@@ -720,7 +723,4 @@ class Profile extends Component {
   }
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(withRouter(Profile));
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Profile));

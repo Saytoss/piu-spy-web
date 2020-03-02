@@ -374,6 +374,7 @@ export default function reducer(state = initialState, action) {
         isLoadingRanking: false,
         profiles: action.profiles,
         resultInfo: action.resultInfo,
+        sharedCharts: action.sharedCharts,
       };
     case SET_FILTER:
       return {
@@ -437,7 +438,7 @@ export const fetchResults = () => {
   };
 };
 
-export const appendNewResults = (lastDate) => {
+export const appendNewResults = lastDate => {
   return async (dispatch, getState) => {
     const { originalData, sharedCharts } = getState().results;
     if (!lastDate) {
@@ -512,7 +513,7 @@ const processResultsData = data => {
       promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
     }
 
-    const { processedProfiles, resultInfo } = await promise;
+    const { processedProfiles, resultInfo, sharedCharts: newSharedCharts } = await promise;
     DEBUG &&
       console.log(
         'Processed profiles:',
@@ -520,7 +521,13 @@ const processResultsData = data => {
           .filter(q => q.pp)
           .sort((a, b) => b.pp.pp - a.pp.pp)
       );
-    dispatch({ type: PROFILES_UPDATE, profiles: processedProfiles, resultInfo });
+
+    dispatch({
+      type: PROFILES_UPDATE,
+      profiles: processedProfiles,
+      resultInfo,
+      sharedCharts: newSharedCharts,
+    });
     dispatch(calculateRankingChanges(processedProfiles));
     if (worker) worker.terminate();
   };

@@ -6,6 +6,7 @@
     "browser-cookies": "1.2.0",
     "classnames": "2.2.6",
     "fast-levenshtein": "^2.0.6",
+    "interpolating-polynomial": "^1.1.2",
     "javascript-time-ago": "2.0.1",
     "localforage": "1.7.3",
     "lodash": "4.17.15",
@@ -35,6 +36,7 @@
     "recharts": "2.0.0-beta.1",
     "redux": "4.0.4",
     "redux-thunk": "2.3.0",
+    "regression": "1.4.0",
     "reselect": "4.0.0",
     "whatwg-fetch": "3.0.0",
     "workerize-loader": "1.1.0"

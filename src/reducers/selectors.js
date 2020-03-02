@@ -36,7 +36,7 @@ const filterCharts = (filter, rows) => {
   }, rows);
 };
 
-const getFilteredData = (data, filter, resultInfo = {}) => {
+const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
   // const start = performance.now();
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
@@ -95,6 +95,17 @@ const getFilteredData = (data, filter, resultInfo = {}) => {
       [direction]
     ),
   ];
+  const getDiffSorting = (direction = 'desc') => [
+    _.orderBy(
+      [
+        row => {
+          const chartInfo = sharedCharts[row.sharedChartId];
+          return _.getOr(_.toNumber(row.chartLevel), 'interpolatedDifficulty', chartInfo);
+        },
+      ],
+      [direction]
+    ),
+  ];
   const sortingFunctions =
     {
       [SORT.DEFAULT]: defaultSorting,
@@ -102,6 +113,8 @@ const getFilteredData = (data, filter, resultInfo = {}) => {
       [SORT.PROTAGONIST]: protagonistSorting,
       [SORT.RANK_ASC]: getScoreSorting('pp.ppRatio', 'asc'),
       [SORT.RANK_DESC]: getScoreSorting('pp.pp'),
+      [SORT.EASIEST_SONGS]: getDiffSorting('asc'),
+      [SORT.HARDEST_SONGS]: getDiffSorting('desc'),
     }[sortingType] || defaultSorting;
 
   const result = _.flow(
@@ -153,6 +166,7 @@ const getFilteredData = (data, filter, resultInfo = {}) => {
 
 export const filteredDataSelector = createSelector(
   state => state.results.data,
+  state => state.results.sharedCharts,
   state => state.results.filter,
   state => state.results.resultInfo,
   getFilteredData

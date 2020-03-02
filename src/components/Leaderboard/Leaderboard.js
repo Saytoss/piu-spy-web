@@ -62,8 +62,6 @@ const sortingOptions = [
   //   label: 'отставанию от остальных',
   //   value: SORT.PROTAGONIST,
   // },
-  // ...(DEBUG
-  //   ? [
   {
     label: 'от худших результатов',
     value: SORT.RANK_ASC,
@@ -72,8 +70,14 @@ const sortingOptions = [
     label: 'от лучших результатов',
     value: SORT.RANK_DESC,
   },
-  //   ]
-  // : []),
+  {
+    label: 'от лёгких чартов',
+    value: SORT.EASIEST_SONGS,
+  },
+  {
+    label: 'от сложных чартов',
+    value: SORT.HARDEST_SONGS,
+  },
 ];
 
 const mapStateToProps = state => {
@@ -81,6 +85,7 @@ const mapStateToProps = state => {
     players: playersSelector(state),
     resultInfo: state.results.resultInfo,
     results: state.results.results,
+    sharedCharts: state.results.sharedCharts,
     filteredData: filteredDataSelector(state),
     data: state.results.data,
     filter: state.results.filter,
@@ -228,7 +233,6 @@ class Leaderboard extends Component {
 
   renderFilters() {
     const { players, filter } = this.props;
-    console.log(players);
     return (
       <div className="filters">
         <div className="people-filters">
@@ -370,7 +374,7 @@ class Leaderboard extends Component {
   }
 
   render() {
-    const { isLoading, filteredData, error, filter, resultInfo } = this.props;
+    const { isLoading, filteredData, error, filter, resultInfo, sharedCharts } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
@@ -447,8 +451,11 @@ class Leaderboard extends Component {
                     isSecondOccurenceInResults,
                   };
                 });
+                const interpolatedDifficulty =
+                  sharedCharts[chart.sharedChartId] &&
+                  sharedCharts[chart.sharedChartId].interpolatedDifficulty;
                 return (
-                  <div className="song-block" key={chart.song + chart.chartLabel}>
+                  <div className="song-block" key={chart.sharedChartId}>
                     <div className="song-name">
                       <div
                         className={classNames('chart-name', {
@@ -462,7 +469,12 @@ class Leaderboard extends Component {
                         <span className="chart-letter">{chart.chartType}</span>
                         <span className="chart-number">{chart.chartLevel}</span>
                       </div>
-                      <div>{chart.song}</div>
+                      <div>
+                        {chart.song}{' '}
+                        <span className="_grey-text">
+                          ({interpolatedDifficulty && interpolatedDifficulty.toFixed(2)})
+                        </span>
+                      </div>
                       <div className="youtube-link">
                         <a
                           href={`https://youtube.com/results?search_query=${chart.song
@@ -789,7 +801,4 @@ class Leaderboard extends Component {
   }
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(Leaderboard);
+export default connect(mapStateToProps, mapDispatchToProps)(Leaderboard);
