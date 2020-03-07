@@ -23,8 +23,8 @@ export const preprocessData = data => ({
   ...data,
   results: _.flow(
     _.get('results'),
-    _.values,
-    _.map(item => {
+    _.toPairs,
+    _.map(([chartId, item]) => {
       const fullRes = _.find(
         r => _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses]),
         item.results
@@ -40,6 +40,7 @@ export const preprocessData = data => ({
 
       return {
         song: item.track,
+        sharedChartId: _.toNumber(chartId),
         chartLabel: item.chart_label,
         chartLevel,
         chartType,

@@ -4,6 +4,8 @@ import _ from 'lodash/fp';
 
 import { HOST } from 'constants/backend';
 
+import { preprocessData } from 'components/SocketTracker/helpers';
+
 const LOADING = `TOP_PER_SONG/LOADING`;
 const SUCCESS = `TOP_PER_SONG/SUCCESS`;
 const ERROR = `TOP_PER_SONG/ERROR`;
@@ -58,8 +60,9 @@ export const fetchTopPerSong = (songName, leftLabel, rightLabel) => {
     dispatch({ type: LOADING, fetchingParams });
     try {
       const data = await dispatch(fetchJson({ url: `${HOST}/topPerSong?${fetchingParams}` }));
-      dispatch({ type: SUCCESS, data, fetchingParams });
-      return data;
+      const processedData = _.flow(preprocessData, _.get('results'))(data);
+      dispatch({ type: SUCCESS, data: processedData, fetchingParams });
+      return processedData;
     } catch (error) {
       dispatch({ type: ERROR, error, fetchingParams });
       return null;

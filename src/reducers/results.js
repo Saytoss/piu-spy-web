@@ -461,13 +461,22 @@ export const appendNewResults = lastDate => {
         if (!currentResults) {
           return true;
         }
-        return !_.some(
-          r =>
-            r.playerId === result.player &&
-            r.isRank === !!result.rank_mode &&
-            r.score > result.score,
+        const oldResult = _.find(
+          old =>
+            old.id === result.id ||
+            (old.playerId === result.player && old.isRank === !!result.rank_mode),
           currentResults.results
         );
+        if (!oldResult) {
+          if (result.player === 1 && currentResults.results[0].score > result.score) {
+            return false;
+          }
+          return true;
+        }
+        if (oldResult.id === result.id || oldResult.score >= result.score) {
+          return false;
+        }
+        return true;
       }, data.results);
 
       console.log('Received results:', data, '; Will append:', appendedResults);

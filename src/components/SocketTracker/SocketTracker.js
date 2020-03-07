@@ -29,6 +29,7 @@ const mapStateToProps = state => {
     error: state.topPerSong.error,
     profiles: state.results.profiles,
     resultInfo: state.results.resultInfo,
+    sharedCharts: state.results.sharedCharts,
   };
 };
 
@@ -67,6 +68,7 @@ function TrackerApp({
   error,
   profiles,
   resultInfo = {},
+  sharedCharts = {},
 }) {
   const [message, setMessage] = useState('');
   const [socketErrorMessage, setSocketErrorMessage] = useState('');
@@ -81,15 +83,12 @@ function TrackerApp({
   const socketRef = useRef(null);
   const timeoutResetTokenRef = useRef(null);
 
-  const charts = _.values(_.get('results', preprocessData(songTopData)));
-  const leftChart = _.find({ chartLabel: leftLabel }, charts);
-  const rightChart = _.find({ chartLabel: rightLabel }, charts);
+  const leftChart = _.find({ chartLabel: leftLabel }, songTopData);
+  const rightChart = _.find({ chartLabel: rightLabel }, songTopData);
   const chartsToShow = _.uniq(_.compact([leftChart, rightChart]));
 
-  const topPlayersList = _.flow(
-    _.values,
-    _.orderBy('ratingRaw', 'desc'),
-    items => items.map((it, index) => ({ place: index + 1, ...it }))
+  const topPlayersList = _.flow(_.values, _.orderBy('ratingRaw', 'desc'), items =>
+    items.map((it, index) => ({ place: index + 1, ...it }))
   )(profiles);
 
   let leftProfile = {};
@@ -472,6 +471,8 @@ function TrackerApp({
                 isSecondOccurenceInResults,
               };
             });
+
+            const interpDiff = _.get('interpolatedDifficulty', sharedCharts[chart.sharedChartId]);
             return (
               <div
                 className="song-block"
@@ -480,7 +481,10 @@ function TrackerApp({
               >
                 <div className="song-name">
                   {renderChartLabel(chart.chartType, chart.chartLevel)}
-                  <div>{chart.song}</div>
+                  <div>
+                    {interpDiff ? `(${interpDiff.toFixed(1)}) ` : ''}
+                    {chart.song}
+                  </div>
                 </div>
                 <div className="charts">
                   <div className="chart">
@@ -583,7 +587,4 @@ function TrackerApp({
   );
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(TrackerApp);
+export default connect(mapStateToProps, mapDispatchToProps)(TrackerApp);
