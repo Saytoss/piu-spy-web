@@ -49,14 +49,6 @@ export default function RankingList({ ranking, isLoading }) {
           </thead>
           <tbody>
             {ranking.map((player, playerIndex) => {
-              const flag = (
-                <div
-                  className="flag-img"
-                  style={{
-                    backgroundImage: `url(https://osu.ppy.sh/images/flags/${player.region}.png)`,
-                  }}
-                />
-              );
               return (
                 <tr className="player" key={player.name}>
                   <td className="place">
