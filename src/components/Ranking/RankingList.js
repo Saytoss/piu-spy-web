@@ -12,7 +12,7 @@ import Loader from 'components/Shared/Loader';
 
 import { getRankImg } from 'utils/exp';
 
-const getGradeImg = grade => (
+const getGradeImg = (grade) => (
   <img src={`${process.env.PUBLIC_URL}/grades/${grade}.png`} alt={grade} />
 );
 
@@ -30,8 +30,9 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="exp-rank">rank</th>
               <th className="name">name</th>
               <th className="name2">piu name</th>
-              <th className="rating">pp</th>
+              <th className="rating">elo</th>
               <th className="rating-change-cell"></th>
+              <th className="rating">pp</th>
               {/* <th className="total-score">total score</th> */}
               <th className="grades sss">{getGradeImg('SSS')}</th>
               <th className="grades ss">{getGradeImg('SS')}</th>
@@ -48,6 +49,14 @@ export default function RankingList({ ranking, isLoading }) {
           </thead>
           <tbody>
             {ranking.map((player, playerIndex) => {
+              const flag = (
+                <div
+                  className="flag-img"
+                  style={{
+                    backgroundImage: `url(https://osu.ppy.sh/images/flags/${player.region}.png)`,
+                  }}
+                />
+              );
               return (
                 <tr className="player" key={player.name}>
                   <td className="place">
@@ -74,16 +83,24 @@ export default function RankingList({ ranking, isLoading }) {
                   </td>
                   <td className="exp-rank">{getRankImg(player.expRank)}</td>
                   <td className="name">
-                    <NavLink exact to={routes.profile.getPath({ id: player.id })}>
-                      {player.name}
-                    </NavLink>
+                    <div className="name-container">
+                      <div
+                        className="flag-img"
+                        style={{
+                          backgroundImage: `url(https://osu.ppy.sh/images/flags/${player.region}.png)`,
+                        }}
+                      />
+                      <NavLink exact to={routes.profile.getPath({ id: player.id })}>
+                        {player.name}
+                      </NavLink>
+                    </div>
                   </td>
                   <td className="name">
                     <NavLink exact to={routes.profile.getPath({ id: player.id })}>
                       {player.nameArcade}
                     </NavLink>
                   </td>
-                  <td className="rating">{Math.round(player.pp.pp)}</td>
+                  <td className="rating">{player.rating}</td>
                   <td className="rating-change-cell">
                     {!!player.prevRating && player.prevRating !== player.rating && (
                       <span
@@ -97,6 +114,7 @@ export default function RankingList({ ranking, isLoading }) {
                       </span>
                     )}
                   </td>
+                  <td className="rating secondary">{Math.round(player.pp.pp)}</td>
                   <td className="grades sss">{player.grades.SSS}</td>
                   <td className="grades ss">{player.grades.SS}</td>
                   <td className="grades s">{player.grades.S}</td>

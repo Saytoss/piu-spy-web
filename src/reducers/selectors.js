@@ -5,17 +5,17 @@ import matchSorter from 'match-sorter';
 import { SORT, CHART_MIN_MAX, DURATION_DEFAULT } from 'constants/leaderboard';
 
 export const playersSelector = createSelector(
-  state => state.results.players,
-  state => state.user.data.player.id,
+  (state) => state.results.players,
+  (state) => state.user.data.player.id,
   (players, playerId) =>
     _.flow(
       _.toPairs,
-      _.map(([, { nickname, arcade_name, id }]) => ({
+      _.map(([, { nickname, arcade_name, id, region }]) => ({
         label: `${nickname} (${arcade_name})`,
         value: nickname,
         isCurrentPlayer: playerId === id,
       })),
-      _.sortBy(it => (it.isCurrentPlayer ? '!' : _.toLower(it.label)))
+      _.sortBy((it) => (it.isCurrentPlayer ? '!' : _.toLower(it.label)))
     )(players)
 );
 
@@ -24,7 +24,7 @@ const filterCharts = (filter, rows) => {
   const type = _.getOr(null, 'type', filter);
   const duration = _.getOr(DURATION_DEFAULT, 'duration', filter);
 
-  return _.filter(row => {
+  return _.filter((row) => {
     if (duration !== DURATION_DEFAULT && !duration.includes(row.duration)) {
       return false;
     }
@@ -51,10 +51,10 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
     : [
         _.orderBy(
           [
-            song =>
+            (song) =>
               _.max(
                 _.map(
-                  res => (res.nickname === protagonist ? res.dateObject.getTime() : 0),
+                  (res) => (res.nickname === protagonist ? res.dateObject.getTime() : 0),
                   song.results
                 )
               ),
@@ -63,14 +63,14 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
         ),
       ];
   const protagonistSorting = [
-    _.filter(row => _.map('nickname', row.results).includes(protagonist)),
-    _.map(row => {
+    _.filter((row) => _.map('nickname', row.results).includes(protagonist)),
+    _.map((row) => {
       const protIndex = _.findIndex({ nickname: protagonist }, row.results);
       const protScore = row.results[protIndex].score;
       const enemies = _.flow([
         _.take(protIndex),
         _.uniqBy('nickname'),
-        _.remove(res => excludeAntagonists.includes(res.nickname) || res.score === protScore),
+        _.remove((res) => excludeAntagonists.includes(res.nickname) || res.score === protScore),
       ])(row.results);
       const distance = Math.sqrt(
         _.reduce((dist, enemy) => dist + (enemy.score / protScore - 0.99) ** 2, 0, enemies)
@@ -82,11 +82,11 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
     }),
     _.orderBy(['distanceFromProtagonist'], ['desc']),
   ];
-  const getScoreSorting = (field, direction = 'desc') => [
-    _.filter(row => _.map('nickname', row.results).includes(protagonist)),
+  const getPpSorting = (field, direction = 'desc') => [
+    _.filter((row) => _.map('nickname', row.results).includes(protagonist)),
     _.orderBy(
       [
-        row => {
+        (row) => {
           const result = _.find({ nickname: protagonist }, row.results);
           const info = resultInfo[result.id] || {};
           return _.getOr(direction === 'desc' ? -Infinity : Infinity, field, info);
@@ -95,10 +95,23 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
       [direction]
     ),
   ];
+  const getEloSorting = (direction) => [
+    _.filter((row) => _.map('nickname', row.results).includes(protagonist)),
+    _.orderBy(
+      [
+        (row) => {
+          const score = _.find({ nickname: protagonist }, row.results);
+          const info = resultInfo[score.id];
+          return _.getOr(direction === 'asc' ? Infinity : -Infinity, 'ratingDiff', info);
+        },
+      ],
+      [direction]
+    ),
+  ];
   const getDiffSorting = (direction = 'desc') => [
     _.orderBy(
       [
-        row => {
+        (row) => {
           const chartInfo = sharedCharts[row.sharedChartId];
           return _.getOr(_.toNumber(row.chartLevel), 'interpolatedDifficulty', chartInfo);
         },
@@ -111,35 +124,37 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
       [SORT.DEFAULT]: defaultSorting,
       [SORT.NEW_SCORES_PLAYER]: newScoresProtagonistSorting,
       [SORT.PROTAGONIST]: protagonistSorting,
-      [SORT.RANK_ASC]: getScoreSorting('pp.ppRatio', 'asc'),
-      [SORT.RANK_DESC]: getScoreSorting('pp.pp'),
+      [SORT.RANK_ASC]: getEloSorting('asc'),
+      [SORT.RANK_DESC]: getEloSorting('desc'),
+      [SORT.PP_ASC]: getPpSorting('pp.ppRatio', 'asc'),
+      [SORT.PP_DESC]: getPpSorting('pp.pp'),
       [SORT.EASIEST_SONGS]: getDiffSorting('asc'),
       [SORT.HARDEST_SONGS]: getDiffSorting('desc'),
     }[sortingType] || defaultSorting;
 
   const result = _.flow(
     _.compact([
-      _.map(row => ({
+      _.map((row) => ({
         ...row,
         results: row.results.filter(
           (res, index) => !res.isUnknownPlayer || index === 0,
           row.results
         ),
       })),
-      filter.chartRange && (items => filterCharts(filter.chartRange, items)),
+      filter.chartRange && ((items) => filterCharts(filter.chartRange, items)),
       !filter.showRank &&
-        _.map(row => ({ ...row, results: _.filter(res => !res.isRank, row.results) })),
+        _.map((row) => ({ ...row, results: _.filter((res) => !res.isRank, row.results) })),
       filter.showRank &&
         filter.showOnlyRank &&
-        _.map(row => ({ ...row, results: _.filter(res => res.isRank, row.results) })),
+        _.map((row) => ({ ...row, results: _.filter((res) => res.isRank, row.results) })),
       filter.showRank &&
         !filter.showOnlyRank &&
         !filter.showRankAndNorank &&
-        _.map(row => {
+        _.map((row) => {
           const occuredNames = [];
           return {
             ...row,
-            results: _.filter(res => {
+            results: _.filter((res) => {
               const alreadyOccured = occuredNames.includes(res.nickname);
               occuredNames.push(res.nickname);
               return !alreadyOccured;
@@ -147,17 +162,17 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
           };
         }),
       (names.length || namesOr.length || namesNot.length) &&
-        _.filter(row => {
+        _.filter((row) => {
           const rowNames = _.map('nickname', row.results);
           return (
-            (!names.length || _.every(name => rowNames.includes(name), names)) &&
-            (!namesOr.length || _.some(name => rowNames.includes(name), namesOr)) &&
-            (!namesNot.length || !_.some(name => rowNames.includes(name), namesNot))
+            (!names.length || _.every((name) => rowNames.includes(name), names)) &&
+            (!namesOr.length || _.some((name) => rowNames.includes(name), namesOr)) &&
+            (!namesNot.length || !_.some((name) => rowNames.includes(name), namesNot))
           );
         }),
-      _.filter(row => _.size(row.results)),
+      _.filter((row) => _.size(row.results)),
       ...sortingFunctions,
-      filter.song && (items => matchSorter(items, filter.song.trim(), { keys: ['song'] })),
+      filter.song && ((items) => matchSorter(items, filter.song.trim(), { keys: ['song'] })),
     ])
   )(data);
   // console.log('Elapsed:', performance.now() - start);
@@ -165,9 +180,9 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
 };
 
 export const filteredDataSelector = createSelector(
-  state => state.results.data,
-  state => state.results.sharedCharts,
-  state => state.results.filter,
-  state => state.results.resultInfo,
+  (state) => state.results.data,
+  (state) => state.results.sharedCharts,
+  (state) => state.results.filter,
+  (state) => state.results.resultInfo,
   getFilteredData
 );

@@ -23,15 +23,12 @@ import { fetchResults } from 'reducers/results';
 
 // code
 const rankingSelector = createSelector(
-  state => state.results.profiles,
-  _.flow(
-    _.values,
-    _.remove(profile => !profile.pp),
-    _.orderBy(['pp.pp'], ['desc'])
-  )
+  (state) => state.results.profiles,
+  // _.flow(_.values, _.orderBy(['pp.pp'], ['desc']))
+  _.flow(_.values, _.orderBy(['ratingRaw'], ['desc']))
 );
 
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
   return {
     ranking: rankingSelector(state),
     error: state.results.error || state.tracklist.error,
@@ -111,7 +108,4 @@ class Ranking extends Component {
   }
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(withRouter(Ranking));
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Ranking));

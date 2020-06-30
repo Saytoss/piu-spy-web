@@ -1,5 +1,20 @@
 import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
+import moment from 'moment';
+
+const cutRange = (array, range) => {
+  const startIndex = _.findIndex(item => item.date > range[0], array);
+  const endIndex = _.findLastIndex(item => item.date < range[1], array);
+  let firstElement =
+    startIndex > 0 ? array[startIndex - 1] : startIndex === 0 ? array[startIndex] : _.last(array);
+  let lastElement = endIndex > -1 ? array[endIndex] : _.first(array);
+  firstElement = { ...firstElement, date: range[0] };
+  lastElement = { ...lastElement, date: range[1] };
+  const middleElements =
+    startIndex > -1 && endIndex > -1 ? array.slice(startIndex, endIndex + 1) : [];
+
+  return [firstElement, ...middleElements, lastElement];
+};
 
 const defaultGradesDistribution = {
   SSS: 0,
@@ -119,14 +134,38 @@ export const profileSelectorCreator = idParamName =>
           };
         })
       )(gradesData);
+
+      const lastTickRating = _.last(profile.ratingHistory).date;
+      const lastTickRanking = _.last(profile.rankingHistory).date;
+      const lastTick = lastTickRating > lastTickRanking ? lastTickRating : lastTickRanking; // End graph at either point
+      const firstTick = _.first(profile.ratingHistory).date; // Start graph from the first battle of this player
+      const lastDay = moment(lastTick).endOf('day');
+      const firstDay = moment(firstTick).startOf('day');
+      const minMaxRange = [firstDay / 1000 / 60 / 60 / 24, lastDay / 1000 / 60 / 60 / 24];
+
+      const filterRange = filter.dayRange || [
+        Math.max(minMaxRange[0], minMaxRange[1] - 30),
+        minMaxRange[1],
+      ];
+      const dayRangeMs = [
+        +moment(filterRange[0] * 1000 * 60 * 60 * 24).startOf('day'),
+        +moment(filterRange[1] * 1000 * 60 * 60 * 24).endOf('day'),
+      ];
+      const placesChanges = cutRange(profile.rankingHistory, dayRangeMs);
+      const ratingChanges = cutRange(profile.ratingHistory, dayRangeMs);
+
       const rank = 1 + _.findIndex({ id }, _.orderBy(['ratingRaw'], ['desc'], _.values(profiles)));
 
       return {
         ...profile,
         rank,
+        minMaxRange,
+        filterRange,
         levelsDistribution,
         gradesDistribution,
         gradesAndLevelsDistribution,
+        placesChanges,
+        ratingChanges,
       };
     }
   );

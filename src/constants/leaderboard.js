@@ -5,6 +5,8 @@ export const SORT = {
   PROTAGONIST: 'protagonist',
   RANK_ASC: 'rankAsc',
   RANK_DESC: 'rankDesc',
+  PP_ASC: 'ppAsc',
+  PP_DESC: 'ppDesc',
   NEW_SCORES_PLAYER: 'newScoresPlayer',
   EASIEST_SONGS: 'easiestSongs',
   HARDEST_SONGS: 'hardestSongs',

@@ -1,12 +1,13 @@
 import React, { Component } from 'react';
 import toBe from 'prop-types';
 import { connect } from 'react-redux';
-import { FaSearch, FaQuestionCircle, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaQuestionCircle, FaTimes, FaCaretLeft, FaCaretRight } from 'react-icons/fa';
 import { withRouter } from 'react-router-dom';
 import classNames from 'classnames';
 import ReactModal from 'react-modal';
 import Tooltip from 'react-responsive-ui/modules/Tooltip';
 import Select from 'react-select';
+import moment from 'moment';
 import {
   BarChart,
   Bar,
@@ -32,6 +33,7 @@ import { routes } from 'constants/routes';
 import { DEBUG } from 'constants/env';
 
 // components
+import Range from 'components/Shared/Range';
 import Loader from 'components/Shared/Loader';
 import Toggle from 'components/Shared/Toggle/Toggle';
 import MostPlayed from './MostPlayed';
@@ -129,13 +131,10 @@ class Profile extends Component {
   };
 
   renderRankingHistory() {
-    // const { profile } = this.props;
+    const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
-        <LineChart
-          data={/*profile.ratingChanges*/ []}
-          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
-        >
+        <LineChart data={profile.ratingChanges} margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -177,27 +176,23 @@ class Profile extends Component {
     );
   }
 
-  renderPlaceHistory(q) {
+  renderPlaceHistory() {
     const { profile } = this.props;
     return (
       <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
-        <LineChart
-          data={q ? profile.accuracyPointsInterpolated : profile.accuracyPoints}
-          margin={{ top: 5, bottom: 5, right: 5, left: 0 }}
-        >
+        <LineChart data={profile.placesChanges} margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
-            dataKey="[0]"
+            dataKey="date"
             type="number"
-            domain={[1, 28]}
-            tickFormatter={value => Math.round(value)}
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={value => parseDate(value).toLocaleDateString()}
           />
           <YAxis
-            domain={[0, 100]}
-            // allowDecimals={false}
-            // domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
-            // interval={0}
-            // reversed
+            allowDecimals={false}
+            domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
+            interval={0}
+            reversed
             width={40}
           />
           <RechartsTooltip
@@ -208,16 +203,16 @@ class Profile extends Component {
               }
               return (
                 <div className="history-tooltip">
-                  <div>{payload[0].payload[0]}</div>
-                  {payload && payload[0] && <div>Acc: #{payload[0].value}</div>}
+                  <div>{parseDate(payload[0].payload.date).toLocaleDateString()}</div>
+                  {payload && payload[0] && <div>Place: #{payload[0].value}</div>}
                 </div>
               );
             }}
           />
           <Line
             isAnimationActive={false}
-            // type="stepAfter"
-            dataKey="[1]"
+            type="stepAfter"
+            dataKey="place"
             stroke="#88d3ff"
             strokeWidth={3}
             dot={false}
@@ -478,7 +473,7 @@ class Profile extends Component {
   }
 
   renderProfile() {
-    const { profile, otherPlayers } = this.props;
+    const { profile, otherPlayers, filter } = this.props;
     const { isLevelGraphCombined } = this.state;
     const expProgress = profile.expRankNext
       ? (profile.exp - profile.expRank.threshold) /
@@ -496,7 +491,7 @@ class Profile extends Component {
             <div>#{profile.rank}</div>
           </div>
           <div className="text-with-header">
-            <div className="text-header">pp</div>
+            <div className="text-header">эло</div>
             <div>{profile.rating}</div>
           </div>
           <div className="text-with-header">
@@ -637,17 +632,65 @@ class Profile extends Component {
             <div className="profile-section-content">
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
-                  <span>эло (временно отключено)</span>
-                  {this.renderPlaceHistory()}
+                  <span>эло</span>
                 </div>
+                <div className="chart-container">{this.renderRankingHistory()}</div>
               </div>
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
-                  <span>место в топе (временно отключено)</span>
-                  {this.renderPlaceHistory(1)}
+                  <span>место в топе</span>
                 </div>
+                <div className="chart-container">{this.renderPlaceHistory()}</div>
               </div>
             </div>
+            {(() => {
+              const currentRange = filter.dayRange || profile.filterRange;
+              const dateL = moment(currentRange[0] * 1000 * 60 * 60 * 24).format('L');
+              const dateR = moment(currentRange[1] * 1000 * 60 * 60 * 24).format('L');
+              const l1 = Math.max(currentRange[0] - 1, profile.minMaxRange[0]);
+              const l2 = Math.min(currentRange[0] + 1, currentRange[1]);
+              const r1 = Math.max(currentRange[1] - 1, currentRange[0]);
+              const r2 = Math.min(currentRange[1] + 1, profile.minMaxRange[1]);
+              return (
+                <div className="range-container">
+                  <Range
+                    range={currentRange}
+                    min={profile.minMaxRange[0]}
+                    max={profile.minMaxRange[1]}
+                    onChange={this.onChangeDayRange}
+                  />
+                  <div className="range-controls _flex-row">
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([l1, currentRange[1]])}
+                    >
+                      <FaCaretLeft />
+                    </button>
+                    <span className="date-text">{dateL}</span>
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([l2, currentRange[1]])}
+                    >
+                      <FaCaretRight />
+                    </button>
+                    <div className="_flex-fill"></div>
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([currentRange[0], r1])}
+                    >
+                      <FaCaretLeft />
+                    </button>
+                    <span className="date-text">{dateR}</span>
+                    <button
+                      className="btn btn-sm btn-dark"
+                      onClick={() => this.onChangeDayRange([currentRange[0], r2])}
+                    >
+                      <FaCaretRight />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
         <div className="profile-section progress-section">

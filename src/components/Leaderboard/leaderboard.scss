@@ -224,20 +224,28 @@
                 text-align: right;
               }
               &.nickname {
-                width: 200px;
-                > .debug-elo-info {
-                  color: #888;
-                }
-                > .change-holder {
-                  font-size: 80%;
-                  margin-left: 0.5em;
-                  font-weight: normal;
-                  display: inline-flex;
+                width: 275px;
+                > .nickname-container {
+                  display: flex;
+                  flex-flow: row nowrap;
                   align-items: center;
-                  justify-content: center;
-                  color: #afe488;
-                  > span {
-                    padding-top: 0.2em;
+
+                  > .nickname-text {
+                    > .debug-elo-info {
+                      color: #888;
+                    }
+                    > .change-holder {
+                      font-size: 80%;
+                      margin-left: 0.5em;
+                      font-weight: normal;
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: #afe488;
+                      > span {
+                        padding-top: 0.2em;
+                      }
+                    }
                   }
                 }
               }

@@ -64,12 +64,20 @@ const sortingOptions = [
   //   value: SORT.PROTAGONIST,
   // },
   {
-    label: 'от худших результатов',
+    label: 'от худших результатов (эло)',
     value: SORT.RANK_ASC,
   },
   {
-    label: 'от лучших результатов',
+    label: 'от лучших результатов (эло)',
     value: SORT.RANK_DESC,
+  },
+  {
+    label: 'от худших результатов (pp)',
+    value: SORT.PP_ASC,
+  },
+  {
+    label: 'от лучших результатов (pp)',
+    value: SORT.PP_DESC,
   },
   {
     label: 'от лёгких чартов',
@@ -81,9 +89,10 @@ const sortingOptions = [
   },
 ];
 
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
   return {
     players: playersSelector(state),
+    profiles: state.results.profiles,
     resultInfo: state.results.resultInfo,
     results: state.results.results,
     sharedCharts: state.results.sharedCharts,
@@ -135,13 +144,13 @@ class Leaderboard extends Component {
     !isLoading && this.props.fetchResults();
   };
 
-  onTypeSongName = _.debounce(300, value => {
+  onTypeSongName = _.debounce(300, (value) => {
     this.setFilter('song', value);
   });
 
-  onRedoLatestResult = _.throttle(ANIMATION_DURATION + 10, chart => {
+  onRedoLatestResult = _.throttle(ANIMATION_DURATION + 10, (chart) => {
     const overrides = _.drop(1, this.state.chartOverrides[chart.sharedChartId]);
-    this.setState(state => ({
+    this.setState((state) => ({
       chartOverrides: {
         ...state.chartOverrides,
         [chart.sharedChartId]: _.size(overrides) === 1 ? null : overrides,
@@ -149,9 +158,9 @@ class Leaderboard extends Component {
     }));
   });
 
-  onUndoLatestResult = _.throttle(ANIMATION_DURATION + 10, chart => {
+  onUndoLatestResult = _.throttle(ANIMATION_DURATION + 10, (chart) => {
     if (_.isEmpty(chart.results)) {
-      this.setState(state => ({
+      this.setState((state) => ({
         chartOverrides: _.omit(chart.sharedChartId, state.chartOverrides),
       }));
     }
@@ -161,7 +170,7 @@ class Leaderboard extends Component {
     const { results } = this.props;
     const undoedPlayerId = undoedResult.playerId;
     const previousPlayerResult = _.findLast(
-      res =>
+      (res) =>
         res.playerId === undoedPlayerId &&
         res.sharedChartId === chart.sharedChartId &&
         res.isRank === undoedResult.isRank &&
@@ -171,7 +180,7 @@ class Leaderboard extends Component {
     const newResults = _.orderBy(
       'score',
       'desc',
-      _.compact(_.map(res => (res === undoedResult ? previousPlayerResult : res), chart.results))
+      _.compact(_.map((res) => (res === undoedResult ? previousPlayerResult : res), chart.results))
     );
     const latestScore = _.maxBy('date', newResults);
     const overrideChart = {
@@ -180,14 +189,14 @@ class Leaderboard extends Component {
       results: newResults,
     };
     if (_.isEmpty(newResults)) {
-      this.setState(state => ({
+      this.setState((state) => ({
         chartOverrides: {
           ...state.chartOverrides,
           [chart.sharedChartId]: null,
         },
       }));
     } else {
-      this.setState(state => ({
+      this.setState((state) => ({
         chartOverrides: {
           ...state.chartOverrides,
           [chart.sharedChartId]: [
@@ -293,7 +302,7 @@ class Leaderboard extends Component {
             <div>
               <Toggle
                 checked={_.getOr(false, 'showOnlyRank', filter)}
-                onChange={value => {
+                onChange={(value) => {
                   this.setFilter('showOnlyRank', value);
                   if (_.get('showRankAndNorank', filter)) {
                     this.setFilter('showRankAndNorank', false);
@@ -306,7 +315,7 @@ class Leaderboard extends Component {
             <div>
               <Toggle
                 checked={_.getOr(false, 'showRankAndNorank', filter)}
-                onChange={value => {
+                onChange={(value) => {
                   this.setFilter('showRankAndNorank', value);
                   if (_.get('showOnlyRank', filter)) {
                     this.setFilter('showOnlyRank', false);
@@ -338,9 +347,14 @@ class Leaderboard extends Component {
             onChange={this.setFilter('sortingType')}
           />
         </div>
-        {[SORT.PROTAGONIST, SORT.RANK_ASC, SORT.RANK_DESC, SORT.NEW_SCORES_PLAYER].includes(
-          _.get('sortingType.value', filter)
-        ) && (
+        {[
+          SORT.PROTAGONIST,
+          SORT.RANK_ASC,
+          SORT.RANK_DESC,
+          SORT.PP_ASC,
+          SORT.PP_DESC,
+          SORT.NEW_SCORES_PLAYER,
+        ].includes(_.get('sortingType.value', filter)) && (
           <div>
             <label className="label">игрок:</label>
             <Select
@@ -375,16 +389,28 @@ class Leaderboard extends Component {
   }
 
   render() {
-    const { isLoading, filteredData, error, filter, resultInfo, sharedCharts } = this.props;
+    const {
+      isLoading,
+      profiles,
+      filteredData,
+      error,
+      filter,
+      resultInfo,
+      sharedCharts,
+    } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
 
     const sortingType = _.get('sortingType.value', filter);
+    const showProtagonistEloChange = [SORT.RANK_ASC, SORT.RANK_DESC].includes(sortingType);
+    const showProtagonistPpChange = [SORT.PP_ASC, SORT.PP_DESC].includes(sortingType);
     const highlightProtagonist = [
       SORT.PROTAGONIST,
       SORT.RANK_ASC,
       SORT.RANK_DESC,
+      SORT.PP_ASC,
+      SORT.PP_DESC,
       SORT.NEW_SCORES_PLAYER,
     ].includes(sortingType);
     const protagonistName = _.get('protagonist.value', filter);
@@ -412,7 +438,7 @@ class Leaderboard extends Component {
           {!!this.props.presets.length && (
             <div className="presets-buttons">
               <span>пресеты:</span>
-              {this.props.presets.map(preset => (
+              {this.props.presets.map((preset) => (
                 <ToggleButton
                   key={preset.name}
                   text={preset.name}
@@ -558,12 +584,60 @@ class Leaderboard extends Component {
                                   if (res.scoreIncrease && res.date === chart.latestScoreDate) {
                                     const prevScore = res.score - res.scoreIncrease;
                                     newIndex = _.findLastIndex(
-                                      res => res.score > prevScore,
+                                      (res) => res.score > prevScore,
                                       results
                                     );
                                     placeDifference = newIndex - index;
                                   }
                                   const inf = resultInfo[res.id] || {};
+
+                                  // Rating info for nickname column:
+                                  let ratingInfoBlock = null;
+                                  if (DEBUG) {
+                                    // In debug mode we show all info
+                                    ratingInfoBlock = (
+                                      <>
+                                        <span className="debug-elo-info">
+                                          {' '}
+                                          {inf.startingRating && Math.round(inf.startingRating)}
+                                          {' / '}
+                                          {inf.ratingDiff > 0 ? '+' : ''}
+                                          {inf.ratingDiff && Math.round(inf.ratingDiff)}
+                                          {' / '}
+                                          {inf.pp && inf.pp.ppFixed}pp
+                                        </span>
+                                      </>
+                                    );
+                                  } else if (res.nickname === protagonistName) {
+                                    // In non-debug mode we show relevant info for selected protagonist
+                                    ratingInfoBlock = (
+                                      <>
+                                        {' / '}
+                                        {showProtagonistEloChange && inf.ratingDiff && (
+                                          <span>
+                                            {`${inf.ratingDiff > 0 ? '+' : ''}${Math.round(
+                                              inf.ratingDiff
+                                            )}`}
+                                          </span>
+                                        )}
+                                        {showProtagonistPpChange && inf.pp && (
+                                          <span>{inf.pp.ppFixed}pp</span>
+                                        )}
+                                      </>
+                                    );
+                                  }
+
+                                  const flag = profiles[res.playerId] ? (
+                                    <div
+                                      className="flag-img"
+                                      style={{
+                                        backgroundImage: `url(https://osu.ppy.sh/images/flags/${
+                                          profiles[res.playerId].region
+                                        }.png)`,
+                                      }}
+                                    />
+                                  ) : null;
+
                                   return (
                                     <tr
                                       key={res.isRank + '_' + res.nickname}
@@ -583,32 +657,19 @@ class Leaderboard extends Component {
                                             : {}
                                         }
                                       >
-                                        {res.nickname}
-                                        {!!placeDifference && (
-                                          <span className="change-holder up">
-                                            <span>{placeDifference}</span>
-                                            <FaAngleDoubleUp />
+                                        <div className="nickname-container">
+                                          {flag}
+                                          <span className="nickname-text">
+                                            {res.nickname}
+                                            {!!placeDifference && (
+                                              <span className="change-holder up">
+                                                <span>{placeDifference}</span>
+                                                <FaAngleDoubleUp />
+                                              </span>
+                                            )}
+                                            {ratingInfoBlock}
                                           </span>
-                                        )}
-                                        {/* {res.pp && DEBUG && (
-                                          <span className="debug-elo-info">
-                                            {' '}
-                                            {res.pp.ppFixed}pp
-                                          </span>
-                                        )} */}
-                                        {inf.pp &&
-                                        (sortingType === SORT.RANK_DESC ||
-                                          sortingType === SORT.RANK_ASC) &&
-                                        res.nickname === protagonistName ? (
-                                          <span> ({inf.pp.ppFixed}pp)</span>
-                                        ) : (
-                                          inf.pp && (
-                                            <span className="debug-elo-info">
-                                              {' '}
-                                              {inf.pp.ppFixed}pp
-                                            </span>
-                                          )
-                                        )}
+                                        </div>
                                       </td>
                                       <td
                                         className={classNames('judge', {
@@ -677,6 +738,17 @@ class Leaderboard extends Component {
                                                 {numeral(getExp(res, chart)).format('0,0')}
                                               </div>
                                             )}
+                                            {_.isNumber(inf.startingRating) &&
+                                              _.isNumber(inf.ratingDiff) && (
+                                                <div className="important">
+                                                  <span className="_grey">
+                                                    эло: {inf.startingRating.toFixed(0)}{' '}
+                                                  </span>
+                                                  {inf.ratingDiff >= 0
+                                                    ? `+${inf.ratingDiff.toFixed(0)}`
+                                                    : inf.ratingDiff.toFixed(0)}
+                                                </div>
+                                              )}
                                             {inf.pp && (
                                               <div className="important">
                                                 <span className="_grey">pp: </span>
@@ -792,7 +864,7 @@ class Leaderboard extends Component {
               <button
                 className="btn btn-sm btn-primary"
                 onClick={() =>
-                  this.setState(state => ({ showItemsCount: state.showItemsCount + 10 }))
+                  this.setState((state) => ({ showItemsCount: state.showItemsCount + 10 }))
                 }
               >
                 show more...

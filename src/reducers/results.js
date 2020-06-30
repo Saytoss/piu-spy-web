@@ -74,7 +74,7 @@ const tryFixIncompleteResult = (result, maxTotalSteps) => {
   }
 };
 
-const guessGrade = result => {
+const guessGrade = (result) => {
   if (result.misses === 0 && result.bads === 0 && result.goods === 0) {
     if (result.greats === 0) {
       return 'SSS';
@@ -124,7 +124,6 @@ const mapResult = (res, players, chart) => {
     isExactDate: !!res.exact_gain_date,
     score: res.score,
     scoreRaw: getScoreWithoutBonus(res.score, res.grade),
-    maxScore: res.max_score,
     scoreIncrease: res.score_increase,
     calories: res.calories && res.calories / 1000,
     perfect: res.perfects,
@@ -163,14 +162,14 @@ const mapResult = (res, players, chart) => {
   return _r;
 };
 
-const getMaxScore = score => {
-  return ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
-};
-const getMaxRawScore = score => {
+// const getMaxScore = score => {
+//   return ((score.score / score.accuracyRaw) * 100) / (score.isRank ? 1.2 : 1);
+// };
+const getMaxRawScore = (score) => {
   return ((score.scoreRaw / score.accuracy) * 100) / (score.isRank ? 1.2 : 1);
 };
 
-const initializeProfile = (result, profiles) => {
+const initializeProfile = (result, profiles, players) => {
   const id = result.playerId;
   const resultsByLevel = _.fromPairs(Array.from({ length: 28 }).map((x, i) => [i + 1, []]));
   profiles[id] = {
@@ -188,10 +187,11 @@ const initializeProfile = (result, profiles) => {
     ratingHistory: [],
     lastPlace: null,
     lastBattleDate: 0,
+    region: players[id].region,
   };
   profiles[id].achievements = _.flow(
     _.keys,
-    _.map(achName => [
+    _.map((achName) => [
       achName,
       { ...(achievements[achName].initialState || initialAchievementState) },
     ]),
@@ -233,11 +233,14 @@ const processData = (data, tracklist) => {
   //// Initialization
   // Init for TOP
   const mappedResults = [];
-  const getTopResultId = result => `${result.sharedChartId}-${result.playerId}-${result.isRank}`;
-  const getBestGradeResultId = result => `${result.sharedChartId}-${result.playerId}`;
+  const getTopResultId = (result) => `${result.sharedChartId}-${result.playerId}-${result.isRank}`;
+  const getBestGradeResultId = (result) => `${result.sharedChartId}-${result.playerId}`;
   const topResults = {}; // Temp object
   const bestGradeResults = {}; // Temp object
   const top = {}; // Main top scores pbject
+
+  // Battles for ELO calculation
+  const battles = [];
 
   // Profiles for every player
   let profiles = {};
@@ -278,12 +281,25 @@ const processData = (data, tracklist) => {
           chartTop.results.splice(oldScoreIndex, 1);
         }
       }
-      const newScoreIndex = _.sortedLastIndexBy(r => -r.score, result, chartTop.results);
+      const newScoreIndex = _.sortedLastIndexBy((r) => -r.score, result, chartTop.results);
       if (!result.isUnknownPlayer || newScoreIndex === 0) {
         chartTop.results.splice(newScoreIndex, 0, result);
         chartTop.latestScoreDate = result.date;
         chartTop.totalResultsCount++;
         topResults[topResultId] = result;
+      }
+      if (!result.isUnknownPlayer) {
+        chartTop.results.forEach((enemyResult) => {
+          if (
+            !enemyResult.isUnknownPlayer &&
+            enemyResult.isRank === result.isRank &&
+            enemyResult.playerId !== result.playerId &&
+            result.score &&
+            enemyResult.score
+          ) {
+            battles.push([result, enemyResult, chartTop]);
+          }
+        });
       }
     }
 
@@ -306,34 +322,29 @@ const processData = (data, tracklist) => {
   // Loop 2, when the TOP is already set up
   for (let chartId in top) {
     const chart = top[chartId];
-    chart.maxScoreWithAccuracy = 0;
-    chart.maxNonRankScore = 0;
+    chart.maxScore = null;
     for (let result of chart.results) {
-      if (result.accuracyRaw && chart.maxScoreWithAccuracy < result.score) {
-        chart.maxScoreResult = result;
-        chart.maxScoreWithAccuracy = result.score;
-      }
-      if (result.accuracyRaw && !result.isRank && chart.maxNonRankScore < result.score) {
-        chart.maxNonRankScoreResult = result;
-        chart.maxNonRankScore = result.score;
+      if (!result.isRank) {
+        if (result.accuracy) {
+          const maxScoreCandidate = getMaxRawScore(result, chart);
+          if (chart.maxScore < maxScoreCandidate) {
+            chart.maxScore = maxScoreCandidate;
+          }
+        } else if (chart.maxScore && chart.maxScore < result.score) {
+          chart.maxScore = result.score;
+        }
       }
       // Getting some info about players
       if (!result.isUnknownPlayer && !result.isIntermediateResult) {
         if (!profiles[result.playerId]) {
-          initializeProfile(result, profiles);
+          initializeProfile(result, profiles, players);
         }
         getProfileInfoFromResult(result, chart, profiles);
       }
     }
-    if (chart.maxScoreWithAccuracy) {
-      chart.maxScore = getMaxScore(chart.maxScoreResult, chart);
-    }
-    if (chart.maxNonRankScore) {
-      chart.maxNonRankScore = getMaxRawScore(chart.maxNonRankScoreResult, chart);
-    }
   }
 
-  return { mappedResults, profiles, sharedCharts: top };
+  return { mappedResults, profiles, sharedCharts: top, battles };
 };
 
 export default function reducer(state = initialState, action) {
@@ -390,7 +401,7 @@ export default function reducer(state = initialState, action) {
       const hasPrevList = !_.isEmpty(action.listPrev);
       return {
         ...state,
-        profiles: _.mapValues(playerOriginal => {
+        profiles: _.mapValues((playerOriginal) => {
           const player = {
             ...playerOriginal,
             prevRating: _.get(playerOriginal.id, action.rankingsPointsMap),
@@ -428,8 +439,13 @@ export const fetchResults = () => {
       if (data.error) {
         throw new Error(data.error);
       }
-      // HACK for test
+      // HACKS for test
       // data.results = _.dropRight(500, data.results);
+      // console.log(1, data.results);
+      // data.results = _.filter(res => res.gained < '2020-03-12 16:55:00', data.results);
+      // data.results = _.filter(res => res.gained < '2020-03-12 16:34:51', data.results);
+      // console.log(2, data.results);
+
       dispatch(processResultsData(data));
     } catch (error) {
       console.log(error);
@@ -438,7 +454,7 @@ export const fetchResults = () => {
   };
 };
 
-export const appendNewResults = lastDate => {
+export const appendNewResults = (lastDate) => {
   return async (dispatch, getState) => {
     const { originalData, sharedCharts } = getState().results;
     if (!lastDate) {
@@ -456,13 +472,13 @@ export const appendNewResults = lastDate => {
         throw new Error(data.error);
       }
 
-      const appendedResults = _.filter(result => {
+      const appendedResults = _.filter((result) => {
         const currentResults = sharedCharts[result.shared_chart];
         if (!currentResults) {
           return true;
         }
         const oldResult = _.find(
-          old =>
+          (old) =>
             old.id === result.id ||
             (old.playerId === result.player && old.isRank === !!result.rank_mode),
           currentResults.results
@@ -494,10 +510,10 @@ export const appendNewResults = lastDate => {
   };
 };
 
-const processResultsData = data => {
+const processResultsData = (data) => {
   return async (dispatch, getState) => {
     const { tracklist } = getState();
-    const { sharedCharts, mappedResults, profiles } = processData(data, tracklist);
+    const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
 
     dispatch({
       type: SUCCESS,
@@ -513,36 +529,35 @@ const processResultsData = data => {
     });
 
     // Parallelized calculation of ELO and profile data
-    const input = { sharedCharts, profiles, tracklist };
+    const input = { sharedCharts, profiles, tracklist, battles, debug: DEBUG };
     let promise, worker;
     if (window.Worker) {
       worker = new WorkerProfilesProcessing();
       promise = worker.getProcessedProfiles(input);
     } else {
-      promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
+      promise = new Promise((res) => res(profilesProcessing.getProcessedProfiles(input)));
     }
 
-    const { processedProfiles, resultInfo, sharedCharts: newSharedCharts } = await promise;
+    const output = await promise;
+    DEBUG && console.log(output.logText);
     DEBUG &&
       console.log(
         'Processed profiles:',
-        Object.values(processedProfiles)
-          .filter(q => q.pp)
+        Object.values(output.profiles)
+          .filter((q) => q.pp)
           .sort((a, b) => b.pp.pp - a.pp.pp)
       );
 
     dispatch({
       type: PROFILES_UPDATE,
-      profiles: processedProfiles,
-      resultInfo,
-      sharedCharts: newSharedCharts,
+      ...output,
     });
-    dispatch(calculateRankingChanges(processedProfiles));
+    dispatch(calculateRankingChanges(output.profiles));
     if (worker) worker.terminate();
   };
 };
 
-export const setFilter = filter => ({
+export const setFilter = (filter) => ({
   type: SET_FILTER,
   filter,
 });
@@ -553,11 +568,11 @@ export const resetFilter = () => ({
 
 const getListOfNames = _.map('id');
 const getMapOfRatings = _.flow(
-  _.map(q => [q.id, q.rating]),
+  _.map((q) => [q.id, q.rating]),
   _.fromPairs
 );
 
-export const calculateRankingChanges = profiles => {
+export const calculateRankingChanges = (profiles) => {
   return async (dispatch, getState) => {
     try {
       const ranking = _.orderBy('ratingRaw', 'desc', _.values(profiles));

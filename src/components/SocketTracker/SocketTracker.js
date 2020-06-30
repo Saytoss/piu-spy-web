@@ -16,13 +16,13 @@ import { fetchTopPerSong } from 'reducers/topPerSong';
 import { fetchTracklist } from 'reducers/tracklist';
 
 import { getRankImg } from 'utils/exp';
-import { preprocessData, getTimeAgo } from './helpers';
+import { getTimeAgo } from './helpers';
 
 // code
 const STATE_RESET_TIMEOUT = 10 * 60 * 1000; // 5 minutes
 
 // redux
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
   return {
     isLoading: state.topPerSong.isLoading,
     songTopData: state.topPerSong.data,
@@ -87,7 +87,7 @@ function TrackerApp({
   const rightChart = _.find({ chartLabel: rightLabel }, songTopData);
   const chartsToShow = _.uniq(_.compact([leftChart, rightChart]));
 
-  const topPlayersList = _.flow(_.values, _.orderBy('ratingRaw', 'desc'), items =>
+  const topPlayersList = _.flow(_.values, _.orderBy('ratingRaw', 'desc'), (items) =>
     items.map((it, index) => ({ place: index + 1, ...it }))
   )(profiles);
 
@@ -95,10 +95,10 @@ function TrackerApp({
   let rightProfile = {};
 
   if (leftPlayer) {
-    leftProfile = _.minBy(p => lev.get(p.nameArcade, leftPlayer), _.values(profiles)) || {};
+    leftProfile = _.minBy((p) => lev.get(p.nameArcade, leftPlayer), _.values(profiles)) || {};
   }
   if (rightPlayer) {
-    rightProfile = _.minBy(p => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
+    rightProfile = _.minBy((p) => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
   }
 
   const [leftData, setLeftData] = useState({ name: leftProfile.name, ratingRaw: null, exp: null });
@@ -198,13 +198,13 @@ function TrackerApp({
     socketRef.current.onerror = () => {
       setMessage(`Cannot connect to websocket server, please reload the page`);
     };
-    socketRef.current.onopen = e => {
+    socketRef.current.onopen = (e) => {
       setSocketReady(true);
     };
   }, []); // eslint-disable-line
 
   useEffect(() => {
-    socketRef.current.onmessage = event => {
+    socketRef.current.onmessage = (event) => {
       restartTimeout();
       try {
         const data = event && event.data && JSON.parse(event.data);
@@ -390,7 +390,7 @@ function TrackerApp({
               </div>
             )}
             <div className="closest-players">
-              {_.map(pl => {
+              {_.map((pl) => {
                 return (
                   <div className={`closest-player ${profile.id === pl.id ? 'current-player' : ''}`}>
                     <div className="place">#{pl.place}</div>
@@ -495,7 +495,7 @@ function TrackerApp({
                             let placeDifference, newIndex;
                             if (res.scoreIncrease && res.date === chart.latestScoreDate) {
                               const prevScore = res.score - res.scoreIncrease;
-                              newIndex = _.findLastIndex(res => res.score > prevScore, results);
+                              newIndex = _.findLastIndex((res) => res.score > prevScore, results);
                               placeDifference = newIndex - index;
                             }
                             const pp = _.getOr('', `[${res.id}].pp.ppFixed`, resultInfo);
