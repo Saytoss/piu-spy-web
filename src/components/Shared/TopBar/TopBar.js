@@ -12,7 +12,7 @@ import { routes } from 'constants/routes';
 import * as loginACs from 'reducers/login';
 
 // redux
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
   return {
     isLoadingLogin: state.login.isLoading,
     isLoadingUser: state.user.isLoading,
@@ -32,7 +32,7 @@ function TopBar({ isLoadingLogin, isLoadingUser, user, login, logout }) {
         <ul>
           <li>
             <NavLink exact to={routes.leaderboard.path}>
-              leaderboard
+              leaderboards
             </NavLink>
           </li>
           <li>
@@ -67,7 +67,4 @@ function TopBar({ isLoadingLogin, isLoadingUser, user, login, logout }) {
     </header>
   );
 }
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(TopBar);
+export default connect(mapStateToProps, mapDispatchToProps)(TopBar);
