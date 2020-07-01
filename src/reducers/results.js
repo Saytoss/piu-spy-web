@@ -247,6 +247,11 @@ const processData = (data, tracklist) => {
 
   // Loop 1
   for (let resRaw of results) {
+    if (!players[resRaw.player]) {
+      // Player of this result was not found in list of players. Ignoring this result like it doesn't exist
+      continue;
+    }
+
     const sharedChartId = resRaw.shared_chart;
     // Initialize Song
     if (!top[sharedChartId]) {
