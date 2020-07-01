@@ -5,6 +5,7 @@ import _ from 'lodash/fp';
 import tracklist from 'reducers/tracklist';
 import trackStats from 'reducers/trackStats';
 import profiles from 'reducers/profiles';
+import preferences from 'reducers/preferences';
 import presets from 'reducers/presets';
 import results from 'reducers/results';
 import user from 'reducers/user';
@@ -14,6 +15,7 @@ import topPerSong from 'reducers/topPerSong';
 const rootReducer = combineReducers({
   topPerSong,
   login,
+  preferences,
   presets,
   profiles,
   results,
@@ -28,7 +30,7 @@ export const store = createStore(
     ? compose(
         applyMiddleware(thunk),
         window.__REDUX_DEVTOOLS_EXTENSION__({
-          stateSanitizer: state => ({
+          stateSanitizer: (state) => ({
             ...state,
             results: {
               ...state.results,
@@ -36,7 +38,7 @@ export const store = createStore(
               results: `big array, ${_.size(state.results.results)}`,
               sharedCharts: 'big object',
               profiles: _.mapValues(
-                pl => ({
+                (pl) => ({
                   ...pl,
                   resultsByGrade: '...',
                   resultsByLevel: '...',

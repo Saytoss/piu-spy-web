@@ -36,13 +36,23 @@ const filterCharts = (filter, rows) => {
   }, rows);
 };
 
-const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
+const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preferences) => {
   // const start = performance.now();
+  const playersHiddenStatus = preferences.playersHiddenStatus;
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
   const namesNot = _.map('value', filter.playersNot);
   const sortingType = _.get('value', filter.sortingType);
-  const protagonist = _.get('value', filter.protagonist);
+  const protagonist = [
+    SORT.PROTAGONIST,
+    SORT.RANK_ASC,
+    SORT.RANK_DESC,
+    SORT.PP_ASC,
+    SORT.PP_DESC,
+    SORT.NEW_SCORES_PLAYER,
+  ].includes(sortingType)
+    ? _.get('value', filter.protagonist)
+    : null;
   const excludeAntagonists = _.map('value', filter.excludeAntagonists);
 
   const defaultSorting = [_.orderBy(['latestScoreDate'], ['desc'])];
@@ -134,13 +144,23 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}) => {
 
   const result = _.flow(
     _.compact([
-      _.map((row) => ({
-        ...row,
-        results: row.results.filter(
-          (res, index) => !res.isUnknownPlayer || index === 0,
-          row.results
-        ),
-      })),
+      _.map((row) => {
+        let latestScoreDate = null;
+        const results = row.results.filter((res, index) => {
+          const isHiddenByPreferences =
+            playersHiddenStatus[res.playerId] && protagonist !== res.nickname;
+          const isVisible = !isHiddenByPreferences && (!res.isUnknownPlayer || index === 0);
+          if (isVisible && (!latestScoreDate || latestScoreDate < res.date)) {
+            latestScoreDate = res.date;
+          }
+          return isVisible;
+        }, row.results);
+        return {
+          ...row,
+          latestScoreDate,
+          results,
+        };
+      }),
       filter.chartRange && ((items) => filterCharts(filter.chartRange, items)),
       !filter.showRank &&
         _.map((row) => ({ ...row, results: _.filter((res) => !res.isRank, row.results) })),
@@ -184,5 +204,6 @@ export const filteredDataSelector = createSelector(
   (state) => state.results.sharedCharts,
   (state) => state.results.filter,
   (state) => state.results.resultInfo,
+  (state) => state.preferences.data,
   getFilteredData
 );

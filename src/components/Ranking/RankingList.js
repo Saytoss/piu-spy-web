@@ -9,6 +9,9 @@ import { NavLink } from 'react-router-dom';
 import { routes } from 'constants/routes';
 
 import Loader from 'components/Shared/Loader';
+import Flag from 'components/Shared/Flag';
+import Toggle from 'components/Shared/Toggle/Toggle';
+import CheckBox from 'components/Shared/CheckBox';
 
 import { getRankImg } from 'utils/exp';
 
@@ -16,7 +19,7 @@ const getGradeImg = (grade) => (
   <img src={`${process.env.PUBLIC_URL}/grades/${grade}.png`} alt={grade} />
 );
 
-export default function RankingList({ ranking, isLoading }) {
+export default function RankingList({ ranking, isLoading, preferences, updatePreferences }) {
   return (
     <div className="ranking-list">
       {_.isEmpty(ranking) && !isLoading && 'ничего не найдено'}
@@ -45,12 +48,17 @@ export default function RankingList({ ranking, isLoading }) {
               <th className="playcount">scores</th>
               {/* <th className="calories">kcal</th> */}
               <th className="accuracy">accuracy</th>
+              <th className="hide-col"> </th>
             </tr>
           </thead>
           <tbody>
             {ranking.map((player, playerIndex) => {
+              const isHidden = preferences.playersHiddenStatus[player.id];
               return (
-                <tr className="player" key={player.name}>
+                <tr
+                  className={classNames('player', { 'hidden-player': isHidden })}
+                  key={player.name}
+                >
                   <td className="place">
                     {playerIndex === 0 ? <GiQueenCrown /> : `#${playerIndex + 1}`}
                   </td>
@@ -76,12 +84,7 @@ export default function RankingList({ ranking, isLoading }) {
                   <td className="exp-rank">{getRankImg(player.expRank)}</td>
                   <td className="name">
                     <div className="name-container">
-                      <div
-                        className="flag-img"
-                        style={{
-                          backgroundImage: `url(https://osu.ppy.sh/images/flags/${player.region}.png)`,
-                        }}
-                      />
+                      <Flag region={player.region} />
                       <NavLink exact to={routes.profile.getPath({ id: player.id })}>
                         {player.name}
                       </NavLink>
@@ -118,6 +121,24 @@ export default function RankingList({ ranking, isLoading }) {
                   <td className="playcount">{player.count}</td>
                   <td className="accuracy">
                     {player.accuracy ? `${player.accuracy.toFixed(2)}%` : ''}
+                  </td>
+                  <td className="hide-col">
+                    <Toggle
+                      onChange={() => {
+                        updatePreferences(
+                          _.set(['playersHiddenStatus', player.id], !isHidden, preferences)
+                        );
+                      }}
+                      checked={!isHidden}
+                    />
+                    {/* <CheckBox
+                      onChange={() => {
+                        updatePreferences(
+                          _.set(['playersHiddenStatus', player.id], !isHidden, preferences)
+                        );
+                      }}
+                      isChecked={isHidden}
+                    /> */}
                   </td>
                 </tr>
               );

@@ -30,6 +30,7 @@ import Loader from 'components/Shared/Loader';
 import Input from 'components/Shared/Input/Input';
 import Toggle from 'components/Shared/Toggle/Toggle';
 import CollapsibleBar from 'components/Shared/CollapsibleBar';
+import Flag from 'components/Shared/Flag';
 import ChartFilter from './ChartFilter';
 import PresetsControl from './PresetsControl';
 
@@ -91,6 +92,7 @@ const sortingOptions = [
 
 const mapStateToProps = (state) => {
   return {
+    playersHiddenStatus: state.preferences.data.playersHiddenStatus,
     players: playersSelector(state),
     profiles: state.results.profiles,
     resultInfo: state.results.resultInfo,
@@ -120,6 +122,7 @@ class Leaderboard extends Component {
     resultInfo: toBe.object,
     data: toBe.array,
     error: toBe.object,
+    playersHiddenStatus: toBe.object,
     results: toBe.array,
     isLoading: toBe.bool.isRequired,
   };
@@ -397,6 +400,7 @@ class Leaderboard extends Component {
       filter,
       resultInfo,
       sharedCharts,
+      playersHiddenStatus,
     } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
@@ -458,10 +462,13 @@ class Leaderboard extends Component {
               visibleData.map((chartOriginal, chartIndex) => {
                 const overrides = chartOverrides[chartOriginal.sharedChartId];
                 const chart = _.first(overrides) || chartOriginal;
+
                 if (DEBUG) console.log(chart);
+
                 let topPlace = 1;
                 const occuredNicknames = [];
                 const results = chart.results.map((res, index) => {
+                  const isPlayerHidden = playersHiddenStatus[res.playerId];
                   const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
                   occuredNicknames.push(res.nickname);
                   if (index === 0) {
@@ -476,6 +483,7 @@ class Leaderboard extends Component {
                     ...res,
                     topPlace,
                     isSecondOccurenceInResults,
+                    isPlayerHidden,
                   };
                 });
                 const interpolatedDifficulty =
@@ -576,7 +584,11 @@ class Leaderboard extends Component {
                                 duration={ANIMATION_DURATION}
                               >
                                 {results.map((res, index) => {
-                                  if (res.isUnknownPlayer && index !== 0) {
+                                  const isProtagonist = res.nickname === protagonistName;
+                                  if (
+                                    (res.isPlayerHidden && !isProtagonist) ||
+                                    (res.isUnknownPlayer && index !== 0)
+                                  ) {
                                     return null;
                                   }
                                   const nameIndex = uniqueSelectedNames.indexOf(res.nickname);
@@ -631,14 +643,7 @@ class Leaderboard extends Component {
                                   }
 
                                   const flag = profiles[res.playerId] ? (
-                                    <div
-                                      className="flag-img"
-                                      style={{
-                                        backgroundImage: `url(https://osu.ppy.sh/images/flags/${
-                                          profiles[res.playerId].region
-                                        }.png)`,
-                                      }}
-                                    />
+                                    <Flag region={profiles[res.playerId].region} />
                                   ) : null;
 
                                   return (

@@ -23,10 +23,11 @@ import SocketTracker from 'components/SocketTracker/SocketTracker';
 import { fetchResults, setFilter } from 'reducers/results';
 import { fetchTracklist } from 'reducers/tracklist';
 import { fetchUser } from 'reducers/user';
+import { fetchPreferences } from 'reducers/preferences';
 
-const mapStateToProps = state => {
+const mapStateToProps = (state) => {
   return {
-    data: state.user.data,
+    userData: state.user.data,
     isLoading: state.user.isLoading,
   };
 };
@@ -36,22 +37,29 @@ const mapDispatchToProps = {
   fetchResults,
   fetchTracklist,
   fetchUser,
+  fetchPreferences,
 };
 
-function App(props) {
-  const { fetchUser, fetchTracklist, fetchResults, setFilter, data, isLoading } = props;
-
+function App({
+  fetchUser,
+  fetchTracklist,
+  fetchResults,
+  fetchPreferences,
+  setFilter,
+  userData,
+  isLoading,
+}) {
   useEffect(() => {
     localForage
       .getItem('filter')
-      .then(filter => {
+      .then((filter) => {
         if (filter) {
           setFilter({
             ...filter,
             chartRange: filter.chartRange && {
               ...filter.chartRange,
               range: _.every(
-                r => r >= CHART_MIN_MAX[0] && r <= CHART_MIN_MAX[1],
+                (r) => r >= CHART_MIN_MAX[0] && r <= CHART_MIN_MAX[1],
                 filter.chartRange.range
               )
                 ? filter.chartRange.range
@@ -60,17 +68,17 @@ function App(props) {
           });
         }
       })
-      .catch(error => console.error('Cannot get filter from local storage', error));
+      .catch((error) => console.error('Cannot get filter from local storage', error));
     fetchUser();
   }, [fetchUser, fetchTracklist, fetchResults, setFilter]);
 
   useEffect(() => {
-    if (data && data.player) {
-      fetchTracklist().then(() => {
+    if (userData && userData.player) {
+      Promise.all([fetchTracklist(), fetchPreferences()]).then(() => {
         fetchResults();
       });
     }
-  }, [data, fetchResults, fetchTracklist]);
+  }, [userData, fetchPreferences, fetchResults, fetchTracklist]);
 
   if (isLoading) {
     return (
@@ -80,7 +88,7 @@ function App(props) {
     );
   }
 
-  if (!data || !data.player) {
+  if (!userData || !userData.player) {
     return <LoginScreen />;
   }
 
@@ -105,7 +113,4 @@ function App(props) {
   );
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(App);
+export default connect(mapStateToProps, mapDispatchToProps)(App);

@@ -10,7 +10,7 @@ export default class Toggle extends React.Component {
     this.id = _.uniqueId();
   }
 
-  onChange = e => {
+  onChange = (e) => {
     this.props.onChange(e.target.checked);
   };
 
@@ -27,9 +27,11 @@ export default class Toggle extends React.Component {
         <label htmlFor={this.id} className="toggle">
           <span></span>
         </label>
-        <label htmlFor={this.id} className="text-label">
-          {this.props.children}
-        </label>
+        {this.props.children && (
+          <label htmlFor={this.id} className="text-label">
+            {this.props.children}
+          </label>
+        )}
       </div>
     );
   }

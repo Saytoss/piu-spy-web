@@ -18,6 +18,7 @@ import { routes } from 'constants/routes';
 
 // reducers
 import { fetchResults } from 'reducers/results';
+import { updatePreferences } from 'reducers/preferences';
 
 // utils
 
@@ -30,6 +31,7 @@ const rankingSelector = createSelector(
 
 const mapStateToProps = (state) => {
   return {
+    preferences: state.preferences.data,
     ranking: rankingSelector(state),
     error: state.results.error || state.tracklist.error,
     isLoading:
@@ -39,13 +41,16 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = {
   fetchResults,
+  updatePreferences,
 };
 
 class Ranking extends Component {
   static propTypes = {
     ranking: toBe.array,
     error: toBe.object,
+    preferences: toBe.object,
     isLoading: toBe.bool.isRequired,
+    updatePreferences: toBe.func.isRequired,
   };
 
   static defaultProps = {
@@ -58,7 +63,7 @@ class Ranking extends Component {
   };
 
   render() {
-    const { isLoading, ranking, error } = this.props;
+    const { isLoading, ranking, error, preferences, updatePreferences } = this.props;
 
     return (
       <div className="ranking-page">
@@ -99,7 +104,14 @@ class Ranking extends Component {
           <Route
             exact
             path={routes.ranking.path}
-            render={() => <RankingList ranking={ranking} isLoading={isLoading} />}
+            render={() => (
+              <RankingList
+                ranking={ranking}
+                isLoading={isLoading}
+                preferences={preferences}
+                updatePreferences={updatePreferences}
+              />
+            )}
           />
           <Route exact path={routes.ranking.faq.path} component={RankingFaq} />
         </div>

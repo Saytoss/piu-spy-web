@@ -82,6 +82,9 @@
   }
   tr.player {
     height: 40px;
+    &.hidden-player {
+      opacity: 0.3;
+    }
     &:hover {
       td {
         background: #424242;
@@ -155,6 +158,9 @@
     &.grades {
       text-align: center;
     }
+    &.hide-col {
+      padding-right: 8px;
+    }
     &.change {
       > .change-holder {
         display: flex;
@@ -225,6 +231,11 @@
       }
       &.rating-change-cell {
         font-size: 100%;
+      }
+      &.hide-col {
+        .toggle-checkbox {
+          font-size: 1.6vw;
+        }
       }
     }
   }
