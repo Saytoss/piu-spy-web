@@ -608,7 +608,10 @@ class Leaderboard extends Component {
                                         </span>
                                       </>
                                     );
-                                  } else if (res.nickname === protagonistName) {
+                                  } else if (
+                                    res.nickname === protagonistName &&
+                                    (showProtagonistEloChange || showProtagonistPpChange)
+                                  ) {
                                     // In non-debug mode we show relevant info for selected protagonist
                                     ratingInfoBlock = (
                                       <>
