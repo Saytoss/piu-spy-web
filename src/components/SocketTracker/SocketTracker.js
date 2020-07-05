@@ -111,14 +111,18 @@ function TrackerApp({
 
   // Fetch preferences when player id changes
   useEffect(() => {
-    fetchUserPreferences(leftProfile.id).then((response) => {
-      setLeftPreferences(response.preferences);
-    });
+    if (leftProfile.id) {
+      fetchUserPreferences(leftProfile.id).then((response) => {
+        setLeftPreferences(response.preferences);
+      });
+    }
   }, [leftProfile.id, fetchUserPreferences]);
   useEffect(() => {
-    fetchUserPreferences(rightProfile.id).then((response) => {
-      setRightPreferences(response.preferences);
-    });
+    if (rightProfile.id) {
+      fetchUserPreferences(rightProfile.id).then((response) => {
+        setRightPreferences(response.preferences);
+      });
+    }
   }, [rightProfile.id, fetchUserPreferences]);
 
   // Reset the page when sockets didn't receive any messages for a long time

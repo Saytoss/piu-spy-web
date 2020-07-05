@@ -50,35 +50,45 @@ function App({
   isLoading,
 }) {
   useEffect(() => {
-    localForage
-      .getItem('filter')
-      .then((filter) => {
-        if (filter) {
-          setFilter({
-            ...filter,
-            chartRange: filter.chartRange && {
-              ...filter.chartRange,
-              range: _.every(
-                (r) => r >= CHART_MIN_MAX[0] && r <= CHART_MIN_MAX[1],
-                filter.chartRange.range
-              )
-                ? filter.chartRange.range
-                : CHART_MIN_MAX,
-            },
-          });
-        }
-      })
-      .catch((error) => console.error('Cannot get filter from local storage', error));
-    fetchUser();
+    if (!process.env.REACT_APP_SOCKET) {
+      fetchUser();
+      localForage
+        .getItem('filter')
+        .then((filter) => {
+          if (filter) {
+            setFilter({
+              ...filter,
+              chartRange: filter.chartRange && {
+                ...filter.chartRange,
+                range: _.every(
+                  (r) => r >= CHART_MIN_MAX[0] && r <= CHART_MIN_MAX[1],
+                  filter.chartRange.range
+                )
+                  ? filter.chartRange.range
+                  : CHART_MIN_MAX,
+              },
+            });
+          }
+        })
+        .catch((error) => console.error('Cannot get filter from local storage', error));
+    }
   }, [fetchUser, fetchTracklist, fetchResults, setFilter]);
 
   useEffect(() => {
-    if (userData && userData.player) {
+    if (!process.env.REACT_APP_SOCKET && userData && userData.player) {
       Promise.all([fetchTracklist(), fetchPreferences()]).then(() => {
         fetchResults();
       });
     }
   }, [userData, fetchPreferences, fetchResults, fetchTracklist]);
+
+  useEffect(() => {
+    if (process.env.REACT_APP_SOCKET) {
+      fetchTracklist().then(() => {
+        fetchResults();
+      });
+    }
+  }, [fetchResults, fetchTracklist]);
 
   if (isLoading) {
     return (
@@ -88,12 +98,12 @@ function App({
     );
   }
 
-  if (!userData || !userData.player) {
-    return <LoginScreen />;
-  }
-
   if (process.env.REACT_APP_SOCKET) {
     return <SocketTracker />;
+  }
+
+  if (!userData || !userData.player) {
+    return <LoginScreen />;
   }
 
   return (

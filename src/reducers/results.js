@@ -22,6 +22,10 @@ const RESET_FILTER = `TOP/RESET_FILTER`;
 const RANKING_CHANGE_SET = `TOP/RANKING_CHANGE_SET`;
 const PROFILES_UPDATE = `TOP/PROFILES_UPDATE`;
 
+const highscoresUrl = process.env.REACT_APP_SOCKET
+  ? 'results/highscores/trusted'
+  : 'results/highscores';
+
 export const defaultFilter = { showRank: true, showRankAndNorank: true };
 
 const initialState = {
@@ -438,7 +442,7 @@ export const fetchResults = () => {
     try {
       const data = await dispatch(
         fetchJson({
-          url: `${HOST}/results/highscores`,
+          url: `${HOST}/${highscoresUrl}`,
         })
       );
       if (data.error) {
@@ -471,7 +475,7 @@ export const appendNewResults = (lastDate) => {
     try {
       const data = await dispatch(
         fetchJson({
-          url: `${HOST}/results/highscores?${queryString.stringify({ start_date: lastDate })}`,
+          url: `${HOST}/${highscoresUrl}?${queryString.stringify({ start_date: lastDate })}`,
         })
       );
       if (data.error) {
