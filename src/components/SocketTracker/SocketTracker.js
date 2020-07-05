@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
 import numeral from 'numeral';
 import _ from 'lodash/fp';
+import { createSelector } from 'reselect';
 import { FaAngleDoubleUp } from 'react-icons/fa';
 import lev from 'fast-levenshtein';
 
@@ -10,16 +11,25 @@ import './socket.scss';
 
 import { SOCKET_SERVER_IP } from 'constants/backend';
 import Loader from 'components/Shared/Loader';
+import Flag from 'components/Shared/Flag';
 
-import { fetchResults, appendNewResults } from 'reducers/results';
+import { appendNewResults } from 'reducers/results';
 import { fetchTopPerSong } from 'reducers/topPerSong';
-import { fetchTracklist } from 'reducers/tracklist';
+import { fetchUserPreferences } from 'reducers/preferences';
 
-import { getRankImg } from 'utils/exp';
-import { getTimeAgo } from './helpers';
+import { getTimeAgo, useTracked, useResetTrackedObject } from './helpers';
+
+import { PlayerCard, ChartLabel } from './PlayerCard';
 
 // code
 const STATE_RESET_TIMEOUT = 10 * 60 * 1000; // 5 minutes
+
+const topPlayersListSelector = createSelector(
+  (state) => state.results.profiles,
+  _.flow(_.values, _.orderBy('ratingRaw', 'desc'), (items) =>
+    items.map((it, index) => ({ place: index + 1, ..._.pick(['id', 'name', 'rating'], it) }))
+  )
+);
 
 // redux
 const mapStateToProps = (state) => {
@@ -28,48 +38,30 @@ const mapStateToProps = (state) => {
     songTopData: state.topPerSong.data,
     error: state.topPerSong.error,
     profiles: state.results.profiles,
-    resultInfo: state.results.resultInfo,
+    topPlayersList: topPlayersListSelector(state),
     sharedCharts: state.results.sharedCharts,
   };
 };
 
 const mapDispatchToProps = {
-  fetchResults,
   fetchTopPerSong,
-  fetchTracklist,
   appendNewResults,
-};
-
-// component
-const renderChartLabel = (type, level) => {
-  return (
-    <div
-      className={classNames('chart-name', {
-        single: type === 'S',
-        singlep: type === 'SP',
-        doublep: type === 'DP',
-        double: type === 'D',
-        coop: type === 'COOP',
-      })}
-    >
-      <span className="chart-letter">{type}</span>
-      <span className="chart-number">{level}</span>
-    </div>
-  );
+  fetchUserPreferences,
 };
 
 function TrackerApp({
   isLoading,
-  fetchResults,
-  fetchTracklist,
   fetchTopPerSong,
+  fetchUserPreferences,
   appendNewResults,
   songTopData,
   error,
   profiles,
-  resultInfo = {},
+  topPlayersList,
+  // resultInfo = {},
   sharedCharts = {},
 }) {
+  // Setup
   const [message, setMessage] = useState('');
   const [socketErrorMessage, setSocketErrorMessage] = useState('');
   const [isSocketReady, setSocketReady] = useState(false);
@@ -79,35 +71,57 @@ function TrackerApp({
   const [leftPlayer, setLeftPlayer] = useState(null);
   const [rightPlayer, setRightPlayer] = useState(null);
   const [recognizedSongName, setRecognizedSongName] = useState('');
+  const [leftPreferences, setLeftPreferences] = useState(null);
+  const [rightPreferences, setRightPreferences] = useState(null);
+
+  const resultsContainerRef = useRef(null);
+  const leftResultRef = useRef(null);
+  const rightResultRef = useRef(null);
 
   const socketRef = useRef(null);
   const timeoutResetTokenRef = useRef(null);
 
-  const leftChart = _.find({ chartLabel: leftLabel }, songTopData);
-  const rightChart = _.find({ chartLabel: rightLabel }, songTopData);
-  const chartsToShow = _.uniq(_.compact([leftChart, rightChart]));
+  // Get profile objects from player names
+  const leftProfile = useMemo(() => {
+    if (!leftPlayer || _.isEmpty(profiles)) return {};
+    return _.minBy((p) => lev.get(p.nameArcade, leftPlayer), _.values(profiles)) || {};
+  }, [leftPlayer, profiles]);
+  const rightProfile = useMemo(() => {
+    if (!rightPlayer || _.isEmpty(profiles)) return {};
+    return _.minBy((p) => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
+  }, [rightPlayer, profiles]);
 
-  const topPlayersList = _.flow(_.values, _.orderBy('ratingRaw', 'desc'), (items) =>
-    items.map((it, index) => ({ place: index + 1, ...it }))
-  )(profiles);
+  // Track changes in profiles
+  const leftTracked = {
+    pp: useTracked(_.get('pp.pp', leftProfile), leftProfile.name),
+    elo: useTracked(leftProfile.ratingRaw, leftProfile.name),
+    exp: useTracked(leftProfile.exp, leftProfile.name),
+    expRank: useTracked(leftProfile.expRank, leftProfile.name),
+    achievements: useTracked(leftProfile.achievements, leftProfile.name),
+  };
+  const resetLeftTracked = useResetTrackedObject(leftTracked);
+  const rightTracked = {
+    pp: useTracked(_.get('pp.pp', rightProfile), rightProfile.name),
+    elo: useTracked(rightProfile.ratingRaw, rightProfile.name),
+    exp: useTracked(rightProfile.exp, rightProfile.name),
+    expRank: useTracked(rightProfile.expRank, rightProfile.name),
+    achievements: useTracked(rightProfile.achievements, rightProfile.name),
+  };
+  const resetRightTracked = useResetTrackedObject(rightTracked);
 
-  let leftProfile = {};
-  let rightProfile = {};
+  // Fetch preferences when player id changes
+  useEffect(() => {
+    fetchUserPreferences(leftProfile.id).then((response) => {
+      setLeftPreferences(response.preferences);
+    });
+  }, [leftProfile.id, fetchUserPreferences]);
+  useEffect(() => {
+    fetchUserPreferences(rightProfile.id).then((response) => {
+      setRightPreferences(response.preferences);
+    });
+  }, [rightProfile.id, fetchUserPreferences]);
 
-  if (leftPlayer) {
-    leftProfile = _.minBy((p) => lev.get(p.nameArcade, leftPlayer), _.values(profiles)) || {};
-  }
-  if (rightPlayer) {
-    rightProfile = _.minBy((p) => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
-  }
-
-  const [leftData, setLeftData] = useState({ name: leftProfile.name, ratingRaw: null, exp: null });
-  const [rightData, setRightData] = useState({
-    name: rightProfile.name,
-    ratingRaw: null,
-    exp: null,
-  });
-
+  // Reset the page when sockets didn't receive any messages for a long time
   const restartTimeout = useCallback(() => {
     setAlive(true);
     if (timeoutResetTokenRef.current) {
@@ -115,84 +129,10 @@ function TrackerApp({
     }
     timeoutResetTokenRef.current = setTimeout(() => {
       // TODO: reset page
-      // this.setState(defaultState);
     }, STATE_RESET_TIMEOUT);
   }, []);
 
-  useEffect(() => {
-    if (leftProfile.ratingRaw && leftProfile.ratingRaw !== leftData.ratingRaw) {
-      setLeftData({
-        ...leftData,
-        ratingRaw: leftProfile.ratingRaw,
-        prevRatingRaw: leftData.ratingRaw,
-        expRank: leftProfile.expRank,
-        expRankNext: leftProfile.expRankNext,
-      });
-    }
-    if (leftProfile.exp && leftProfile.exp !== leftData.exp) {
-      setLeftData({
-        ...leftData,
-        exp: leftProfile.exp,
-        prevExp: leftData.exp,
-        expRank: leftProfile.expRank || leftData.expRank,
-        expRankNext: leftProfile.expRankNext || leftData.expRankNext,
-      });
-    }
-    if (rightProfile.ratingRaw && rightProfile.ratingRaw !== rightData.ratingRaw) {
-      setRightData({
-        ...rightData,
-        ratingRaw: rightProfile.ratingRaw,
-        prevRatingRaw: rightData.ratingRaw,
-        expRank: rightProfile.expRank,
-        expRankNext: rightProfile.expRankNext,
-      });
-    }
-    if (rightProfile.exp && rightProfile.exp !== rightData.exp) {
-      setRightData({
-        ...rightData,
-        exp: rightProfile.exp,
-        prevExp: rightData.exp,
-        expRank: rightProfile.expRank || rightData.expRank,
-        expRankNext: rightProfile.expRankNext || rightData.expRankNext,
-      });
-    }
-    if (leftData.name !== leftProfile.name) {
-      setLeftData({
-        ...leftData,
-        ratingRaw: leftProfile.ratingRaw,
-        prevRatingRaw: null,
-        exp: leftProfile.exp,
-        expRank: leftProfile.expRank,
-        expRankNext: leftProfile.expRankNext,
-        prevExp: null,
-        name: leftProfile.name,
-      });
-    }
-    if (rightData.name !== rightProfile.name) {
-      setRightData({
-        ...rightData,
-        ratingRaw: rightProfile.ratingRaw,
-        prevRatingRaw: null,
-        exp: rightProfile.exp,
-        expRank: rightProfile.expRank,
-        expRankNext: rightProfile.expRankNext,
-        prevExp: null,
-        name: rightProfile.name,
-      });
-    }
-    /* eslint-disable */
-  }, [
-    leftProfile.ratingRaw,
-    rightProfile.ratingRaw,
-    leftProfile.exp,
-    rightProfile.exp,
-    leftProfile.name,
-    rightProfile.name,
-    leftData,
-    rightData,
-  ]);
-  /* eslint-enable */
-
+  // Start websockets
   useEffect(() => {
     socketRef.current = new WebSocket(SOCKET_SERVER_IP);
     socketRef.current.onerror = () => {
@@ -201,8 +141,9 @@ function TrackerApp({
     socketRef.current.onopen = (e) => {
       setSocketReady(true);
     };
-  }, []); // eslint-disable-line
+  }, []);
 
+  // Set the onmessage callback
   useEffect(() => {
     socketRef.current.onmessage = (event) => {
       restartTimeout();
@@ -211,6 +152,9 @@ function TrackerApp({
         console.log(data);
 
         if (data.type === 'result_screen') {
+          console.log('Resetting tracking because received result screen');
+          resetLeftTracked();
+          resetRightTracked();
           const songName = data.data.track_name;
           const leftLabel = _.get('left.chart_label', data.data);
           const rightLabel = _.get('right.chart_label', data.data);
@@ -248,21 +192,26 @@ function TrackerApp({
         setMessage(`Error: ${e.message}`);
       }
     };
-  }, [recognizedSongName, fetchTopPerSong, restartTimeout, appendNewResults]);
+  }, [
+    recognizedSongName,
+    fetchTopPerSong,
+    restartTimeout,
+    appendNewResults,
+    resetLeftTracked,
+    resetRightTracked,
+  ]);
 
+  // FOR DEBUG
   // useEffect(() => {
-  //   setTimeout(() => {
+  //   if (!_.isEmpty(profiles) && !leftPlayer && !rightPlayer) {
   //     socketRef.current.onmessage({
   //       data:
   //         '{"type": "chart_selected", "data": {"text": "Uranium", "leftLabel": "D17", "rightLabel": "D20", "leftPlayer": "GRUMD", "rightPlayer": "DINO"}}',
   //     });
-  //   }, 2000);
-  // }, []);
+  //   }
+  // }, [profiles, leftPlayer, rightPlayer]);
 
-  const resultsContainerRef = useRef(null);
-  const leftResultRef = useRef(null);
-  const rightResultRef = useRef(null);
-
+  // Resize the results blocks to fill the most space on the page
   useEffect(() => {
     if (resultsContainerRef.current && leftResultRef.current) {
       if (rightResultRef.current) {
@@ -313,116 +262,30 @@ function TrackerApp({
     }
   });
 
-  const renderPlayer = ({ player, profile, label, data, isLeft = false }) => {
-    const renderDeltaText = (n, prevN) => {
-      if (!prevN || prevN === n) {
-        return null;
-      }
-      const delta = n - prevN;
-      return (
-        <span className={`change ${delta >= 0 ? 'pos' : 'neg'}`}>
-          {delta < 0 ? delta.toFixed(1) : `+${delta.toFixed(1)}`}
-        </span>
-      );
-    };
-
-    const renderExpLine = () => {
-      if (!data.expRank || !data.exp) {
-        return null;
-      }
-
-      let takenWidth = data.expRankNext
-        ? (data.exp - data.expRank.threshold) /
-          (data.expRankNext.threshold - data.expRank.threshold)
-        : 1;
-      const emptyWidth = 1 - takenWidth;
-      let diffWidth = 0;
-
-      if (data.prevExp) {
-        takenWidth = data.expRankNext
-          ? (data.prevExp - data.expRank.threshold) /
-            (data.expRankNext.threshold - data.expRank.threshold)
-          : 1;
-        diffWidth = 1 - emptyWidth - takenWidth;
-      }
-      return (
-        <div className="exp-line">
-          <div className="taken" style={{ width: Math.floor(100 * takenWidth) + '%' }}></div>
-          <div className="diff" style={{ width: Math.ceil(100 * diffWidth) + '%' }}></div>
-          <div className="rest" style={{ width: Math.ceil(100 * emptyWidth) + '%' }}></div>
-        </div>
-      );
-    };
-
-    const playerIndex = _.findIndex({ id: profile.id }, topPlayersList);
-    const closestPlayers = topPlayersList.slice(
-      Math.max(0, playerIndex - 1),
-      Math.min(playerIndex + 2, topPlayersList.length)
-    );
-
-    return (
-      <div className={`player-container ${isLeft ? 'left' : 'right'}`}>
-        {player && (
-          <>
-            <div className="title-header">player {isLeft ? 1 : 2}:</div>
-            <div className="name-with-label">
-              <div className="name">{profile.name || player}</div>
-              <div className="chart-label">
-                {label && renderChartLabel(...label.match(/(\D+)|(\d+)/g))}
-              </div>
-            </div>
-            {data.exp && data.expRank && (
-              <div className="exp exp-rank">
-                {getRankImg(data.expRank)}
-                {renderExpLine()}
-              </div>
-            )}
-            {data.exp && (
-              <div className="exp-text">
-                <span className="_grey-text">exp:</span> {Math.round(data.exp)}{' '}
-                {renderDeltaText(data.exp, data.prevExp)}
-              </div>
-            )}
-            {data.ratingRaw && (
-              <div className="rating">
-                <span className="_grey-text">pp:</span> {Math.round(data.ratingRaw)}{' '}
-                {renderDeltaText(data.ratingRaw, data.prevRatingRaw)}
-              </div>
-            )}
-            <div className="closest-players">
-              {_.map((pl) => {
-                return (
-                  <div className={`closest-player ${profile.id === pl.id ? 'current-player' : ''}`}>
-                    <div className="place">#{pl.place}</div>
-                    <div className="name">{pl.name}</div>
-                    <div className="elo">{pl.rating}</div>
-                  </div>
-                );
-              }, closestPlayers)}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
+  const leftChart = _.find({ chartLabel: leftLabel }, songTopData);
+  const rightChart = _.find({ chartLabel: rightLabel }, songTopData);
+  const chartsToShow = _.uniq(_.compact([leftChart, rightChart]));
 
   return (
     <div className="tracker-container">
       <div className="sidebar">
-        {renderPlayer({
-          player: leftPlayer,
-          profile: leftProfile,
-          label: leftLabel,
-          data: leftData,
-          isLeft: true,
-        })}
-        {/* <div className="song-name">{socketErrorMessage || recognizedSongName}</div> */}
-        {renderPlayer({
-          player: rightPlayer,
-          profile: rightProfile,
-          label: rightLabel,
-          data: rightData,
-        })}
+        <PlayerCard
+          player={leftPlayer}
+          profile={leftProfile}
+          label={leftLabel}
+          trackedData={leftTracked}
+          preferences={leftPreferences}
+          topPlayersList={topPlayersList}
+          isLeft
+        />
+        <PlayerCard
+          player={rightPlayer}
+          profile={rightProfile}
+          label={rightLabel}
+          trackedData={rightTracked}
+          preferences={rightPreferences}
+          topPlayersList={topPlayersList}
+        />
       </div>
       <div className="results" ref={resultsContainerRef}>
         {(error || message) && (
@@ -452,25 +315,35 @@ function TrackerApp({
         {isLoading && <Loader />}
         {!isLoading &&
           chartsToShow.map((chart, chartIndex) => {
+            const leftPlayersHiddenStatus = _.getOr({}, 'playersHiddenStatus', leftPreferences);
+            const rightPlayersHiddenStatus = _.getOr({}, 'playersHiddenStatus', rightPreferences);
+
             let topPlace = 1;
             const occuredNicknames = [];
-            const results = chart.results.map((res, index) => {
-              const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
-              occuredNicknames.push(res.nickname);
-              if (index === 0) {
-                topPlace = 1;
-              } else if (
-                !isSecondOccurenceInResults &&
-                res.score !== _.get([index - 1, 'score'], chart.results)
-              ) {
-                topPlace += 1;
-              }
-              return {
-                ...res,
-                topPlace,
-                isSecondOccurenceInResults,
-              };
-            });
+            const results = chart.results
+              .filter((res) => {
+                const showThisResult =
+                  (chart.chartLabel === leftLabel && !leftPlayersHiddenStatus[res.playerId]) ||
+                  (chart.chartLabel === rightLabel && !rightPlayersHiddenStatus[res.playerId]);
+                return showThisResult;
+              })
+              .map((res, index) => {
+                const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
+                occuredNicknames.push(res.nickname);
+                if (index === 0) {
+                  topPlace = 1;
+                } else if (
+                  !isSecondOccurenceInResults &&
+                  res.score !== _.get([index - 1, 'score'], chart.results)
+                ) {
+                  topPlace += 1;
+                }
+                return {
+                  ...res,
+                  topPlace,
+                  isSecondOccurenceInResults,
+                };
+              });
 
             const interpDiff = _.get('interpolatedDifficulty', sharedCharts[chart.sharedChartId]);
             return (
@@ -480,7 +353,7 @@ function TrackerApp({
                 ref={chartIndex === 0 ? leftResultRef : rightResultRef}
               >
                 <div className="song-name">
-                  {renderChartLabel(chart.chartType, chart.chartLevel)}
+                  <ChartLabel type={chart.chartType} level={chart.chartLevel} />
                   <div>
                     {interpDiff ? `(${interpDiff.toFixed(1)}) ` : ''}
                     {chart.song}
@@ -498,7 +371,10 @@ function TrackerApp({
                               newIndex = _.findLastIndex((res) => res.score > prevScore, results);
                               placeDifference = newIndex - index;
                             }
-                            const pp = _.getOr('', `[${res.id}].pp.ppFixed`, resultInfo);
+                            // const pp = _.getOr('', `[${res.id}].pp.ppFixed`, resultInfo);
+                            const flag = profiles[res.playerId] ? (
+                              <Flag region={profiles[res.playerId].region} />
+                            ) : null;
                             return (
                               <tr
                                 key={res.score + res.nickname}
@@ -510,18 +386,23 @@ function TrackerApp({
                                 })}
                               >
                                 <td className="nickname">
-                                  {res.nickname}
-                                  {!!placeDifference && (
-                                    <span className="change-holder up">
-                                      <span>{placeDifference}</span>
-                                      <FaAngleDoubleUp />
+                                  <div className="nickname-container">
+                                    {flag}
+                                    <span className="nickname-text">
+                                      {res.nickname}
+                                      {!!placeDifference && (
+                                        <span className="change-holder up">
+                                          <span>{placeDifference}</span>
+                                          <FaAngleDoubleUp />
+                                        </span>
+                                      )}
                                     </span>
-                                  )}
+                                  </div>
                                 </td>
-                                <td className="pp">
+                                {/* <td className="pp">
                                   {pp}
                                   {pp && <span className="_grey">pp</span>}
-                                </td>
+                                </td> */}
                                 <td
                                   className={classNames('judge', {
                                     vj: res.isRank,

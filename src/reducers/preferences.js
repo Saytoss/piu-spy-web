@@ -56,17 +56,20 @@ export const fetchPreferences = () => {
   return async (dispatch) => {
     dispatch({ type: LOADING });
     try {
-      const data = await dispatch(
-        fetchJson({
-          url: `${HOST}/profile/preferences`,
-        })
-      );
+      const data = await dispatch(fetchJson({ url: `${HOST}/profile/preferences` }));
       dispatch({ type: SUCCESS, data: data.preferences });
       return data;
     } catch (error) {
       dispatch({ type: ERROR, error });
       return null;
     }
+  };
+};
+
+export const fetchUserPreferences = (id) => {
+  return async (dispatch) => {
+    const data = await dispatch(fetchJson({ url: `${HOST}/player/${id}/preferences` }));
+    return data;
   };
 };
 

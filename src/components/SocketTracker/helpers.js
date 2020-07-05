@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import _ from 'lodash/fp';
 import TimeAgo from 'javascript-time-ago';
 import ru from 'javascript-time-ago/locale/ru';
@@ -12,21 +12,19 @@ const timeStyle = {
   gradation: convenient,
   units: ['day', 'week', 'month'],
 };
-export const getTimeAgo = date => {
-  const dayDiff = moment()
-    .startOf('day')
-    .diff(moment(date).startOf('day'), 'days');
+export const getTimeAgo = (date) => {
+  const dayDiff = moment().startOf('day').diff(moment(date).startOf('day'), 'days');
   return dayDiff === 0 ? 'сегодня' : dayDiff === 1 ? 'вчера' : timeAgo.format(date, timeStyle);
 };
 
-export const preprocessData = data => ({
+export const preprocessData = (data) => ({
   ...data,
   results: _.flow(
     _.get('results'),
     _.toPairs,
     _.map(([chartId, item]) => {
       const fullRes = _.find(
-        r => _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses]),
+        (r) => _.every(_.isNumber, [r.perfects, r.greats, r.goods, r.bads, r.misses]),
         item.results
       );
       const stepSum =
@@ -95,14 +93,14 @@ export const preprocessData = data => ({
         }),
       };
     }),
-    _.map(song => {
+    _.map((song) => {
       return {
         ...song,
         latestScoreDate: song.results.reduce(
           (latest, current) => (current.date > latest ? current.date : latest),
           song.results[0].date
         ),
-        results: song.results.map(res => {
+        results: song.results.map((res) => {
           const perfects = (Math.sqrt(res.perfect) * _.toInteger(song.chartLevel)) / 2;
           const acc = perfects
             ? Math.floor(
@@ -131,17 +129,38 @@ export const preprocessData = data => ({
   )(data),
 });
 
-export const useTracked = (data, onChange) => {
+export const useTracked = (data, resetIndicatorData, onChange = _.noop, isDebugOn) => {
   const [prevData, setPrevData] = useState(data);
   const [currData, setCurrData] = useState(data);
+  const resetIndicator = useRef(resetIndicatorData);
 
   useEffect(() => {
-    if (!_.isEmpty(data) && data !== currData) {
+    // isDebugOn && console.log('tracking effect', resetIndicatorData, data, currData, prevData);
+    if (resetIndicator.current !== resetIndicatorData) {
+      // isDebugOn && console.log('resetting due to indicator chage', data);
+      resetIndicator.current = resetIndicatorData;
+      setPrevData(data);
+      setCurrData(data);
+    } else if (data && !_.isEqual(data, currData)) {
+      // isDebugOn && console.log('data has updated', data, currData);
       setPrevData(currData);
       setCurrData(data);
-      onChange(data, currData);
+      onChange(currData, data);
     }
-  }, [data, onChange, currData, prevData]);
+  }, [data, onChange, currData, prevData, resetIndicatorData]);
 
-  return [currData, prevData];
+  const reset = useCallback(() => {
+    // isDebugOn && console.log('reset called from function');
+    setPrevData(data);
+    setCurrData(data);
+  }, [data]);
+
+  return useMemo(() => [currData, prevData, reset], [currData, prevData, reset]);
+};
+
+export const useResetTrackedObject = (object) => {
+  return useCallback(() => {
+    const trackings = _.values(object);
+    trackings.forEach((tracking) => tracking[2]());
+  }, [object]);
 };

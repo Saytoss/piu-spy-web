@@ -447,6 +447,7 @@ export const fetchResults = () => {
       // HACKS for test
       // data.results = _.dropRight(500, data.results);
       // console.log(1, data.results);
+      // data.results = _.filter((res) => res.gained < '2020-07-03 00:00:00', data.results);
       // data.results = _.filter(res => res.gained < '2020-03-12 16:55:00', data.results);
       // data.results = _.filter(res => res.gained < '2020-03-12 16:34:51', data.results);
       // console.log(2, data.results);

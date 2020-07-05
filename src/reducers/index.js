@@ -4,6 +4,7 @@ import _ from 'lodash/fp';
 
 import tracklist from 'reducers/tracklist';
 import trackStats from 'reducers/trackStats';
+import popups from 'reducers/popups';
 import profiles from 'reducers/profiles';
 import preferences from 'reducers/preferences';
 import presets from 'reducers/presets';
@@ -15,6 +16,7 @@ import topPerSong from 'reducers/topPerSong';
 const rootReducer = combineReducers({
   topPerSong,
   login,
+  popups,
   preferences,
   presets,
   profiles,

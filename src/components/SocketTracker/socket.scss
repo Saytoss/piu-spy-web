@@ -28,22 +28,27 @@
       margin: 5px;
       background: #353535;
       border-radius: 8px;
+      min-height: 0px;
+      overflow: hidden;
       > .name-with-label {
+        flex: 0 0 auto;
         font-size: 120%;
         display: flex;
         flex-flow: row wrap;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        margin-bottom: 8px;
         > .name {
           font-size: 110%;
           font-weight: 600;
+          line-height: 1;
         }
         > .chart-label {
           font-size: 80%;
         }
       }
       > .exp {
+        flex: 0 0 auto;
         display: flex;
         flex-flow: row nowrap;
         align-items: center;
@@ -76,17 +81,34 @@
         }
       }
       > .exp-text {
+        flex: 0 0 auto;
         font-size: 80%;
-        margin-bottom: 15px;
+        margin-bottom: 5px;
+        display: flex;
+        flex-flow: row nowrap;
+        margin-bottom: 10px;
+        > * + * {
+          margin-left: 0.3em;
+        }
       }
       > .rating {
+        flex: 0 0 auto;
         font-weight: 600;
-        font-size: 120%;
-        margin-bottom: 15px;
+        font-size: 110%;
+        margin-bottom: 5px;
+        display: flex;
+        flex-flow: row nowrap;
+        > * + * {
+          margin-left: 0.3em;
+        }
       }
       > .closest-players {
+        flex: 1 1 0px;
+        min-height: 0px;
         display: flex;
         flex-flow: column nowrap;
+        justify-content: center;
+        overflow: hidden;
         > .closest-player {
           padding: 5px;
           border-radius: 8px;
@@ -210,16 +232,23 @@
                 font-size: 110%;
                 width: 1px;
                 white-space: nowrap;
-                > .change-holder {
-                  font-size: 80%;
-                  margin-left: 0.5em;
-                  font-weight: normal;
-                  display: inline-flex;
+                > .nickname-container {
+                  display: flex;
+                  flex-flow: row nowrap;
                   align-items: center;
-                  justify-content: center;
-                  color: #afe488;
-                  > span {
-                    padding-top: 0.2em;
+                  > .nickname-text {
+                    > .change-holder {
+                      font-size: 80%;
+                      margin-left: 0.5em;
+                      font-weight: normal;
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: #afe488;
+                      > span {
+                        padding-top: 0.2em;
+                      }
+                    }
                   }
                 }
               }
