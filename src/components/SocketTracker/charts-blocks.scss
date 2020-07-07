@@ -1,0 +1,123 @@
+.charts-blocks {
+  .result-block {
+    + .result-block {
+      border-top: 3px solid #2d2d2d;
+      padding: 5px;
+    }
+
+    // &:nth-child(even) {
+    //   background: #4b4b4b;
+    // }
+    &.left {
+      background: rgba(213, 100, 88, 0.26);
+    }
+    &.right {
+      background: rgba(81, 123, 221, 0.35);
+    }
+    &.empty {
+      .judge {
+        opacity: 0.7;
+      }
+      .date {
+        color: #888;
+      }
+    }
+    &.latest {
+      .score,
+      .date {
+        color: #afe488; //#bef9931d;
+      }
+    }
+
+    > div {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      &.row-2 {
+        margin-top: 5px;
+        font-size: 80%;
+        color: #ddd;
+        > .mods {
+          flex: 1 0 auto;
+          padding-right: 1em;
+        }
+        > .combo {
+          flex: 0 0 65px;
+          min-width: 65px;
+          text-align: right;
+        }
+        > .accuracy {
+          flex: 0 0 73px;
+          min-width: 73px;
+          text-align: right;
+        }
+      }
+      > div {
+        padding: 0 0.3em;
+        &:first-child {
+          padding-left: 0;
+        }
+        &:last-child {
+          padding-right: 0;
+        }
+      }
+      > .nickname {
+        flex: 1 1 40%;
+        font-weight: 600;
+        > .nickname-container {
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          .change-holder {
+            font-size: 80%;
+            margin-left: 0.5em;
+            font-weight: normal;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #afe488;
+            > span {
+              padding-top: 0.2em;
+            }
+          }
+        }
+      }
+
+      > .grade > .img-holder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        img {
+          height: 26px;
+        }
+      }
+
+      > .score {
+        flex: 1 1 35%;
+        text-align: right;
+        font-weight: 600;
+        color: white;
+      }
+
+      > .number {
+        line-height: 1;
+        padding: 0.3em 0.4em 0.2em;
+        &.miss {
+          background: rgba(255, 0, 0, 0.08);
+        }
+        &.bad {
+          background: rgba(255, 0, 255, 0.08);
+        }
+        &.good {
+          background: rgba(255, 255, 0, 0.08);
+        }
+        &.great {
+          background: rgba(0, 255, 0, 0.08);
+        }
+        &.perfect {
+          background: rgba(0, 255, 255, 0.08);
+        }
+      }
+    }
+  }
+}

@@ -1,25 +1,23 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
-import classNames from 'classnames';
-import numeral from 'numeral';
 import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
-import { FaAngleDoubleUp } from 'react-icons/fa';
 import lev from 'fast-levenshtein';
 
 import './socket.scss';
 
 import { SOCKET_SERVER_IP } from 'constants/backend';
 import Loader from 'components/Shared/Loader';
-import Flag from 'components/Shared/Flag';
 
 import { appendNewResults } from 'reducers/results';
 import { fetchTopPerSong } from 'reducers/topPerSong';
 import { fetchUserPreferences } from 'reducers/preferences';
 
-import { getTimeAgo, useTracked, useResetTrackedObject } from './helpers';
+import { useTracked, useResetTrackedObject } from './helpers';
 
-import { PlayerCard, ChartLabel } from './PlayerCard';
+import { PlayerCard } from './PlayerCard';
+import { Chart } from './Chart';
+// import { ChartBlocks } from './ChartBlocks';
 
 // code
 const STATE_RESET_TIMEOUT = 10 * 60 * 1000; // 5 minutes
@@ -210,13 +208,14 @@ function TrackerApp({
   //   if (!_.isEmpty(profiles) && !leftPlayer && !rightPlayer) {
   //     socketRef.current.onmessage({
   //       data:
-  //         '{"type": "chart_selected", "data": {"text": "Uranium", "leftLabel": "D17", "rightLabel": "D20", "leftPlayer": "GRUMD", "rightPlayer": "DINO"}}',
+  //         '{"type": "chart_selected", "data": {"text": "Iolite Sky", "leftLabel": "D17", "rightLabel": "S16", "leftPlayer": "GRUMD", "rightPlayer": "DINO"}}',
   //     });
   //   }
   // }, [profiles, leftPlayer, rightPlayer]);
 
   // Resize the results blocks to fill the most space on the page
   useEffect(() => {
+    // return;
     if (resultsContainerRef.current && leftResultRef.current) {
       if (rightResultRef.current) {
         // Both refs
@@ -351,120 +350,15 @@ function TrackerApp({
 
             const interpDiff = _.get('interpolatedDifficulty', sharedCharts[chart.sharedChartId]);
             return (
-              <div
-                className="song-block"
-                key={chart.song + chart.chartLabel}
+              <Chart
                 ref={chartIndex === 0 ? leftResultRef : rightResultRef}
-              >
-                <div className="song-name">
-                  <ChartLabel type={chart.chartType} level={chart.chartLevel} />
-                  <div>
-                    {interpDiff ? `(${interpDiff.toFixed(1)}) ` : ''}
-                    {chart.song}
-                  </div>
-                </div>
-                <div className="charts">
-                  <div className="chart">
-                    <div className="results">
-                      <table>
-                        <tbody>
-                          {results.map((res, index) => {
-                            let placeDifference, newIndex;
-                            if (res.scoreIncrease && res.date === chart.latestScoreDate) {
-                              const prevScore = res.score - res.scoreIncrease;
-                              newIndex = _.findLastIndex((res) => res.score > prevScore, results);
-                              placeDifference = newIndex - index;
-                            }
-                            // const pp = _.getOr('', `[${res.id}].pp.ppFixed`, resultInfo);
-                            const flag = profiles[res.playerId] ? (
-                              <Flag region={profiles[res.playerId].region} />
-                            ) : null;
-                            return (
-                              <tr
-                                key={res.score + res.nickname}
-                                className={classNames({
-                                  empty: !res.isExactDate,
-                                  latest: res.date === chart.latestScoreDate,
-                                  left: res.nickname === leftProfile.name,
-                                  right: res.nickname === rightProfile.name,
-                                })}
-                              >
-                                <td className="nickname">
-                                  <div className="nickname-container">
-                                    {flag}
-                                    <span className="nickname-text">
-                                      {res.nickname}
-                                      {!!placeDifference && (
-                                        <span className="change-holder up">
-                                          <span>{placeDifference}</span>
-                                          <FaAngleDoubleUp />
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                </td>
-                                {/* <td className="pp">
-                                  {pp}
-                                  {pp && <span className="_grey">pp</span>}
-                                </td> */}
-                                <td
-                                  className={classNames('judge', {
-                                    vj: res.isRank,
-                                    hj: res.isHJ,
-                                  })}
-                                >
-                                  {res.isRank && (
-                                    <div className="inner">{res.isExactDate ? 'VJ' : 'VJ?'}</div>
-                                  )}
-                                  {res.isHJ && <div className="inner">HJ</div>}
-                                </td>
-                                <td className="score">
-                                  <span className="score-span">
-                                    {res.scoreIncrease > res.score * 0.8 && '*'}
-                                    {numeral(res.score).format('0,0')}
-                                  </span>
-                                </td>
-                                <td className="grade">
-                                  <div className="img-holder">
-                                    {res.grade && res.grade !== '?' && (
-                                      <img
-                                        src={`${process.env.PUBLIC_URL}/grades/${res.grade}.png`}
-                                        alt={res.grade}
-                                      />
-                                    )}
-                                    {res.grade === '?' && null}
-                                  </div>
-                                </td>
-                                <td className="number miss">{res.miss}</td>
-                                <td className="number bad">{res.bad}</td>
-                                <td className="number good">{res.good}</td>
-                                <td className="number great">{res.great}</td>
-                                <td className="number perfect">{res.perfect}</td>
-                                <td className="combo">
-                                  {res.combo}
-                                  {res.combo ? 'x' : ''}
-                                </td>
-                                <td className="accuracy">
-                                  {res.accuracy}
-                                  {res.accuracy ? '%' : ''}
-                                </td>
-                                <td
-                                  className={classNames('date', {
-                                    latest: res.date === chart.latestScoreDate,
-                                  })}
-                                >
-                                  {getTimeAgo(res.dateObject)}
-                                  {res.isExactDate ? '' : '?'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                chart={chart}
+                results={results}
+                interpDiff={interpDiff}
+                profiles={profiles}
+                leftProfile={leftProfile}
+                rightProfile={rightProfile}
+              />
             );
           })}
       </div>

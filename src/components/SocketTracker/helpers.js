@@ -8,13 +8,17 @@ import moment from 'moment';
 TimeAgo.addLocale(ru);
 const timeAgo = new TimeAgo('ru-RU');
 const timeStyle = {
-  flavour: 'long',
+  flavour: 'short',
   gradation: convenient,
   units: ['day', 'week', 'month'],
 };
 export const getTimeAgo = (date) => {
   const dayDiff = moment().startOf('day').diff(moment(date).startOf('day'), 'days');
-  return dayDiff === 0 ? 'сегодня' : dayDiff === 1 ? 'вчера' : timeAgo.format(date, timeStyle);
+  return dayDiff === 0
+    ? 'сегодня'
+    : dayDiff === 1
+    ? 'вчера'
+    : timeAgo.format(date, timeStyle).replace('назад', '');
 };
 
 export const preprocessData = (data) => ({
