@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { FaSearch, FaCaretLeft, FaCaretRight } from 'react-icons/fa';
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
+import Select from 'react-select';
 import {
   BarChart,
   Bar,
@@ -24,6 +25,7 @@ import './profile-compare.scss';
 
 // constants
 import { DEBUG } from 'constants/env';
+import { routes } from 'constants/routes';
 
 // components
 import ToggleButton from 'components/Shared/ToggleButton/ToggleButton';
@@ -39,6 +41,7 @@ import { setProfilesFilter, resetProfilesFilter } from 'reducers/profiles';
 import { profileSelectorCreator } from 'utils/profiles';
 import { parseDate } from 'utils/date';
 import { getTimeAgo } from 'utils/leaderboards';
+import { otherPlayersSelector } from 'components/Profile/Profile';
 
 // code
 const BARS_MODES = {
@@ -49,7 +52,7 @@ const BARS_MODES = {
   BOTH_TWO: 'BOTH_TWO',
   BOTH_FIVE: 'BOTH_FIVE',
 };
-const getCompareBars = mode => {
+const getCompareBars = (mode) => {
   switch (mode) {
     case BARS_MODES.SINGLE_TWO:
       return [
@@ -180,7 +183,7 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
   let rc2 = p2.ratingChanges[0].rating;
   const allRC = _.flow(
     _.sortBy('date'),
-    _.map(item => {
+    _.map((item) => {
       if (item.rating) {
         rc1 = item.rating;
       }
@@ -194,13 +197,16 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
       };
     }),
     _.sortedUniqBy('date')
-  )([...p1.ratingChanges, ...p2.ratingChanges.map(it => ({ date: it.date, rating2: it.rating }))]);
+  )([
+    ...p1.ratingChanges,
+    ...p2.ratingChanges.map((it) => ({ date: it.date, rating2: it.rating })),
+  ]);
 
   rc1 = p1.placesChanges[0].place;
   rc2 = p2.placesChanges[0].place;
   const allPC = _.flow(
     _.sortBy('date'),
-    _.map(item => {
+    _.map((item) => {
       if (item.place) {
         rc1 = item.place;
       }
@@ -213,10 +219,10 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
         date: item.date,
       };
     })
-  )([...p1.placesChanges, ...p2.placesChanges.map(it => ({ date: it.date, place2: it.place }))]);
+  )([...p1.placesChanges, ...p2.placesChanges.map((it) => ({ date: it.date, place2: it.place }))]);
 
   const perLevelComparison = _.fromPairs(Array.from({ length: 28 }).map((x, i) => [i + 1, {}]));
-  _.keys(perLevelComparison).forEach(level => {
+  _.keys(perLevelComparison).forEach((level) => {
     const charts = _.flow(
       _.map('chart'),
       _.uniqBy('sharedChartId')
@@ -248,9 +254,9 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
         twoBars: {},
       },
     };
-    charts.forEach(chart => {
-      const p1index = chart.results.findIndex(r => r.playerId === p1.id);
-      const p2index = chart.results.findIndex(r => r.playerId === p2.id);
+    charts.forEach((chart) => {
+      const p1index = chart.results.findIndex((r) => r.playerId === p1.id);
+      const p2index = chart.results.findIndex((r) => r.playerId === p2.id);
       const perType = chart.chartType.startsWith('D') ? data.double : data.single;
       if (p1index < 0 && p2index < 0) {
         console.log('wtf?');
@@ -269,7 +275,7 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
       }
     });
 
-    const normalizeTwo = dataObj => {
+    const normalizeTwo = (dataObj) => {
       const totalPlayed = dataObj.p1win + dataObj.p2win || 1; // in case of divide by 0
       dataObj.twoBars.p1win = dataObj.p1win / totalPlayed;
       dataObj.twoBars.p2win = dataObj.p2win / totalPlayed;
@@ -306,6 +312,7 @@ const mapStateToProps = (state, props) => {
   return {
     profile: profile1,
     profile2,
+    otherPlayers: otherPlayersSelector(state, props),
     combinedData: getCombinedData(profile1, profile2, state.tracklist.data),
     tracklist: state.tracklist.data,
     filter: state.profiles.filter,
@@ -344,7 +351,7 @@ class ProfileCompare extends Component {
     !isLoading && this.props.fetchResults();
   };
 
-  onChangeDayRange = range => {
+  onChangeDayRange = (range) => {
     const { filter } = this.props;
     this.props.setProfilesFilter({
       ...filter,
@@ -355,7 +362,7 @@ class ProfileCompare extends Component {
   rhMargin = { top: 5, bottom: 5, right: 5, left: 0 };
   rhXDomain = ['dataMin', 'dataMax'];
   rhYDomain = ['dataMin - 100', 'dataMax + 100'];
-  rhXTickFormatter = value => parseDate(value).toLocaleDateString();
+  rhXTickFormatter = (value) => parseDate(value).toLocaleDateString();
   rhTooltip = ({ active, payload, label }) => {
     const { profile, profile2 } = this.props;
     const p1Name = profile.name;
@@ -437,11 +444,11 @@ class ProfileCompare extends Component {
             dataKey="date"
             type="number"
             domain={['dataMin', 'dataMax']}
-            tickFormatter={value => parseDate(value).toLocaleDateString()}
+            tickFormatter={(value) => parseDate(value).toLocaleDateString()}
           />
           <YAxis
             allowDecimals={false}
-            domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
+            domain={[1, (dataMax) => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
             interval={0}
             reversed
             width={40}
@@ -521,7 +528,7 @@ class ProfileCompare extends Component {
   };
   plcXDomain = [0, 1];
   plcXTicks = [0, 0.5, 1];
-  plcXFormatter = x => `${Math.round(x * 100)}%`;
+  plcXFormatter = (x) => `${Math.round(x * 100)}%`;
 
   renderPerLevelComparison() {
     const { combinedData } = this.props;
@@ -550,7 +557,7 @@ class ProfileCompare extends Component {
   }
 
   renderProfile() {
-    const { profile, profile2, filter } = this.props;
+    const { profile, profile2, filter, otherPlayers } = this.props;
     const { compareBarsMode } = this.state;
     return (
       <div className="profile">
@@ -570,6 +577,24 @@ class ProfileCompare extends Component {
           <div className="text-with-header">
             <div className="text-header">последняя игра</div>
             <div>{profile.lastResultDate ? getTimeAgo(profile.lastResultDate) : 'никогда'}</div>
+          </div>
+          <div className="_flex-fill"></div>
+          <div className="text-with-header -select">
+            <div className="text-header">сравнить с</div>
+            <div>
+              <Select
+                closeMenuOnSelect
+                className="select players"
+                classNamePrefix="select"
+                placeholder="игроки..."
+                options={otherPlayers}
+                onChange={(value) => {
+                  this.props.history.push(
+                    routes.profile.compare.getPath({ id: profile.id, compareToId: value.id })
+                  );
+                }}
+              />
+            </div>
           </div>
         </div>
         <div className="profile-header right-align">
@@ -610,7 +635,7 @@ class ProfileCompare extends Component {
                           className="combine-toggle"
                           checked={!isTwo}
                           onChange={() =>
-                            this.setState(state => ({
+                            this.setState((state) => ({
                               compareBarsMode: {
                                 [BARS_MODES.SINGLE_TWO]: BARS_MODES.SINGLE_FIVE,
                                 [BARS_MODES.DOUBLE_TWO]: BARS_MODES.DOUBLE_FIVE,
@@ -631,7 +656,7 @@ class ProfileCompare extends Component {
                               compareBarsMode
                             )}
                             onToggle={() => {
-                              this.setState(state => ({
+                              this.setState((state) => ({
                                 compareBarsMode: isTwo ? BARS_MODES.BOTH_TWO : BARS_MODES.BOTH_FIVE,
                               }));
                             }}
@@ -641,8 +666,8 @@ class ProfileCompare extends Component {
                             active={[BARS_MODES.SINGLE_TWO, BARS_MODES.SINGLE_FIVE].includes(
                               compareBarsMode
                             )}
-                            onToggle={active => {
-                              this.setState(state => ({
+                            onToggle={(active) => {
+                              this.setState((state) => ({
                                 compareBarsMode: isTwo
                                   ? BARS_MODES.SINGLE_TWO
                                   : BARS_MODES.SINGLE_FIVE,
@@ -654,8 +679,8 @@ class ProfileCompare extends Component {
                             active={[BARS_MODES.DOUBLE_TWO, BARS_MODES.DOUBLE_FIVE].includes(
                               compareBarsMode
                             )}
-                            onToggle={active => {
-                              this.setState(state => ({
+                            onToggle={(active) => {
+                              this.setState((state) => ({
                                 compareBarsMode: isTwo
                                   ? BARS_MODES.DOUBLE_TWO
                                   : BARS_MODES.DOUBLE_FIVE,

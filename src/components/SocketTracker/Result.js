@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'lodash/fp';
 import classNames from 'classnames';
 import { FaAngleDoubleUp } from 'react-icons/fa';
 import numeral from 'numeral';

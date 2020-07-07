@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import _ from 'lodash/fp';
 import classNames from 'classnames';
 
 import { getRankImg } from 'utils/exp';
-import { useTracked } from './helpers';
+// import { useTracked } from './helpers';
 
 export const ChartLabel = ({ type, level }) => {
   return (
@@ -80,15 +80,15 @@ export const PlayerCard = ({
       ? []
       : rivals.slice(Math.max(0, playerIndex - 2), Math.min(playerIndex + 3, rivals.length));
 
-  const trackedPlayerTopPlace = useTracked(
-    _.get('place', rivals[playerIndex]),
-    profile.name
-    // (prev, curr) => {
-    //   if (prev) {
-    //     console.log('Place update:', profile.name || player, curr, prev);
-    //   }
-    // }
-  );
+  // const trackedPlayerTopPlace = useTracked(
+  //   _.get('place', rivals[playerIndex]),
+  //   profile.name
+  //   // (prev, curr) => {
+  //   //   if (prev) {
+  //   //     console.log('Place update:', profile.name || player, curr, prev);
+  //   //   }
+  //   // }
+  // );
 
   const [type, level] = label ? label.match(/(\D+)|(\d+)/g) : [];
 

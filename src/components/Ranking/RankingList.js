@@ -11,7 +11,7 @@ import { routes } from 'constants/routes';
 import Loader from 'components/Shared/Loader';
 import Flag from 'components/Shared/Flag';
 import Toggle from 'components/Shared/Toggle/Toggle';
-import CheckBox from 'components/Shared/CheckBox';
+// import CheckBox from 'components/Shared/CheckBox';
 
 import { getRankImg } from 'utils/exp';
 
