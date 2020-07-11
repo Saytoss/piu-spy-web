@@ -1,20 +1,43 @@
-import React, { useEffect } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import toBe from 'prop-types';
-import classNames from 'classnames';
 import { connect } from 'react-redux';
-import { Popper } from 'react-popper';
-// import _ from 'lodash/fp';
+import ReactModal from 'react-modal';
+import _ from 'lodash/fp';
 
 import './popups.scss';
 
+import { TYPES } from 'constants/popups';
+
 import { removePopup } from 'reducers/popups';
 
-const POPPER_MODIFIERS = {
-  preventOverflow: {
-    enabled: true,
-    padding: 10,
-    boundariesElement: 'viewport',
+import AchievementPopup from './AchievementPopup';
+import RankUpPopup from './RankUpPopup';
+
+const popupByType = {
+  [TYPES.ACHIEVEMENT]: AchievementPopup,
+  [TYPES.RANK_UP]: RankUpPopup,
+};
+
+const popupStyles = {
+  overlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  content: {
+    top: null,
+    bottom: null,
+    left: null,
+    right: null,
+    position: null,
+    borderRadius: null,
+    padding: null,
+    background: null,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    transition: '2.5s opacity ease',
+    opacity: 1,
   },
 };
 
@@ -30,96 +53,68 @@ const mapDispatchToProps = {
 
 const Popups = ({ popups, removePopup }) => {
   const [visiblePopup, setVisiblePopup] = useState(null);
-  const popupRef = useRef(null);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     if (popups.length > 0) {
       const popup = popups[0];
       setVisiblePopup(popup);
-      setTimeout(() => {
-        popupRef.current.style.opacity = 0;
+      if (!popup.persistent) {
         setTimeout(() => {
-          removePopup(popup.id);
-        }, popup.fadeOut || 3000);
-      }, popup.timeout || 5000);
+          if (popup && popup.fadeOut) {
+            contentRef.current.style.opacity = 0;
+            setTimeout(() => {
+              setVisiblePopup(null);
+              removePopup(popup);
+            }, 2500);
+          } else {
+            setVisiblePopup(null);
+            removePopup(popup);
+          }
+        }, popup.timeout || 6000);
+      }
+    } else {
+      setVisiblePopup(null);
     }
-  }, [popups])
+  }, [popups, removePopup]);
+
+  const onAfterOpen = useCallback(() => {
+    if (visiblePopup && visiblePopup.fadeIn) {
+      contentRef.current.style.opacity = 1;
+    }
+  }, [visiblePopup]);
+
+  let style = popupStyles;
+  let popupBody = null;
+  if (visiblePopup) {
+    const PopupComponent = popupByType[visiblePopup.type];
+    popupBody = PopupComponent ? (
+      <PopupComponent {...visiblePopup.parameters} />
+    ) : (
+      <div>{JSON.stringify(visiblePopup)}</div>
+    );
+
+    if (visiblePopup.fadeIn) {
+      style = _.set('content.opacity', 0, popupStyles);
+    }
+  }
 
   return (
     <div className="popups-holder">
-    {ReactDOM.createPortal(
-      <Popper
-        container={document.body}
-        modifiers={POPPER_MODIFIERS}
-        placement={placement}
-        referenceElement={this.containerItemRef.current}
+      <ReactModal
+        isOpen={!!visiblePopup}
+        contentRef={(ref) => (contentRef.current = ref)}
+        onAfterOpen={onAfterOpen}
+        style={style}
       >
-        {this.renderPopper}
-      </Popper>,
-      document.body
-    )}
+        {popupBody}
+      </ReactModal>
     </div>
-  )
+  );
 };
 Popups.propTypes = {
   popups: toBe.array,
   removePopup: toBe.func,
 };
-
-  renderPopper({ ref, style, placement, arrowProps, scheduleUpdate, outOfBoundaries }) {
-    const { children, hideWhenOutOfBounds } = this.props;
-    return (
-      <div
-        ref={ref}
-        style={style}
-        data-placement={placement}
-        className={classNames(
-          'inner-popper-overlay',
-          `arrow-${getArrowPlacement(placement)}`,
-          this.props.overlayClassName,
-          { 'out-of-bounds': outOfBoundaries && hideWhenOutOfBounds }
-        )}
-      >
-        <div className="arrow-hider">
-          <div className="arrow" ref={arrowProps.ref} style={arrowProps.style} />
-        </div>
-        <div
-          className="inner-popper-content"
-          // ref={ref => this.setupPopperContentRef(scheduleUpdate, ref)}
-        >
-          {children}
-        </div>
-      </div>
-    );
-  }
-
-  render() {
-    const { placement, overlayItem } = this.props;
-    const { isVisible } = this.state;
-    return (
-      <React.Fragment>
-        <div
-          className="overlay-item"
-          ref={this.containerItemRef}
-          onClick={this.toggleOverlayVisibility}
-        >
-          {overlayItem}
-        </div>
-        {isVisible &&
-          ReactDOM.createPortal(
-            <Popper
-              container={document.body}
-              modifiers={POPPER_MODIFIERS}
-              placement={placement}
-              referenceElement={this.containerItemRef.current}
-            >
-              {this.renderPopper}
-            </Popper>,
-            document.body
-          )}
-      </React.Fragment>
-    );
-  }
-}
 
 export default connect(mapStateToProps, mapDispatchToProps)(Popups);

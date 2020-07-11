@@ -7,16 +7,20 @@ import lev from 'fast-levenshtein';
 import './socket.scss';
 
 import { SOCKET_SERVER_IP } from 'constants/backend';
+
+import Popups from 'components/Shared/Popups';
 import Loader from 'components/Shared/Loader';
 
 import { appendNewResults } from 'reducers/results';
 import { fetchTopPerSong } from 'reducers/topPerSong';
 import { fetchUserPreferences } from 'reducers/preferences';
+import { addPopup } from 'reducers/popups';
 
 import { useTracked, useResetTrackedObject } from './helpers';
 
 import { PlayerCard } from './PlayerCard';
 import { Chart } from './Chart';
+import { TYPES } from 'constants/popups';
 // import { ChartBlocks } from './ChartBlocks';
 
 // code
@@ -44,6 +48,7 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = {
   fetchTopPerSong,
   appendNewResults,
+  addPopup,
   fetchUserPreferences,
 };
 
@@ -56,9 +61,53 @@ function TrackerApp({
   error,
   profiles,
   topPlayersList,
-  // resultInfo = {},
   sharedCharts = {},
+  addPopup,
 }) {
+  // useEffect(() => {
+  //   addPopup({
+  //     type: TYPES.ACHIEVEMENT,
+  //     fadeIn: true,
+  //     fadeOut: true,
+  //     // persistent: true,
+  //     parameters: {
+  //       playerName: 'grumd',
+  //       achievementName: 'Падовый мисс',
+  //       progress: [0, 100],
+  //     },
+  //   });
+  //   addPopup({
+  //     type: TYPES.ACHIEVEMENT,
+  //     fadeIn: true,
+  //     fadeOut: true,
+  //     parameters: {
+  //       playerName: 'Dino',
+  //       achievementName: 'Мастер фингеринга',
+  //       progress: [33, 66],
+  //     },
+  //   });
+  // }, [addPopup]);
+  // useEffect(() => {
+  //   if (_.get('[0].rating', topPlayersList)) {
+  //     const prevList = [...topPlayersList];
+  //     const p = 30,
+  //       c = 26;
+  //     const currList = _.pullAt(p - 1, topPlayersList);
+  //     currList.splice(c - 1, 0, topPlayersList[p - 1]);
+  //     addPopup({
+  //       type: TYPES.RANK_UP,
+  //       fadeIn: true,
+  //       fadeOut: true,
+  //       persistent: true,
+  //       parameters: {
+  //         playerName: 'grumd',
+  //         place: [p, c],
+  //         list: [prevList, currList],
+  //       },
+  //     });
+  //   }
+  // }, [addPopup, topPlayersList]);
+
   // Setup
   const [message, setMessage] = useState('');
   const [socketErrorMessage, setSocketErrorMessage] = useState('');
@@ -89,13 +138,37 @@ function TrackerApp({
     return _.minBy((p) => lev.get(p.nameArcade, rightPlayer), _.values(profiles)) || {};
   }, [rightPlayer, profiles]);
 
+  const onChangeAchievements = (playerName) => (prevAchievement, currAchievement) => {
+    _.keys(prevAchievement).forEach((achievementName) => {
+      if (prevAchievement[achievementName].progress !== currAchievement[achievementName].progress) {
+        addPopup({
+          type: TYPES.ACHIEVEMENT,
+          fadeIn: true,
+          fadeOut: true,
+          parameters: {
+            playerName,
+            achievementName,
+            progress: [
+              prevAchievement[achievementName].progress,
+              currAchievement[achievementName].progress,
+            ],
+          },
+        });
+      }
+    });
+  };
+
   // Track changes in profiles
   const leftTracked = {
     pp: useTracked(_.get('pp.pp', leftProfile), leftProfile.name),
     elo: useTracked(leftProfile.ratingRaw, leftProfile.name),
     exp: useTracked(leftProfile.exp, leftProfile.name),
     expRank: useTracked(leftProfile.expRank, leftProfile.name),
-    achievements: useTracked(leftProfile.achievements, leftProfile.name),
+    achievements: useTracked(
+      leftProfile.achievements,
+      leftProfile.name,
+      onChangeAchievements(leftProfile.name)
+    ),
   };
   const resetLeftTracked = useResetTrackedObject(leftTracked);
   const rightTracked = {
@@ -103,7 +176,11 @@ function TrackerApp({
     elo: useTracked(rightProfile.ratingRaw, rightProfile.name),
     exp: useTracked(rightProfile.exp, rightProfile.name),
     expRank: useTracked(rightProfile.expRank, rightProfile.name),
-    achievements: useTracked(rightProfile.achievements, rightProfile.name),
+    achievements: useTracked(
+      rightProfile.achievements,
+      rightProfile.name,
+      onChangeAchievements(rightProfile.name)
+    ),
   };
   const resetRightTracked = useResetTrackedObject(rightTracked);
 
@@ -271,6 +348,7 @@ function TrackerApp({
 
   return (
     <div className="tracker-container">
+      <Popups />
       <div className="sidebar">
         <PlayerCard
           player={leftPlayer}
@@ -280,6 +358,7 @@ function TrackerApp({
           preferences={leftPreferences}
           topPlayersList={topPlayersList}
           isLeft
+          addPopup={addPopup}
         />
         <PlayerCard
           player={rightPlayer}
@@ -288,6 +367,7 @@ function TrackerApp({
           trackedData={rightTracked}
           preferences={rightPreferences}
           topPlayersList={topPlayersList}
+          addPopup={addPopup}
         />
       </div>
       <div className="results" ref={resultsContainerRef}>
