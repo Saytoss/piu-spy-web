@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Route, Redirect, Switch } from 'react-router-dom';
 import { connect } from 'react-redux';
 import localForage from 'localforage';
+import ReactModal from 'react-modal';
 import _ from 'lodash/fp';
 
 import 'react-responsive-ui/style.css';
@@ -24,6 +25,8 @@ import { fetchResults, setFilter } from 'reducers/results';
 import { fetchTracklist } from 'reducers/tracklist';
 import { fetchUser } from 'reducers/user';
 import { fetchPreferences } from 'reducers/preferences';
+
+ReactModal.setAppElement('#root');
 
 const mapStateToProps = (state) => {
   return {

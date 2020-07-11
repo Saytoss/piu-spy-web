@@ -39,6 +39,8 @@ export const store = createStore(
               data: `big array, ${_.size(state.results.data)}`,
               results: `big array, ${_.size(state.results.results)}`,
               sharedCharts: 'big object',
+              originalData: 'big object',
+              resultInfo: 'big object',
               profiles: _.mapValues(
                 (pl) => ({
                   ...pl,
@@ -46,6 +48,10 @@ export const store = createStore(
                   resultsByLevel: '...',
                   rankingHistory: '...',
                   ratingHistory: '...',
+                  pp: {
+                    pp: pl.pp && pl.pp.pp,
+                    scores: '...',
+                  },
                 }),
                 state.results.profiles
               ),

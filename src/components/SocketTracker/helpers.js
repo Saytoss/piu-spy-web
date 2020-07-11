@@ -133,6 +133,41 @@ export const preprocessData = (data) => ({
   )(data),
 });
 
+export const useTrackedEx = ({
+  data,
+  resetData,
+  onChange = _.noop,
+  isDataValid = _.identity,
+  isDebugOn = false,
+}) => {
+  const [prevData, setPrevData] = useState(data);
+  const [currData, setCurrData] = useState(data);
+  const resetIndicator = useRef(resetData);
+
+  useEffect(() => {
+    // isDebugOn && console.log('tracking effect', resetIndicatorData, data, currData, prevData);
+    if (resetIndicator.current !== resetData) {
+      // isDebugOn && console.log('resetting due to indicator chage', data);
+      resetIndicator.current = resetData;
+      setPrevData(data);
+      setCurrData(data);
+    } else if (isDataValid(data) && !_.isEqual(data, currData)) {
+      // isDebugOn && console.log('data has updated', data, currData);
+      setPrevData(currData);
+      setCurrData(data);
+      onChange(currData, data);
+    }
+  }, [data, onChange, currData, prevData, resetData, isDataValid]);
+
+  const reset = useCallback(() => {
+    // isDebugOn && console.log('reset called from function');
+    setPrevData(data);
+    setCurrData(data);
+  }, [data]);
+
+  return useMemo(() => [currData, prevData, reset], [currData, prevData, reset]);
+};
+
 export const useTracked = (data, resetIndicatorData, onChange = _.noop, isDebugOn) => {
   const [prevData, setPrevData] = useState(data);
   const [currData, setCurrData] = useState(data);

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import _ from 'lodash/fp';
 import classNames from 'classnames';
 
+import { TYPES } from 'constants/popups';
 import { getRankImg } from 'utils/exp';
-// import { useTracked } from './helpers';
+import { useTrackedEx } from './helpers';
 
 export const ChartLabel = ({ type, level }) => {
   return (
@@ -30,6 +31,7 @@ export const PlayerCard = ({
   isLeft = false,
   preferences,
   topPlayersList,
+  addPopup,
 }) => {
   const playersHiddenStatus = _.getOr({}, 'playersHiddenStatus', preferences);
 
@@ -80,15 +82,33 @@ export const PlayerCard = ({
       ? []
       : rivals.slice(Math.max(0, playerIndex - 2), Math.min(playerIndex + 3, rivals.length));
 
-  // const trackedPlayerTopPlace = useTracked(
-  //   _.get('place', rivals[playerIndex]),
-  //   profile.name
-  //   // (prev, curr) => {
-  //   //   if (prev) {
-  //   //     console.log('Place update:', profile.name || player, curr, prev);
-  //   //   }
-  //   // }
-  // );
+  useTrackedEx({
+    data: topPlayersList,
+    resetData: profile.name,
+    isDataValid: useCallback(_.get('[0].rating'), []), // top list is only valid when rating is calculated
+    onChange: useCallback(
+      (prevList, currList) => {
+        const prevPlace = _.get('place', _.find({ id: profile.id }, prevList));
+        const currPlace = _.get('place', _.find({ id: profile.id }, currList));
+        // console.log('List update:', prevList, currList, prevPlace, currPlace);
+        if (prevPlace && currPlace && prevPlace > currPlace) {
+          // console.log('Place update:', profile.name, prevPlace, currPlace);
+          addPopup({
+            type: TYPES.RANK_UP,
+            fadeIn: true,
+            fadeOut: true,
+            timeout: 7500,
+            parameters: {
+              playerName: profile.name,
+              place: [prevPlace, currPlace],
+              list: [prevList, currList],
+            },
+          });
+        }
+      },
+      [addPopup, profile.id, profile.name]
+    ),
+  });
 
   const [type, level] = label ? label.match(/(\D+)|(\d+)/g) : [];
 

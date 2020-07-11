@@ -15,7 +15,14 @@ export default function reducer(state = initialState, action) {
       const id = _.uniqueId(ID_PREFIX);
       return {
         ...state,
-        popups: [...state.popups, { id, type: action.type, parameters: action.parameters }],
+        popups: [
+          ...state.popups,
+          {
+            id,
+            type: action.popupType,
+            ..._.pick(['parameters', 'fadeIn', 'fadeOut', 'timeout', 'persistent'], action),
+          },
+        ],
       };
     case REMOVE_POPUP:
       return {
@@ -27,10 +34,10 @@ export default function reducer(state = initialState, action) {
   }
 }
 
-export const addPopup = ({ type, parameters }) => {
-  return { type, parameters };
+export const addPopup = ({ type, parameters, fadeIn, fadeOut, timeout, persistent }) => {
+  return { type: ADD_POPUP, popupType: type, parameters, fadeIn, fadeOut, timeout, persistent };
 };
 
 export const removePopup = ({ id }) => {
-  return { id };
+  return { type: REMOVE_POPUP, id };
 };
