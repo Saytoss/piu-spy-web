@@ -24,7 +24,7 @@ import { TYPES } from 'constants/popups';
 // import { ChartBlocks } from './ChartBlocks';
 
 // code
-const STATE_RESET_TIMEOUT = 10 * 60 * 1000; // 5 minutes
+const STATE_RESET_TIMEOUT_SEC = 5 * 60 + 10; // 5 minutes 10 seconds
 
 const topPlayersListSelector = createSelector(
   (state) => state.results.profiles,
@@ -208,7 +208,15 @@ function TrackerApp({
     }
     timeoutResetTokenRef.current = setTimeout(() => {
       // TODO: reset page
-    }, STATE_RESET_TIMEOUT);
+      setAlive(false);
+      setLeftPlayer(null);
+      setRightPlayer(null);
+      setLeftLabel(null);
+      setRightLabel(null);
+      setRecognizedSongName('');
+      setLeftPreferences(null);
+      setRightPreferences(null);
+    }, STATE_RESET_TIMEOUT_SEC * 1000);
   }, []);
 
   // Start websockets
