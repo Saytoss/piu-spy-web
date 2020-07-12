@@ -112,7 +112,7 @@ function TrackerApp({
   const [message, setMessage] = useState('');
   const [socketErrorMessage, setSocketErrorMessage] = useState('');
   const [isSocketReady, setSocketReady] = useState(false);
-  const [isAlive, setAlive] = useState(false);
+  const [isAlive, setAlive] = useState(null);
   const [leftLabel, setLeftLabel] = useState(null);
   const [rightLabel, setRightLabel] = useState(null);
   const [leftPlayer, setLeftPlayer] = useState(null);
@@ -392,7 +392,9 @@ function TrackerApp({
           !socketErrorMessage &&
           !isLoading &&
           _.isEmpty(chartsToShow) &&
-          (isAlive ? (
+          (isAlive === null ? (
+            <div className="msg">Waiting for recognizer...</div>
+          ) : isAlive ? (
             <div className="msg">Waiting for chart select...</div>
           ) : (
             <div className="offline msg">Recognizer is offline</div>
