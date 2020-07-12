@@ -15,6 +15,7 @@ import { HOST } from 'constants/backend';
 import { DEBUG } from 'constants/env';
 
 const LOADING = `TOP/LOADING`;
+const STOP_LOADING = `TOP/STOP_LOADING`;
 const SUCCESS = `TOP/SUCCESS`;
 const ERROR = `TOP/ERROR`;
 const SET_FILTER = `TOP/SET_FILTER`;
@@ -363,6 +364,11 @@ export default function reducer(state = initialState, action) {
         ...state,
         isLoading: true,
       };
+    case STOP_LOADING:
+      return {
+        ...state,
+        isLoading: false,
+      };
     case ERROR:
       return {
         ...state,
@@ -508,12 +514,16 @@ export const appendNewResults = (lastDate) => {
 
       console.log('Received results:', data, '; Will append:', appendedResults);
 
-      const mergedData = {
-        players: data.players,
-        results: [...originalData.results, ...appendedResults],
-        shared_charts: { ...originalData.shared_charts, ...data.shared_charts },
-      };
-      dispatch(processResultsData(mergedData));
+      if (!_.isEmpty(appendedResults)) {
+        const mergedData = {
+          players: data.players,
+          results: [...originalData.results, ...appendedResults],
+          shared_charts: { ...originalData.shared_charts, ...data.shared_charts },
+        };
+        dispatch(processResultsData(mergedData));
+      } else {
+        dispatch({ type: STOP_LOADING });
+      }
     } catch (error) {
       console.log(error);
       dispatch({ type: ERROR, error });
