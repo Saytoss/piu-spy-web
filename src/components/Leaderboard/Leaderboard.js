@@ -97,7 +97,6 @@ const mapStateToProps = (state) => {
     profiles: state.results.profiles,
     resultInfo: state.results.resultInfo,
     results: state.results.results,
-    sharedCharts: state.results.sharedCharts,
     filteredData: filteredDataSelector(state),
     data: state.results.data,
     filter: state.results.filter,
@@ -399,7 +398,6 @@ class Leaderboard extends Component {
       error,
       filter,
       resultInfo,
-      sharedCharts,
       playersHiddenStatus,
     } = this.props;
     const { showItemsCount, chartOverrides } = this.state;
@@ -486,9 +484,7 @@ class Leaderboard extends Component {
                     isPlayerHidden,
                   };
                 });
-                const interpolatedDifficulty =
-                  sharedCharts[chart.sharedChartId] &&
-                  sharedCharts[chart.sharedChartId].interpolatedDifficulty;
+
                 return (
                   <div className="song-block" key={chart.sharedChartId}>
                     <div className="song-name">
@@ -507,7 +503,8 @@ class Leaderboard extends Component {
                       <div>
                         {chart.song}{' '}
                         <span className="_grey-text">
-                          ({interpolatedDifficulty && interpolatedDifficulty.toFixed(2)})
+                          ({chart.interpolatedDifficulty && chart.interpolatedDifficulty.toFixed(1)}
+                          )
                         </span>
                       </div>
                       <div className="youtube-link">
