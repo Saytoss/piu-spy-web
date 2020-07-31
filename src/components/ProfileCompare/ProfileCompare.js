@@ -16,6 +16,8 @@ import {
   CartesianGrid,
   Line,
   ResponsiveContainer,
+  ScatterChart,
+  Scatter,
 } from 'recharts';
 import _ from 'lodash/fp';
 import memoize from 'lru-memoize';
@@ -235,6 +237,7 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
         p2win: 0,
         p2notPlayed: 0,
         notPlayed: 0,
+        // notPlayedHalf: 0,
         twoBars: {},
       },
       double: {
@@ -291,6 +294,7 @@ const getCombinedData = memoize()((p1, p2, tracklist) => {
       dataObj.p2notPlayed = dataObj.p2notPlayed / total;
       dataObj.notPlayed =
         1 - dataObj.p1win - dataObj.p1notPlayed - dataObj.p2win - dataObj.p2notPlayed;
+      // dataObj.notPlayedHalf = dataObj.notPlayed / 2;
     };
     normalizeFive(data.all, tracklist.chartLevels[level]);
     normalizeFive(data.double, tracklist.doublesLevels[level]);
@@ -424,6 +428,36 @@ class ProfileCompare extends Component {
             dot={false}
           />
         </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderAccuracyPoints(useProfile2 = false) {
+    const { profile, profile2 } = this.props;
+
+    return (
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
+        <ScatterChart margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="[0]"
+            type="number"
+            domain={[1, 28]}
+            tickFormatter={(value) => Math.round(value)}
+            ticks={[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27]}
+          />
+          <YAxis
+            dataKey="[1]"
+            type="number"
+            domain={[0, 100]}
+            width={40}
+            tickFormatter={(value) => Math.round(value) + '%'}
+          />
+          <Scatter
+            data={(useProfile2 ? profile2 : profile).accuracyPointsRaw}
+            fill={useProfile2 ? '#ffd388' : '#88d3ff'}
+          />
+        </ScatterChart>
       </ResponsiveContainer>
     );
   }
@@ -759,6 +793,28 @@ class ProfileCompare extends Component {
                 </div>
               );
             })()}
+          </div>
+        </div>
+        <div className="profile-section-horizontal-container">
+          <div className="profile-section">
+            <div className="profile-section-content">
+              <div className="profile-section-2">
+                <div className="profile-sm-section-header">
+                  <span>точность по уровням</span>
+                </div>
+                <div className="chart-container">{this.renderAccuracyPoints()}</div>
+              </div>
+            </div>
+          </div>
+          <div className="profile-section">
+            <div className="profile-section-content">
+              <div className="profile-section-2">
+                <div className="profile-sm-section-header">
+                  <span>точность по уровням</span>
+                </div>
+                <div className="chart-container">{this.renderAccuracyPoints(true)}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

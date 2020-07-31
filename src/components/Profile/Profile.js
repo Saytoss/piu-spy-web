@@ -21,6 +21,8 @@ import {
   Legend,
   ResponsiveContainer,
   Label,
+  Scatter,
+  ScatterChart,
 } from 'recharts';
 import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
@@ -167,6 +169,72 @@ class Profile extends Component {
             type="monotone"
             isAnimationActive={false}
             dataKey="rating"
+            stroke="#88d3ff"
+            strokeWidth={3}
+            dot={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  renderAccuracyPoints(interpolated = false) {
+    const { profile } = this.props;
+
+    if (!interpolated) {
+      return (
+        <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
+          <ScatterChart margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="[0]"
+              type="number"
+              domain={[1, 28]}
+              tickFormatter={value => Math.round(value)}
+              ticks={[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27]}
+            />
+            <YAxis
+              dataKey="[1]"
+              type="number"
+              domain={[0, 100]}
+              width={40}
+              tickFormatter={value => Math.round(value) + '%'}
+            />
+            <Scatter data={profile.accuracyPointsRaw} fill="#88d3ff" />
+          </ScatterChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    return (
+      <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
+        <LineChart margin={{ top: 5, bottom: 5, right: 5, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="[0]"
+            type="number"
+            domain={[1, 28]}
+            tickFormatter={value => Math.round(value)}
+          />
+          <YAxis domain={[0, 100]} width={40} />
+          <RechartsTooltip
+            isAnimationActive={false}
+            content={({ active, payload, label }) => {
+              if (!payload || !payload[0]) {
+                return null;
+              }
+              return (
+                <div className="history-tooltip">
+                  <div>{payload[0].payload[0]}</div>
+                  {payload && payload[0] && <div>Acc: #{payload[0].value}</div>}
+                </div>
+              );
+            }}
+          />
+          <Line
+            data={profile.accuracyPointsInterpolated}
+            isAnimationActive={false}
+            dataKey="[1]"
             stroke="#88d3ff"
             strokeWidth={3}
             dot={false}
@@ -635,12 +703,14 @@ class Profile extends Component {
                   <span>эло</span>
                 </div>
                 <div className="chart-container">{this.renderRankingHistory()}</div>
+                {/* <div className="chart-container">{this.renderAccuracyPoints()}</div> */}
               </div>
               <div className="profile-section-2">
                 <div className="profile-sm-section-header">
                   <span>место в топе</span>
                 </div>
                 <div className="chart-container">{this.renderPlaceHistory()}</div>
+                {/* <div className="chart-container">{this.renderAccuracyPoints(true)}</div> */}
               </div>
             </div>
             {(() => {
@@ -692,6 +762,19 @@ class Profile extends Component {
               );
             })()}
           </div>
+        </div>
+        <div className="profile-section-horizontal-container">
+          <div className="profile-section">
+            <div className="profile-section-content">
+              <div className="profile-section-2">
+                <div className="profile-sm-section-header">
+                  <span>точность по уровням</span>
+                </div>
+                <div className="chart-container">{this.renderAccuracyPoints()}</div>
+              </div>
+            </div>
+          </div>
+          <div className="profile-section"></div>
         </div>
         <div className="profile-section progress-section">
           <div className="profile-sm-section-header">

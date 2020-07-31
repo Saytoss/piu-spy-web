@@ -267,13 +267,12 @@ const postProcessProfiles = (profiles, tracklist) => {
         prog[g][l] = prog[g][l] ? prog[g][l] + 1 : 1;
       }
     };
-    profile.accuracyByLevel = {};
+
+    profile.accuracyPointsRaw = [];
     _.keys(profile.resultsByLevel).forEach((level) => {
-      profile.accuracyByLevel[level] = { count: 0, sum: 0, average: null };
       profile.resultsByLevel[level].forEach((res) => {
-        if (!res.result.isRank && res.result.accuracy) {
-          profile.accuracyByLevel[level].count++;
-          profile.accuracyByLevel[level].sum += res.result.accuracy;
+        if (!res.result.isRank && res.result.accuracyRaw) {
+          profile.accuracyPointsRaw.push([_.toNumber(level), res.result.accuracyRaw]);
         }
 
         const thisGrade = res.result.grade;
@@ -294,17 +293,8 @@ const postProcessProfiles = (profiles, tracklist) => {
           });
         }
       });
-      profile.accuracyByLevel[level].average =
-        profile.accuracyByLevel[level].count === 0
-          ? null
-          : profile.accuracyByLevel[level].sum / profile.accuracyByLevel[level].count;
     });
-    const points = _.flow(
-      _.toPairs,
-      _.filter(([level, data]) => data.average && data.count > 10),
-      _.map(([level, data]) => [_.toNumber(level), data.average])
-    )(profile.accuracyByLevel);
-    profile.accuracyPoints = points;
+
     ['single', 'double'].forEach((chartType) => {
       profile.progress[`${chartType}-bonus`] = 0;
       _.keys(profile.progress[chartType]).forEach((grade) => {
@@ -412,73 +402,63 @@ const processPP = ({ profiles, sharedCharts }) => {
     } else {
       profile.rating = 0;
     }
-    // profile.id = _.toInteger(playerId);
-    // profile.accuracy =
-    //   profile.countAcc > 0
-    //     ? Math.round((profile.sumAccuracy / profile.countAcc) * 100) / 100
-    //     : null;
-    // profile.rating = Math.round(profile.ratingRaw);
   }
   return resultInfo;
 };
 
-const interpolateDifficulties = (sharedCharts, processedProfiles) => {
+const interpolateDifficulties = ({ sharedCharts, profiles, debug }) => {
   let newSharedCharts = _.mapValues((chart) => {
     const datas = chart.results
       .map((r) => {
-        const profile = processedProfiles[r.playerId];
-        if (!profile || !r.accuracy || r.isRank || _.isEmpty(profile.accuracyPoints)) {
+        const profile = profiles[r.playerId];
+        if (!profile || !r.accuracy || r.isRank || _.size(profile.accuracyPointsRaw) < 50) {
           return null;
         }
-        const accData = profile.accuracyByLevel[chart.chartLevel];
-        if (!profile.accuracyPointsInterpolated) {
-          let points = [...profile.accuracyPoints, [30, 0]];
-          for (let i = profile.accuracyPoints[0][0]; i > 0; i--) {
-            points = [[i, 100], ...points];
-          }
-          const result = regression('polynomial', points, 3);
-          // console.log(result);
-          const predict = (x) => {
-            return (
-              result.equation[0] +
-              result.equation[1] * x +
-              result.equation[2] * x * x +
-              result.equation[3] * x * x * x
-            );
-          };
 
-          // const f_1 = interpolate(profile.accuracyPoints);
+        if (!profile.accuracyPointsInterpolated) {
+          const maxAccuracy = _.maxBy(([x, y]) => y, profile.accuracyPointsRaw)[1];
+          const maxLevelWithMaxAcc = _.maxBy(
+            ([x, y]) => x,
+            _.filter(([x, y]) => y === maxAccuracy, profile.accuracyPointsRaw)
+          )[0];
+          const points = profile.accuracyPointsRaw
+            .filter(([x, y]) => x >= maxLevelWithMaxAcc - 1)
+            .map(([x, y]) => [30 - x, 101 - y]);
+          const result = regression.logarithmic(points);
+
           const f = (x) => {
-            if (x <= profile.accuracyPoints[0][0]) {
-              return 100;
-            }
-            // const calculated = f_1(x);
-            const calculated = predict(x);
+            const calculated = 101 - result.predict(30 - x)[1];
             return Math.max(0, Math.min(calculated, 100));
           };
           const yx = [];
           for (let i = 1; i <= 28; i += 0.05) {
             yx.push([i, f(i)]);
           }
-          // console.log(JSON.stringify(yx, null, 1));
+
           profile.accuracyPointsInterpolated = yx;
         }
+
         const interpolatedPoint = _.find(
-          (pair) => pair[1] < r.accuracy,
+          (pair) => pair[1] < r.accuracyRaw,
           profile.accuracyPointsInterpolated
         );
-        return {
-          id: r.playerId,
-          accuracy: r.accuracy,
-          avgAccuracy: accData.average,
+        const returnValue = {
           interpolatedDifficulty: interpolatedPoint && interpolatedPoint[0],
           weight:
-            r.accuracy > 98
-              ? 1 - (r.accuracy - 98) / (100 - 98)
-              : r.accuracy < 80
-              ? Math.max(0, (r.accuracy - 70) / (80 - 70))
+            r.accuracyRaw > 98
+              ? 1 - (r.accuracyRaw - 98) / (100 - 98)
+              : r.accuracyRaw < 80
+              ? Math.max(0, (r.accuracyRaw - 50) / (80 - 50))
               : 1,
         };
+        returnValue.weight *= Math.min(
+          1,
+          Math.max(0.1, (8 - Math.abs(returnValue.interpolatedDifficulty - chart.chartLevel)) / 8)
+        );
+        if (debug) {
+          r.interpolation = returnValue;
+        }
+        return returnValue;
       })
       .filter(_.identity);
     const sums = datas.reduce(
@@ -493,8 +473,8 @@ const interpolateDifficulties = (sharedCharts, processedProfiles) => {
       },
       { diffSum: 0, weightSum: 0 }
     );
-    sums.diffSum += _.toNumber(chart.chartLevel);
-    sums.weightSum += 1;
+    sums.diffSum += _.toNumber(chart.chartLevel) * 2;
+    sums.weightSum += 2;
     const averageDifficulty = sums.diffSum / sums.weightSum;
     // console.log(chart.song, chart.chartLabel, JSON.stringify(datas), averageDifficulty);
 
@@ -511,7 +491,7 @@ export const getProcessedProfiles = ({ profiles, sharedCharts, tracklist, battle
   profiles = postProcessProfiles(profiles, tracklist);
 
   // Recalculate chart difficulty
-  sharedCharts = interpolateDifficulties(sharedCharts, profiles);
+  sharedCharts = interpolateDifficulties({ debug, sharedCharts, profiles });
 
   // Calculate PP
   const resultInfo = processPP({
