@@ -65,6 +65,15 @@ export const Result = ({ res, chart, leftProfile, rightProfile, placeDifference,
                   <div className="av-number">{avMod.replace('AV', '')}</div>
                 </div>
               ))}
+          {res.mods &&
+            res.mods
+              .split(' ')
+              .filter((mod) => mod.endsWith('X'))
+              .map((xMod) => (
+                <div className="x-mod">
+                  <div className="x-number">{xMod}</div>
+                </div>
+              ))}
           {res.isRank && <div className="inner">{res.isExactDate ? 'R' : 'R?'}</div>}
           {res.isHJ && <div className="inner">HJ</div>}
         </div>
