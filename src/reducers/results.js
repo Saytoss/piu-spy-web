@@ -269,7 +269,7 @@ const processData = (data, tracklist) => {
         sharedChartId: sharedChartId,
         maxTotalSteps: sharedChart.max_total_steps,
         results: [],
-        totalResultsCount: 0,
+        allResultsIds: [],
       };
     }
 
@@ -292,7 +292,7 @@ const processData = (data, tracklist) => {
       if (!result.isUnknownPlayer || newScoreIndex === 0) {
         chartTop.results.splice(newScoreIndex, 0, result);
         chartTop.latestScoreDate = result.date;
-        chartTop.totalResultsCount++;
+        chartTop.allResultsIds.push(result.playerId);
         topResults[topResultId] = result;
       }
       if (!result.isUnknownPlayer) {
