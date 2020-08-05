@@ -58,7 +58,7 @@ const MIN_GRAPH_HEIGHT = undefined;
 const profileSelector = profileSelectorCreator('id');
 
 export const otherPlayersSelector = createSelector(
-  state => state.results.players,
+  (state) => state.results.players,
   (state, props) => _.toNumber(props.match.params.id),
   (players, id) =>
     _.flow(
@@ -68,8 +68,8 @@ export const otherPlayersSelector = createSelector(
         value: nickname,
         id: _.toNumber(id),
       })),
-      _.remove(it => it.id === id),
-      _.sortBy(it => _.toLower(it.label))
+      _.remove((it) => it.id === id),
+      _.sortBy((it) => _.toLower(it.label))
     )(players)
 );
 
@@ -80,6 +80,7 @@ const mapStateToProps = (state, props) => {
     tracklist: state.tracklist.data,
     filter: state.profiles.filter,
     error: state.results.error || state.tracklist.error,
+    sharedCharts: state.results.sharedCharts,
     isLoading:
       state.results.isLoading || state.results.isLoadingRanking || state.tracklist.isLoading,
   };
@@ -116,7 +117,7 @@ class Profile extends Component {
     !isLoading && this.props.fetchResults();
   };
 
-  onChangeDayRange = range => {
+  onChangeDayRange = (range) => {
     const { filter } = this.props;
     this.props.setProfilesFilter({
       ...filter,
@@ -142,7 +143,7 @@ class Profile extends Component {
             dataKey="date"
             type="number"
             domain={['dataMin', 'dataMax']}
-            tickFormatter={value => parseDate(value).toLocaleDateString()}
+            tickFormatter={(value) => parseDate(value).toLocaleDateString()}
           />
           <YAxis
             allowDecimals={false}
@@ -178,9 +179,15 @@ class Profile extends Component {
     );
   }
 
+  circleShape = (args) => (
+    <circle key={args.key} cx={args.cx} cy={args.cy} r={4} fill={args.fill}></circle>
+  );
   renderAccuracyPoints(interpolated = false) {
-    const { profile } = this.props;
-
+    const { profile, sharedCharts } = this.props;
+    const pointsByType = _.groupBy(([, , chartId]) => {
+      const type = sharedCharts[chartId].chartType;
+      return type === 'D' || type === 'DP';
+    }, profile.accuracyPointsRaw);
     if (!interpolated) {
       return (
         <ResponsiveContainer minHeight={MIN_GRAPH_HEIGHT} aspect={1.6}>
@@ -190,7 +197,7 @@ class Profile extends Component {
               dataKey="[0]"
               type="number"
               domain={[1, 28]}
-              tickFormatter={value => Math.round(value)}
+              tickFormatter={(value) => Math.round(value)}
               ticks={[1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27]}
             />
             <YAxis
@@ -198,9 +205,30 @@ class Profile extends Component {
               type="number"
               domain={[0, 100]}
               width={40}
-              tickFormatter={value => Math.round(value) + '%'}
+              tickFormatter={(value) => Math.round(value) + '%'}
             />
-            <Scatter data={profile.accuracyPointsRaw} fill="#88d3ff" />
+            <Scatter data={pointsByType.true} shape={this.circleShape} fill="#169c16" />
+            <Scatter data={pointsByType.false} shape={this.circleShape} fill="#af2928" />
+            <RechartsTooltip
+              isAnimationActive={false}
+              content={({ active, payload, label }) => {
+                if (!payload || !payload[0] || !payload[1]) {
+                  return null;
+                }
+                const chart = payload[0].payload[2] && sharedCharts[payload[0].payload[2]];
+                return (
+                  <div className="history-tooltip">
+                    <div>Level: {payload[0].value}</div>
+                    <div>Accuracy: {payload[1].value}%</div>
+                    {chart && (
+                      <div>
+                        {chart.song} {chart.chartLabel} ({chart.interpolatedDifficulty.toFixed(1)})
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
+            />
           </ScatterChart>
         </ResponsiveContainer>
       );
@@ -214,7 +242,7 @@ class Profile extends Component {
             dataKey="[0]"
             type="number"
             domain={[1, 28]}
-            tickFormatter={value => Math.round(value)}
+            tickFormatter={(value) => Math.round(value)}
           />
           <YAxis domain={[0, 100]} width={40} />
           <RechartsTooltip
@@ -254,11 +282,11 @@ class Profile extends Component {
             dataKey="date"
             type="number"
             domain={['dataMin', 'dataMax']}
-            tickFormatter={value => parseDate(value).toLocaleDateString()}
+            tickFormatter={(value) => parseDate(value).toLocaleDateString()}
           />
           <YAxis
             allowDecimals={false}
-            domain={[1, dataMax => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
+            domain={[1, (dataMax) => (dataMax < 3 ? dataMax + 2 : dataMax + 1)]}
             interval={0}
             reversed
             width={40}
@@ -307,7 +335,7 @@ class Profile extends Component {
               return (
                 <div className="history-tooltip">
                   <div>Level: {payload[0].payload.x}</div>
-                  {_.filter(item => item.value > 0, payload).map(item => (
+                  {_.filter((item) => item.value > 0, payload).map((item) => (
                     <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
                       {item.name}: {payload[0].payload.gradesValues[item.name]}
                     </div>
@@ -320,7 +348,7 @@ class Profile extends Component {
           <YAxis
             domain={[0, 100]}
             ticks={[0, 50, 100]}
-            tickFormatter={x => `${Math.round(x)}%`}
+            tickFormatter={(x) => `${Math.round(x)}%`}
             width={40}
           />
           <Legend />
@@ -354,11 +382,11 @@ class Profile extends Component {
                 return null;
               }
               const doubleItems = _.filter(
-                item => item.value !== 0 && item.dataKey.startsWith('D'),
+                (item) => item.value !== 0 && item.dataKey.startsWith('D'),
                 payload
               );
               const singleItems = _.filter(
-                item => item.value !== 0 && item.dataKey.startsWith('S'),
+                (item) => item.value !== 0 && item.dataKey.startsWith('S'),
                 payload
               );
               return (
@@ -367,7 +395,7 @@ class Profile extends Component {
                   {!!singleItems.length && (
                     <>
                       <div>Single:</div>
-                      {singleItems.map(item => (
+                      {singleItems.map((item) => (
                         <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
                           {item.name.slice(2)}: {Math.round(Math.abs(item.value))}% (
                           {Math.round((tracklist.singlesLevels[item.payload.x] * item.value) / 100)}
@@ -379,7 +407,7 @@ class Profile extends Component {
                   {!!doubleItems.length && (
                     <>
                       <div>Double:</div>
-                      {doubleItems.map(item => (
+                      {doubleItems.map((item) => (
                         <div key={item.name} style={{ fontWeight: 'bold', color: item.color }}>
                           {item.name.slice(2)}: {Math.round(Math.abs(item.value))}% (
                           {Math.round(
@@ -396,9 +424,9 @@ class Profile extends Component {
           />
           <XAxis dataKey="x" />
           <YAxis
-            tickFormatter={x => `${Math.round(Math.abs(x))}%`}
+            tickFormatter={(x) => `${Math.round(Math.abs(x))}%`}
             width={40}
-            domain={[dataMin => Math.min(dataMin, -10), dataMax => Math.max(10, dataMax)]}
+            domain={[(dataMin) => Math.min(dataMin, -10), (dataMax) => Math.max(10, dataMax)]}
           />
           <Bar dataKey="S-SSS" fill="#ffd700" stackId="stack" />
           <Bar dataKey="S-SS" fill="#dab800" stackId="stack" />
@@ -464,9 +492,9 @@ class Profile extends Component {
           />
           <XAxis dataKey="x" />
           <YAxis
-            tickFormatter={x => Math.round(Math.abs(x)) + '%'}
+            tickFormatter={(x) => Math.round(Math.abs(x)) + '%'}
             width={40}
-            domain={[dataMin => Math.min(dataMin, -10), dataMax => Math.max(10, dataMax)]}
+            domain={[(dataMin) => Math.min(dataMin, -10), (dataMax) => Math.max(10, dataMax)]}
           />
           <RechartsTooltip />
           <ReferenceLine y={0} stroke="#555" />
@@ -576,7 +604,7 @@ class Profile extends Component {
                 classNamePrefix="select"
                 placeholder="игроки..."
                 options={otherPlayers}
-                onChange={value => {
+                onChange={(value) => {
                   this.props.history.push(
                     routes.profile.compare.getPath({ id: profile.id, compareToId: value.id })
                   );
@@ -653,7 +681,7 @@ class Profile extends Component {
                           className="combine-toggle"
                           checked={isLevelGraphCombined}
                           onChange={() =>
-                            this.setState(state => ({
+                            this.setState((state) => ({
                               isLevelGraphCombined: !state.isLevelGraphCombined,
                             }))
                           }
@@ -680,7 +708,7 @@ class Profile extends Component {
                         className="combine-toggle"
                         checked={isLevelGraphCombined}
                         onChange={() =>
-                          this.setState(state => ({
+                          this.setState((state) => ({
                             isLevelGraphCombined: !state.isLevelGraphCombined,
                           }))
                         }
@@ -808,7 +836,7 @@ class Profile extends Component {
             <span>достижения</span>
           </div>
           <div className="achievements">
-            {_.keys(profile.achievements).map(achName =>
+            {_.keys(profile.achievements).map((achName) =>
               this.renderAchievement(achName, profile.achievements[achName])
             )}
           </div>

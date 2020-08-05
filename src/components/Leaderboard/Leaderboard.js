@@ -837,7 +837,11 @@ class Leaderboard extends Component {
                                         {res.combo ? 'x' : ''}
                                       </td>
                                       <td className="accuracy">
-                                        {res.accuracy}
+                                        {res.accuracy === 100
+                                          ? 100
+                                          : res.accuracy
+                                          ? res.accuracy.toFixed(2)
+                                          : ''}
                                         {res.accuracy ? '%' : ''}
                                       </td>
                                       <td

@@ -272,7 +272,11 @@ const postProcessProfiles = (profiles, tracklist) => {
     _.keys(profile.resultsByLevel).forEach((level) => {
       profile.resultsByLevel[level].forEach((res) => {
         if (!res.result.isRank && res.result.accuracyRaw) {
-          profile.accuracyPointsRaw.push([_.toNumber(level), res.result.accuracyRaw]);
+          profile.accuracyPointsRaw.push([
+            _.toNumber(level),
+            res.result.accuracyRaw,
+            res.result.sharedChartId,
+          ]);
         }
 
         const thisGrade = res.result.grade;

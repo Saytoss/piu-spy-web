@@ -79,7 +79,7 @@ const tryFixIncompleteResult = (result, maxTotalSteps) => {
   }
 };
 
-const guessGrade = result => {
+const guessGrade = (result) => {
   if (result.misses === 0 && result.bads === 0 && result.goods === 0) {
     if (result.greats === 0) {
       return 'SSS';
@@ -149,14 +149,14 @@ const mapResult = (res, players, chart) => {
   const perfects = Math.sqrt(_r.perfect) * 10;
   const acc = perfects
     ? Math.floor(
-        ((perfects * 100 + _r.great * 85 + _r.good * 50 + _r.miss * -20) /
+        ((perfects * 100 + _r.great * 85 + _r.good * 60 + _r.bad * 20 + _r.miss * -25) /
           (perfects + _r.great + _r.good + _r.bad + _r.miss)) *
           100
       ) / 100
     : null;
   const accRaw = _r.perfect
     ? Math.floor(
-        ((_r.perfect * 100 + _r.great * 85 + _r.good * 50 + _r.miss * -20) /
+        ((_r.perfect * 100 + _r.great * 85 + _r.good * 60 + _r.bad * 20 + _r.miss * -25) /
           (_r.perfect + _r.great + _r.good + _r.bad + _r.miss)) *
           100
       ) / 100
@@ -167,7 +167,7 @@ const mapResult = (res, players, chart) => {
   return _r;
 };
 
-const getMaxRawScore = score => {
+const getMaxRawScore = (score) => {
   return ((score.scoreRaw / score.accuracy) * 100) / (score.isRank ? 1.2 : 1);
 };
 
@@ -193,7 +193,7 @@ const initializeProfile = (result, profiles, players) => {
   };
   profiles[id].achievements = _.flow(
     _.keys,
-    _.map(achName => [
+    _.map((achName) => [
       achName,
       { ...(achievements[achName].initialState || initialAchievementState) },
     ]),
@@ -235,8 +235,8 @@ const processData = (data, tracklist) => {
   //// Initialization
   // Init for TOP
   const mappedResults = [];
-  const getTopResultId = result => `${result.sharedChartId}-${result.playerId}-${result.isRank}`;
-  const getBestGradeResultId = result => `${result.sharedChartId}-${result.playerId}`;
+  const getTopResultId = (result) => `${result.sharedChartId}-${result.playerId}-${result.isRank}`;
+  const getBestGradeResultId = (result) => `${result.sharedChartId}-${result.playerId}`;
   const topResults = {}; // Temp object
   const bestGradeResults = {}; // Temp object
   const top = {}; // Main top scores pbject
@@ -288,7 +288,7 @@ const processData = (data, tracklist) => {
           chartTop.results.splice(oldScoreIndex, 1);
         }
       }
-      const newScoreIndex = _.sortedLastIndexBy(r => -r.score, result, chartTop.results);
+      const newScoreIndex = _.sortedLastIndexBy((r) => -r.score, result, chartTop.results);
       if (!result.isUnknownPlayer || newScoreIndex === 0) {
         chartTop.results.splice(newScoreIndex, 0, result);
         chartTop.latestScoreDate = result.date;
@@ -296,7 +296,7 @@ const processData = (data, tracklist) => {
         topResults[topResultId] = result;
       }
       if (!result.isUnknownPlayer) {
-        chartTop.results.forEach(enemyResult => {
+        chartTop.results.forEach((enemyResult) => {
           if (
             !enemyResult.isUnknownPlayer &&
             enemyResult.isRank === result.isRank &&
@@ -414,7 +414,7 @@ export default function reducer(state = initialState, action) {
       const hasPrevList = !_.isEmpty(action.listPrev);
       return {
         ...state,
-        profiles: _.mapValues(playerOriginal => {
+        profiles: _.mapValues((playerOriginal) => {
           const player = {
             ...playerOriginal,
             prevRating: _.get(playerOriginal.id, action.rankingsPointsMap),
@@ -469,7 +469,7 @@ export const fetchResults = () => {
   };
 };
 
-export const appendNewResults = lastDate => {
+export const appendNewResults = (lastDate) => {
   return async (dispatch, getState) => {
     const { originalData, sharedCharts } = getState().results;
     if (!lastDate) {
@@ -487,13 +487,13 @@ export const appendNewResults = lastDate => {
         throw new Error(data.error);
       }
 
-      const appendedResults = _.filter(result => {
+      const appendedResults = _.filter((result) => {
         const currentResults = sharedCharts[result.shared_chart];
         if (!currentResults) {
           return true;
         }
         const oldResult = _.find(
-          old =>
+          (old) =>
             old.id === result.id ||
             (old.playerId === result.player && old.isRank === !!result.rank_mode),
           currentResults.results
@@ -529,7 +529,7 @@ export const appendNewResults = lastDate => {
   };
 };
 
-const processResultsData = data => {
+const processResultsData = (data) => {
   return async (dispatch, getState) => {
     const { tracklist } = getState();
     const { sharedCharts, mappedResults, profiles, battles } = processData(data, tracklist);
@@ -554,7 +554,7 @@ const processResultsData = data => {
       worker = new WorkerProfilesProcessing();
       promise = worker.getProcessedProfiles(input);
     } else {
-      promise = new Promise(res => res(profilesProcessing.getProcessedProfiles(input)));
+      promise = new Promise((res) => res(profilesProcessing.getProcessedProfiles(input)));
     }
 
     const output = await promise;
@@ -563,10 +563,29 @@ const processResultsData = data => {
       console.log(
         'Processed profiles:',
         Object.values(output.profiles)
-          .filter(q => q.pp)
+          .filter((q) => q.pp)
           .sort((a, b) => b.pp.pp - a.pp.pp)
       );
-
+    // console.log(output.sharedCharts);
+    // let byLevel = _.groupBy((ch) => ch.chartLevel, _.values(output.sharedCharts));
+    // function getSD(array) {
+    //   const n = array.length;
+    //   const mean = array.reduce((a, b) => a + b) / n;
+    //   return Math.sqrt(array.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+    // }
+    // byLevel = _.mapValues((charts) => {
+    //   return {
+    //     avgLevel: _.meanBy((ch) => ch.interpolatedDifficulty || Number(ch.chartLevel), charts),
+    //     deviation: getSD(charts.map((ch) => ch.interpolatedDifficulty || Number(ch.chartLevel))),
+    //     charts,
+    //   };
+    // }, byLevel);
+    // console.log(byLevel);
+    // console.log(
+    //   _.values(byLevel)
+    //     .map((q) => `${q.avgLevel}\t${q.deviation}`)
+    //     .join('\n')
+    // );
     dispatch({
       type: PROFILES_UPDATE,
       ...output,
@@ -576,7 +595,7 @@ const processResultsData = data => {
   };
 };
 
-export const setFilter = filter => ({
+export const setFilter = (filter) => ({
   type: SET_FILTER,
   filter,
 });
@@ -587,11 +606,11 @@ export const resetFilter = () => ({
 
 const getListOfNames = _.map('id');
 const getMapOfRatings = _.flow(
-  _.map(q => [q.id, q.rating]),
+  _.map((q) => [q.id, q.rating]),
   _.fromPairs
 );
 
-export const calculateRankingChanges = profiles => {
+export const calculateRankingChanges = (profiles) => {
   return async (dispatch, getState) => {
     try {
       const ranking = _.orderBy('ratingRaw', 'desc', _.values(profiles));

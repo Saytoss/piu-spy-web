@@ -432,6 +432,9 @@ class ProfileCompare extends Component {
     );
   }
 
+  circleShape = (args) => (
+    <circle key={args.key} cx={args.cx} cy={args.cy} r={4} fill={args.fill}></circle>
+  );
   renderAccuracyPoints(useProfile2 = false) {
     const { profile, profile2 } = this.props;
 
@@ -454,6 +457,7 @@ class ProfileCompare extends Component {
             tickFormatter={(value) => Math.round(value) + '%'}
           />
           <Scatter
+            shape={this.circleShape}
             data={(useProfile2 ? profile2 : profile).accuracyPointsRaw}
             fill={useProfile2 ? '#ffd388' : '#88d3ff'}
           />
