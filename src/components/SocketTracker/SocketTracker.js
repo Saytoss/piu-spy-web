@@ -19,9 +19,8 @@ import { addPopup } from 'reducers/popups';
 import { useTracked, useResetTrackedObject } from './helpers';
 
 import { PlayerCard } from './PlayerCard';
-import { Chart } from './Chart';
+import Chart from 'components/Leaderboard/Chart';
 import { TYPES } from 'constants/popups';
-// import { ChartBlocks } from './ChartBlocks';
 
 // code
 const STATE_RESET_TIMEOUT_SEC = 5 * 60 + 10; // 5 minutes 10 seconds
@@ -408,46 +407,31 @@ function TrackerApp({
         {isLoading && <Loader />}
         {!isLoading &&
           chartsToShow.map((chart, chartIndex) => {
-            const leftPlayersHiddenStatus = _.getOr({}, 'playersHiddenStatus', leftPreferences);
-            const rightPlayersHiddenStatus = _.getOr({}, 'playersHiddenStatus', rightPreferences);
+            const leftPlayersHiddenStatus = _.omitBy(
+              (v) => !v,
+              _.getOr({}, 'playersHiddenStatus', leftPreferences)
+            );
+            const rightPlayersHiddenStatus = _.omitBy(
+              (v) => !v,
+              _.getOr({}, 'playersHiddenStatus', rightPreferences)
+            );
 
-            let topPlace = 1;
-            const occuredNicknames = [];
-            const results = chart.results
-              .filter((res) => {
-                const showThisResult =
-                  (chart.chartLabel === leftLabel && !leftPlayersHiddenStatus[res.playerId]) ||
-                  (chart.chartLabel === rightLabel && !rightPlayersHiddenStatus[res.playerId]);
-                return showThisResult;
-              })
-              .map((res, index) => {
-                const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
-                occuredNicknames.push(res.nickname);
-                if (index === 0) {
-                  topPlace = 1;
-                } else if (
-                  !isSecondOccurenceInResults &&
-                  res.score !== _.get([index - 1, 'score'], chart.results)
-                ) {
-                  topPlace += 1;
-                }
-                return {
-                  ...res,
-                  topPlace,
-                  isSecondOccurenceInResults,
-                };
-              });
-
-            const interpDiff = _.get('interpolatedDifficulty', sharedCharts[chart.sharedChartId]);
+            const isHiddenInBoth = Object.keys(leftPlayersHiddenStatus).reduce(
+              (obj, key) => ({
+                ...obj,
+                [key]: leftPlayersHiddenStatus[key] && rightPlayersHiddenStatus[key],
+              }),
+              {}
+            );
             return (
               <Chart
                 ref={chartIndex === 0 ? leftResultRef : rightResultRef}
+                playersHiddenStatus={isHiddenInBoth}
+                key={chart.sharedChartId}
                 chart={chart}
-                results={results}
-                interpDiff={interpDiff}
-                profiles={profiles}
                 leftProfile={leftProfile}
                 rightProfile={rightProfile}
+                isSocketView
               />
             );
           })}

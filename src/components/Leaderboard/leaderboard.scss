@@ -93,12 +93,26 @@
       display: flex;
       flex-flow: row wrap;
 
+      ._on-hover {
+        display: none;
+      }
+      &:hover {
+        ._on-hover {
+          display: flex;
+        }
+      }
+
+      .players-hidden-count {
+        font-size: 80%;
+        margin-right: 10px;
+        font-weight: normal;
+      }
+
       .undo-result-button {
         align-items: center;
         font-size: 80%;
         font-weight: normal;
         user-select: none;
-        display: none;
         &.active {
           display: flex;
         }
@@ -119,11 +133,6 @@
           }
         }
       }
-      &:hover {
-        .undo-result-button {
-          display: flex;
-        }
-      }
 
       > .song-name {
         z-index: 2;
@@ -133,7 +142,7 @@
         font-weight: 600;
         margin-bottom: 6px;
         display: flex;
-        align-items: baseline;
+        align-items: center;
         flex-direction: row;
         justify-content: flex-start;
         flex: 0 0 100%;
@@ -146,6 +155,12 @@
             line-height: 80%;
             color: #ccc;
           }
+        }
+
+        > .globe-icon {
+          cursor: pointer;
+          padding-bottom: 2px;
+          margin-right: 15px;
         }
 
         > .chart-name {
@@ -220,7 +235,7 @@
               &.date {
                 color: #c9c9c9;
                 font-size: 65%;
-                width: 110px;
+                width: 115px;
                 text-align: right;
               }
               &.nickname {
@@ -278,24 +293,29 @@
                 width: 52px;
                 font-size: 80%;
               }
-              &.judge {
+              &.mods {
                 width: 30px;
                 text-align: center;
                 padding: 0;
-                > .inner {
+                > .mods-container {
                   display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  padding: 5px;
-                  font-weight: 600;
-                  border-radius: 6px;
-                  line-height: 100%;
-                  margin: 1px;
+                  flex-flow: row nowrap;
+                  > .inner {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 5px;
+                    font-weight: 600;
+                    border-radius: 6px;
+                    line-height: 100%;
+                    margin: 1px;
+                  }
                 }
-                &.vj > .inner {
-                  background: #6b3a3a;
+                &.vj .inner {
+                  background: #8a1919;
+                  padding: 5px 7px;
                 }
-                &.hj > .inner {
+                &.hj .inner {
                   background: #735d3b;
                 }
               }
@@ -306,7 +326,7 @@
                   background: #4b4b4b;
                 }
                 &.empty td {
-                  &.judge {
+                  &.mods {
                     opacity: 0.7;
                   }
                   &.date {
@@ -314,8 +334,9 @@
                   }
                 }
                 &.latest {
+                  outline: 1px solid #8080805e;
+                  background: #393939;
                   td {
-                    &.score,
                     &.date {
                       color: #afe488; //#bef9931d;
                     }
@@ -399,8 +420,8 @@
             &.grade .img-holder img {
               height: 1.8vw;
             }
-            &.judge {
-              > .inner {
+            &.mods {
+              > .mods-container > .inner {
                 padding: 0.5vw;
                 border-radius: 0.5vw;
               }

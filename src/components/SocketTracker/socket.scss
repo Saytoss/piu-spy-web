@@ -129,6 +129,9 @@
           }
           > .name {
             flex: 1 1 0px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
           > .elo {
             font-weight: 600;
@@ -291,16 +294,25 @@
                 > .mods-container {
                   display: flex;
                   flex-flow: row nowrap;
-                  > .av-mod {
-                    background: #637881;
+                  > .x-mod {
+                    background: #7d8163;
+                    font-size: 80%;
                     line-height: 1;
-                    font-size: 60%;
                     padding: 3px;
                     font-weight: 600;
                     border-radius: 6px;
                     margin: 1px;
+                  }
+                  > .av-mod {
+                    background: #637881;
+                    line-height: 1;
+                    font-size: 70%;
+                    padding: 2px 3px;
+                    font-weight: bold;
+                    border-radius: 6px;
+                    margin: 0 1px;
                     > .av-text {
-                      font-size: 85%;
+                      font-size: 80%;
                       margin-bottom: 1px;
                     }
                   }
@@ -344,8 +356,9 @@
                   }
                 }
                 &.latest {
+                  outline: 1px solid #8080805e;
+                  background: #393939;
                   td {
-                    &.score,
                     &.date {
                       color: #afe488; //#bef9931d;
                     }
