@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import _ from 'lodash/fp';
-import { FaYoutube, FaBackward, FaForward } from 'react-icons/fa';
+import { FaYoutube, FaBackward, FaForward, FaGlobeAmericas } from 'react-icons/fa';
 import classNames from 'classnames';
 import FlipMove from 'react-flip-move';
 import queryString from 'query-string';
@@ -13,10 +13,11 @@ import ChartLabel from './ChartLabel';
 
 const ANIMATION_DURATION = 250;
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, props) => {
   return {
     allResults: state.results.results,
-    playersHiddenStatus: state.preferences.data.playersHiddenStatus,
+    sharedCharts: state.results.sharedCharts,
+    playersHiddenStatus: props.playersHiddenStatus || state.preferences.data.playersHiddenStatus,
   };
 };
 
@@ -25,22 +26,24 @@ const Chart = React.forwardRef(
     {
       allResults,
       playersHiddenStatus = {},
+      sharedCharts = {},
       // shared
       chart: chartOriginal,
       // leaderboards
-      showProtagonistEloChange,
-      showProtagonistPpChange,
-      uniqueSelectedNames,
-      protagonistName,
+      showProtagonistEloChange = false,
+      showProtagonistPpChange = false,
+      uniqueSelectedNames = [],
+      protagonistName = null,
       chartIndex,
       // socket stuff
-      interpDiff,
-      leftProfile,
-      rightProfile,
+      leftProfile = {},
+      rightProfile = {},
+      isSocketView = false,
     },
     ref
   ) => {
     const [overrides, setOverrides] = useState(null);
+    const [isHidingPlayers, setHidingPlayers] = useState(true);
     const chart = _.first(overrides) || chartOriginal;
     if (DEBUG) {
       console.log(chart, overrides);
@@ -48,8 +51,9 @@ const Chart = React.forwardRef(
 
     let topPlace = 1;
     const occuredNicknames = [];
+    let hiddenPlayersCount = 0;
     const results = chart.results.map((res, index) => {
-      const isPlayerHidden = playersHiddenStatus[res.playerId] || false;
+      const isPlayerHidden = isHidingPlayers && (playersHiddenStatus[res.playerId] || false);
       const isSecondOccurenceInResults = occuredNicknames.includes(res.nickname);
       occuredNicknames.push(res.nickname);
       if (index === 0) {
@@ -59,6 +63,9 @@ const Chart = React.forwardRef(
         res.score !== _.get([index - 1, 'score'], chart.results)
       ) {
         topPlace += 1;
+      }
+      if (isPlayerHidden) {
+        hiddenPlayersCount++;
       }
       return {
         ...res,
@@ -114,52 +121,83 @@ const Chart = React.forwardRef(
     const currentIndex = isActive ? 1 + totalResultsCount - _.size(overrides) : totalResultsCount;
     const canUndo = !(currentIndex === 1 && totalResultsCount === 1);
 
+    // TODO: remove check from sharedCharts when SocketTracker works off results data instead of topPerSong
+    const interpDiff =
+      chart.interpolatedDifficulty ||
+      _.get('interpolatedDifficulty', sharedCharts[chart.sharedChartId]);
+
     return (
-      <div className="song-block">
+      <div className="song-block" ref={ref}>
         <div className="song-name">
           <ChartLabel type={chart.chartType} level={chart.chartLevel} />
-          <div>
-            {chart.song}{' '}
-            <span className="_grey-text">
-              ({chart.interpolatedDifficulty && chart.interpolatedDifficulty.toFixed(1)})
-            </span>
-          </div>
-          <div className="youtube-link">
-            <a
-              href={`https://youtube.com/results?${queryString.stringify({
-                search_query: `${chart.song} ${chart.chartLabel}`.replace(/( -)|(- )/g, ' '),
-              })}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <FaYoutube />
-            </a>
-          </div>
+          {isSocketView ? (
+            <div>
+              {interpDiff ? `(${interpDiff.toFixed(1)}) ` : ''}
+              {chart.song}
+            </div>
+          ) : (
+            <div>
+              {chart.song}{' '}
+              <span className="_grey-text">({interpDiff && interpDiff.toFixed(1)})</span>
+            </div>
+          )}
+          {!isSocketView && (
+            <div className="youtube-link">
+              <a
+                href={`https://youtube.com/results?${queryString.stringify({
+                  search_query: `${chart.song} ${chart.chartLabel}`.replace(/( -)|(- )/g, ' '),
+                })}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaYoutube />
+              </a>
+            </div>
+          )}
           <div className="_flex-fill" />
-          <div
-            className={classNames('undo-result-button', {
-              active: isActive,
-            })}
-          >
-            <FaBackward
-              className={classNames('backward-btn', { disabled: !canUndo })}
-              onClick={() => canUndo && onUndoLatestResult(chart)}
-            />
-            <span className="number">
-              {currentIndex}/{totalResultsCount}
-            </span>
-            <FaForward
-              className={classNames('forward-btn', { disabled: !isActive })}
-              onClick={() => isActive && onRedoLatestResult(chart)}
-            />
-          </div>
+          {hiddenPlayersCount > 0 && (
+            <div
+              className={classNames('players-hidden-count _grey-text', {
+                '_on-hover': !isSocketView,
+              })}
+            >
+              скрыто скоров: {hiddenPlayersCount}
+            </div>
+          )}
+          {(hiddenPlayersCount > 0 || !isHidingPlayers) && !isSocketView && (
+            <div
+              className="globe-icon _on-hover"
+              onClick={() => setHidingPlayers(!isHidingPlayers)}
+            >
+              <FaGlobeAmericas />
+            </div>
+          )}
+          {!isSocketView && (
+            <div
+              className={classNames('undo-result-button _on-hover', {
+                active: isActive,
+              })}
+            >
+              <FaBackward
+                className={classNames('backward-btn', { disabled: !canUndo })}
+                onClick={() => canUndo && onUndoLatestResult(chart)}
+              />
+              <span className="number">
+                {currentIndex}/{totalResultsCount}
+              </span>
+              <FaForward
+                className={classNames('forward-btn', { disabled: !isActive })}
+                onClick={() => isActive && onRedoLatestResult(chart)}
+              />
+            </div>
+          )}
         </div>
         <div className="charts">
           {!_.isEmpty(results) && (
             <div className="chart">
               <div className="results">
                 <table>
-                  {chartIndex === 0 && (
+                  {/* {chartIndex === 0 && (
                     <thead>
                       <tr>
                         <th className="place"></th>
@@ -177,7 +215,7 @@ const Chart = React.forwardRef(
                         <th className="date"></th>
                       </tr>
                     </thead>
-                  )}
+                  )} */}
                   <FlipMove
                     enterAnimation="fade"
                     leaveAnimation="fade"
@@ -212,6 +250,9 @@ const Chart = React.forwardRef(
                           showProtagonistPpChange={showProtagonistPpChange}
                           uniqueSelectedNames={uniqueSelectedNames}
                           protagonistName={protagonistName}
+                          leftProfile={leftProfile}
+                          rightProfile={rightProfile}
+                          isSocketView={isSocketView}
                         />
                       );
                     })}

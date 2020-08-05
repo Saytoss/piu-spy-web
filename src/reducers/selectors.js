@@ -38,7 +38,7 @@ const filterCharts = (filter, rows) => {
 
 const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preferences) => {
   // const start = performance.now();
-  const playersHiddenStatus = preferences.playersHiddenStatus;
+  // const playersHiddenStatus = preferences.playersHiddenStatus;
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
   const namesNot = _.map('value', filter.playersNot);
@@ -147,9 +147,10 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preference
       _.map((row) => {
         let latestScoreDate = null;
         const results = row.results.filter((res, index) => {
-          const isHiddenByPreferences =
-            playersHiddenStatus[res.playerId] && protagonist !== res.nickname;
-          const isVisible = !isHiddenByPreferences && (!res.isUnknownPlayer || index === 0);
+          // const isHiddenByPreferences =
+          //   playersHiddenStatus[res.playerId] && protagonist !== res.nickname;
+          // const isVisible = !isHiddenByPreferences && (!res.isUnknownPlayer || index === 0);
+          const isVisible = !res.isUnknownPlayer || index === 0;
           if (isVisible && (!latestScoreDate || latestScoreDate < res.date)) {
             latestScoreDate = res.date;
           }

@@ -1,27 +1,12 @@
 import React, { useCallback } from 'react';
 import _ from 'lodash/fp';
-import classNames from 'classnames';
 
 import { TYPES } from 'constants/popups';
+
+import ChartLabel from 'components/Leaderboard/ChartLabel';
+
 import { getRankImg } from 'utils/exp';
 import { useTrackedEx } from './helpers';
-
-export const ChartLabel = ({ type, level }) => {
-  return (
-    <div
-      className={classNames('chart-name', {
-        single: type === 'S',
-        singlep: type === 'SP',
-        doublep: type === 'DP',
-        double: type === 'D',
-        coop: type === 'COOP',
-      })}
-    >
-      <span className="chart-letter">{type}</span>
-      <span className="chart-number">{level}</span>
-    </div>
-  );
-};
 
 export const PlayerCard = ({
   player,

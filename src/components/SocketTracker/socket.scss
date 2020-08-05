@@ -356,8 +356,9 @@
                   }
                 }
                 &.latest {
+                  outline: 1px solid #8080805e;
+                  background: #393939;
                   td {
-                    &.score,
                     &.date {
                       color: #afe488; //#bef9931d;
                     }

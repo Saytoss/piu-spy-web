@@ -13,6 +13,8 @@ import { DEBUG } from 'constants/env';
 import Flag from 'components/Shared/Flag';
 import Overlay from 'components/Shared/Overlay/Overlay';
 
+import { getTimeAgo as getShortTimeAgo } from 'components/SocketTracker/helpers';
+
 import { tooltipFormatter, getTimeAgo } from 'utils/leaderboards';
 import { getExp } from 'utils/exp';
 import { colorsArray } from 'utils/colors';
@@ -38,8 +40,9 @@ const Result = (
     protagonistName = null,
     uniqueSelectedNames = [],
     // socket
-    leftProfile,
-    rightProfile,
+    leftProfile = {},
+    rightProfile = {},
+    isSocketView = false,
   },
   ref
 ) => {
@@ -89,9 +92,13 @@ const Result = (
       className={classNames({
         empty: !res.isExactDate,
         latest: res.date === chart.latestScoreDate,
+        left: res.nickname === leftProfile.name,
+        right: res.nickname === rightProfile.name,
       })}
     >
-      <td className="place">{res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}</td>
+      {!isSocketView && (
+        <td className="place">{res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}</td>
+      )}
       <td
         className="nickname"
         style={nameIndex > -1 ? { fontWeight: 'bold', color: colorsArray[nameIndex] } : {}}
@@ -110,36 +117,45 @@ const Result = (
           </span>
         </div>
       </td>
-      <td
-        className={classNames('judge', {
-          vj: res.isRank,
-          hj: res.isHJ,
-        })}
-      >
-        {res.isRank && (
-          <div className="inner">
-            {res.isExactDate ? (
-              'VJ'
-            ) : (
-              <Tooltip
-                content={
-                  <div>наличие ранка на этом результате было угадано, основываясь на скоре</div>
-                }
-                tooltipClassName="pumpking-tooltip"
-              >
-                VJ?
-              </Tooltip>
-            )}
+      {!isSocketView && (
+        <td
+          className={classNames('mods', {
+            vj: res.isRank,
+            hj: res.isHJ,
+          })}
+        >
+          <div className="mods-container">
+            {isSocketView &&
+              res.mods &&
+              res.mods
+                .split(' ')
+                .filter((mod) => mod.includes('AV'))
+                .map((avMod) => (
+                  <div className="av-mod">
+                    <div className="av-text">AV</div>
+                    <div className="av-number">{avMod.replace('AV', '')}</div>
+                  </div>
+                ))}
+            {isSocketView &&
+              res.mods &&
+              res.mods
+                .split(' ')
+                .filter((mod) => mod.endsWith('X'))
+                .map((xMod) => (
+                  <div className="x-mod">
+                    <div className="x-number">{xMod}</div>
+                  </div>
+                ))}
+            {res.isRank && <div className="inner">{res.isExactDate ? 'R' : 'R?'}</div>}
+            {res.isHJ && <div className="inner">HJ</div>}
           </div>
-        )}
-        {res.isHJ && <div className="inner">HJ</div>}
-      </td>
+        </td>
+      )}
       <td className="score">
         <Overlay
           overlayClassName="score-overlay-outer"
           overlayItem={
             <span className="score-span">
-              {/* {res.scoreIncrease > res.score * 0.8 && <FaPlus />} */}
               {res.scoreIncrease > res.score * 0.8 && '*'}
               {numeral(res.score).format('0,0')}
             </span>
@@ -242,6 +258,40 @@ const Result = (
           {res.grade === '?' && null}
         </div>
       </td>
+      {isSocketView && (
+        <td
+          className={classNames('mods', {
+            vj: res.isRank,
+            hj: res.isHJ,
+          })}
+        >
+          <div className="mods-container">
+            {isSocketView &&
+              res.mods &&
+              res.mods
+                .split(' ')
+                .filter((mod) => mod.includes('AV'))
+                .map((avMod) => (
+                  <div className="av-mod">
+                    <div className="av-text">AV</div>
+                    <div className="av-number">{avMod.replace('AV', '')}</div>
+                  </div>
+                ))}
+            {isSocketView &&
+              res.mods &&
+              res.mods
+                .split(' ')
+                .filter((mod) => mod.endsWith('X'))
+                .map((xMod) => (
+                  <div className="x-mod">
+                    <div className="x-number">{xMod}</div>
+                  </div>
+                ))}
+            {res.isRank && <div className="inner">{res.isExactDate ? 'R' : 'R?'}</div>}
+            {res.isHJ && <div className="inner">HJ</div>}
+          </div>
+        </td>
+      )}
       <td className="number miss">{res.miss}</td>
       <td className="number bad">{res.bad}</td>
       <td className="number good">{res.good}</td>
@@ -260,10 +310,14 @@ const Result = (
           latest: res.date === chart.latestScoreDate,
         })}
       >
-        <Tooltip content={tooltipFormatter(res)} tooltipClassName="pumpking-tooltip">
-          {getTimeAgo(res.dateObject)}
-          {res.isExactDate ? '' : '?'}
-        </Tooltip>
+        {isSocketView ? (
+          getShortTimeAgo(res.dateObject)
+        ) : (
+          <Tooltip content={tooltipFormatter(res)} tooltipClassName="pumpking-tooltip">
+            {getTimeAgo(res.dateObject)}
+            {res.isExactDate ? '' : '?'}
+          </Tooltip>
+        )}
       </td>
     </tr>
   );
