@@ -57,6 +57,14 @@ class Ranking extends Component {
     ranking: [],
   };
 
+  onChangeHidingPlayers = () => {
+    const { preferences, updatePreferences } = this.props;
+
+    updatePreferences(
+      _.set(['showHiddenPlayersInRanking'], !preferences.showHiddenPlayersInRanking, preferences)
+    );
+  };
+
   onRefresh = () => {
     const { isLoading } = this.props;
     !isLoading && this.props.fetchResults();
@@ -64,7 +72,6 @@ class Ranking extends Component {
 
   render() {
     const { isLoading, ranking, error, preferences, updatePreferences } = this.props;
-
     return (
       <div className="ranking-page">
         <div className="content">
@@ -76,6 +83,14 @@ class Ranking extends Component {
               path={routes.ranking.path}
               render={() => (
                 <>
+                  <button
+                    className="btn btn-sm btn-dark btn-icon _margin-right"
+                    onClick={this.onChangeHidingPlayers}
+                  >
+                    {preferences.showHiddenPlayersInRanking
+                      ? 'скрыть невыбранных'
+                      : 'показать всех'}
+                  </button>
                   <Link to={routes.ranking.faq.path}>
                     <button className="btn btn-sm btn-dark btn-icon _margin-right">
                       <FaQuestionCircle /> faq
