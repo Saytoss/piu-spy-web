@@ -32,7 +32,7 @@ export default function RankingList({ ranking, isLoading, preferences, updatePre
               <th className="change"></th>
               <th className="exp-rank">rank</th>
               <th className="name">name</th>
-              <th className="name2">piu name</th>
+              <th className="name name-piu">piu name</th>
               <th className="rating">elo</th>
               <th className="rating-change-cell"></th>
               <th className="rating">pp</th>
@@ -93,7 +93,7 @@ export default function RankingList({ ranking, isLoading, preferences, updatePre
                       </NavLink>
                     </div>
                   </td>
-                  <td className="name">
+                  <td className="name name-piu">
                     <NavLink exact to={routes.profile.getPath({ id: player.id })}>
                       {player.nameArcade}
                     </NavLink>

@@ -60,7 +60,7 @@ function App({
         .then((filter) => {
           if (filter) {
             setFilter({
-              ...filter,
+              ..._.omit('song', filter),
               chartRange: filter.chartRange && {
                 ...filter.chartRange,
                 range: _.every(

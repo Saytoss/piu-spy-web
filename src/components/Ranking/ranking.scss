@@ -185,34 +185,44 @@
 
 @media screen and (max-width: 900px) {
   .ranking-page {
-    font-size: 2vw;
+    font-size: 3.2vw;
+    .ranking-list {
+      padding: 0.4em;
+    }
     table {
       border-spacing: 0 1vw;
     }
     td,
     th {
-      padding: 0.3vw 0.25vw;
+      padding: 0.75vw 0.5vw;
       font-size: 80%;
       &.grades {
+        display: none;
         img {
           height: 1.5vw;
         }
+      }
+      &.name-piu {
+        display: none;
       }
       &.accuracy {
         padding-right: 1vw;
       }
     }
     tr.player {
-      height: 5vw;
+      height: 7.4vw;
     }
     td {
       &.place {
         padding-left: 1.5vw;
         padding-right: 0;
-        font-size: 100%;
+        font-size: 80%;
         > svg {
           font-size: 140%;
         }
+      }
+      &.exp-rank {
+        font-size: 75%;
       }
       &.total-score {
         padding: 1vw 0.5vw;
@@ -220,8 +230,8 @@
       &.name {
         font-size: 100%;
         > .name-container > .flag-img {
-          width: 3.1vw;
-          height: 2.4vw;
+          width: 3.5vw;
+          height: 2.7vw;
           border-radius: 0.5vw;
           margin: 0.7vw 0.8vw 0.7vw 0.2vw;
         }
@@ -234,7 +244,7 @@
       }
       &.hide-col {
         .toggle-checkbox {
-          font-size: 1.6vw;
+          font-size: 100%;
         }
       }
     }

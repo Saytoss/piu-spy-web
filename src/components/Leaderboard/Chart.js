@@ -131,12 +131,12 @@ const Chart = React.forwardRef(
         <div className="song-name">
           <ChartLabel type={chart.chartType} level={chart.chartLevel} />
           {isSocketView ? (
-            <div>
+            <div className="song-name-text">
               {interpDiff ? `(${interpDiff.toFixed(1)}) ` : ''}
               {chart.song}
             </div>
           ) : (
-            <div>
+            <div className="song-name-text">
               {chart.song}{' '}
               <span className="_grey-text">({interpDiff && interpDiff.toFixed(1)})</span>
             </div>
@@ -155,42 +155,44 @@ const Chart = React.forwardRef(
             </div>
           )}
           <div className="_flex-fill" />
-          {hiddenPlayersCount > 0 && (
-            <div
-              className={classNames('players-hidden-count _grey-text', {
-                '_on-hover': !isSocketView,
-              })}
-            >
-              скрыто скоров: {hiddenPlayersCount}
-            </div>
-          )}
-          {(hiddenPlayersCount > 0 || !isHidingPlayers) && !isSocketView && (
-            <div
-              className="globe-icon _on-hover"
-              onClick={() => setHidingPlayers(!isHidingPlayers)}
-            >
-              <FaGlobeAmericas />
-            </div>
-          )}
-          {!isSocketView && (
-            <div
-              className={classNames('undo-result-button _on-hover', {
-                active: isActive,
-              })}
-            >
-              <FaBackward
-                className={classNames('backward-btn', { disabled: !canUndo })}
-                onClick={() => canUndo && onUndoLatestResult(chart)}
-              />
-              <span className="number">
-                {currentIndex}/{totalResultsCount}
-              </span>
-              <FaForward
-                className={classNames('forward-btn', { disabled: !isActive })}
-                onClick={() => isActive && onRedoLatestResult(chart)}
-              />
-            </div>
-          )}
+          <div className="right-side-block">
+            {hiddenPlayersCount > 0 && (
+              <div
+                className={classNames('players-hidden-count _grey-text', {
+                  '_on-hover': !isSocketView,
+                })}
+              >
+                скрыто: {hiddenPlayersCount}
+              </div>
+            )}
+            {(hiddenPlayersCount > 0 || !isHidingPlayers) && !isSocketView && (
+              <div
+                className="globe-icon _on-hover"
+                onClick={() => setHidingPlayers(!isHidingPlayers)}
+              >
+                <FaGlobeAmericas />
+              </div>
+            )}
+            {!isSocketView && (
+              <div
+                className={classNames('undo-result-button _on-hover', {
+                  active: isActive,
+                })}
+              >
+                <FaBackward
+                  className={classNames('backward-btn', { disabled: !canUndo })}
+                  onClick={() => canUndo && onUndoLatestResult(chart)}
+                />
+                <span className="number">
+                  {currentIndex}/{totalResultsCount}
+                </span>
+                <FaForward
+                  className={classNames('forward-btn', { disabled: !isActive })}
+                  onClick={() => isActive && onRedoLatestResult(chart)}
+                />
+              </div>
+            )}
+          </div>
         </div>
         <div className="charts">
           {!_.isEmpty(results) && (

@@ -15,7 +15,7 @@ import Overlay from 'components/Shared/Overlay/Overlay';
 
 import { getTimeAgo as getShortTimeAgo } from 'components/SocketTracker/helpers';
 
-import { tooltipFormatter, getTimeAgo } from 'utils/leaderboards';
+import { tooltipFormatter } from 'utils/leaderboards';
 import { getExp } from 'utils/exp';
 import { colorsArray } from 'utils/colors';
 
@@ -95,14 +95,19 @@ const Result = (
         left: res.nickname === leftProfile.name,
         right: res.nickname === rightProfile.name,
       })}
+      style={
+        nameIndex > -1
+          ? {
+              background: colorsArray[nameIndex] + '3A',
+              outline: `1px solid ${colorsArray[nameIndex]}A0`,
+            }
+          : {}
+      }
     >
       {!isSocketView && (
         <td className="place">{res.isSecondOccurenceInResults ? '' : `#${res.topPlace}`}</td>
       )}
-      <td
-        className="nickname"
-        style={nameIndex > -1 ? { fontWeight: 'bold', color: colorsArray[nameIndex] } : {}}
-      >
+      <td className="nickname" style={nameIndex > -1 ? { fontWeight: 'bold' } : {}}>
         <div className="nickname-container">
           {flag}
           <span className="nickname-text">
@@ -115,42 +120,35 @@ const Result = (
             )}
             {ratingInfoBlock}
           </span>
+          {!isSocketView && (
+            <div className="mods-container">
+              {isSocketView &&
+                res.mods &&
+                res.mods
+                  .split(' ')
+                  .filter((mod) => mod.includes('AV'))
+                  .map((avMod) => (
+                    <div className="mod av-mod">
+                      <div className="av-text">AV</div>
+                      <div className="av-number">{avMod.replace('AV', '')}</div>
+                    </div>
+                  ))}
+              {isSocketView &&
+                res.mods &&
+                res.mods
+                  .split(' ')
+                  .filter((mod) => mod.endsWith('X'))
+                  .map((xMod) => (
+                    <div className="mod x-mod">
+                      <div className="x-number">{xMod}</div>
+                    </div>
+                  ))}
+              {res.isRank && <div className="mod vj">{res.isExactDate ? 'R' : 'R?'}</div>}
+              {res.isHJ && <div className="mod hj">HJ</div>}
+            </div>
+          )}
         </div>
       </td>
-      {!isSocketView && (
-        <td
-          className={classNames('mods', {
-            vj: res.isRank,
-            hj: res.isHJ,
-          })}
-        >
-          <div className="mods-container">
-            {isSocketView &&
-              res.mods &&
-              res.mods
-                .split(' ')
-                .filter((mod) => mod.includes('AV'))
-                .map((avMod) => (
-                  <div className="av-mod">
-                    <div className="av-text">AV</div>
-                    <div className="av-number">{avMod.replace('AV', '')}</div>
-                  </div>
-                ))}
-            {isSocketView &&
-              res.mods &&
-              res.mods
-                .split(' ')
-                .filter((mod) => mod.endsWith('X'))
-                .map((xMod) => (
-                  <div className="x-mod">
-                    <div className="x-number">{xMod}</div>
-                  </div>
-                ))}
-            {res.isRank && <div className="inner">{res.isExactDate ? 'R' : 'R?'}</div>}
-            {res.isHJ && <div className="inner">HJ</div>}
-          </div>
-        </td>
-      )}
       <td className="score">
         <Overlay
           overlayClassName="score-overlay-outer"
@@ -314,7 +312,7 @@ const Result = (
           getShortTimeAgo(res.dateObject)
         ) : (
           <Tooltip content={tooltipFormatter(res)} tooltipClassName="pumpking-tooltip">
-            {getTimeAgo(res.dateObject)}
+            {getShortTimeAgo(res.dateObject)}
             {res.isExactDate ? '' : '?'}
           </Tooltip>
         )}

@@ -85,13 +85,14 @@
     padding: 7px;
     border-radius: 10px;
     // border: 1px solid #444;
+    > .btn {
+      margin-left: 8px;
+    }
     > .song-block {
       background: #353535;
       border-radius: 10px;
       margin-bottom: 8px;
-      padding: 8px;
-      display: flex;
-      flex-flow: row wrap;
+      padding: 0 8px 8px 8px;
 
       ._on-hover {
         display: none;
@@ -104,8 +105,15 @@
 
       .players-hidden-count {
         font-size: 80%;
-        margin-right: 10px;
+        margin-right: 0.9em;
         font-weight: normal;
+        white-space: nowrap;
+      }
+
+      .globe-icon {
+        cursor: pointer;
+        padding-bottom: 2px;
+        margin-right: 0.6em;
       }
 
       .undo-result-button {
@@ -113,6 +121,7 @@
         font-size: 80%;
         font-weight: normal;
         user-select: none;
+        margin-right: 0.3em;
         &.active {
           display: flex;
         }
@@ -137,19 +146,19 @@
       > .song-name {
         z-index: 2;
         border-radius: 5px;
+        padding: 8px 0;
         margin-left: 0;
         font-size: 100%;
         font-weight: 600;
-        margin-bottom: 6px;
         display: flex;
         align-items: center;
-        flex-direction: row;
+        flex-flow: row nowrap;
         justify-content: flex-start;
         flex: 0 0 100%;
 
         > .youtube-link {
+          margin-left: 0.5em;
           align-self: center;
-          margin-left: 0.5vw;
           > a {
             display: block;
             line-height: 80%;
@@ -157,10 +166,10 @@
           }
         }
 
-        > .globe-icon {
-          cursor: pointer;
-          padding-bottom: 2px;
-          margin-right: 15px;
+        > .right-side-block {
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
         }
 
         > .chart-name {
@@ -172,11 +181,10 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-right: 10px;
           height: 25px;
           border-radius: 5px;
-          margin-left: 0;
           padding: 0 10px;
+          margin-right: 8px;
 
           > .chart-letter {
             margin-right: 2px;
@@ -202,6 +210,7 @@
         flex: 0 1 auto;
         display: flex;
         flex-flow: column nowrap;
+
         > .chart {
           background: #424242;
           padding: 8px;
@@ -213,7 +222,11 @@
             margin-bottom: 0;
           }
           > .results {
+            width: 100%;
             position: relative;
+            > table {
+              width: 100%;
+            }
             td,
             th {
               padding: 2px 4px 0 4px;
@@ -235,11 +248,14 @@
               &.date {
                 color: #c9c9c9;
                 font-size: 65%;
-                width: 115px;
+                width: 60px;
                 text-align: right;
+                > .rrui__tooltip__target {
+                  white-space: nowrap;
+                }
               }
               &.nickname {
-                width: 275px;
+                // width: 275px;
                 > .nickname-container {
                   display: flex;
                   flex-flow: row nowrap;
@@ -251,7 +267,7 @@
                     }
                     > .change-holder {
                       font-size: 80%;
-                      margin-left: 0.5em;
+                      margin-left: 0.3em;
                       font-weight: normal;
                       display: inline-flex;
                       align-items: center;
@@ -259,6 +275,28 @@
                       color: #afe488;
                       > span {
                         padding-top: 0.2em;
+                      }
+                    }
+                  }
+                  > .mods-container {
+                    margin-left: auto;
+                    display: flex;
+                    flex-flow: row nowrap;
+                    > .mod {
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      padding: 0.27em;
+                      font-weight: 600;
+                      border-radius: 0.27em;
+                      line-height: 100%;
+                      margin: 0.05em;
+                      &.vj {
+                        background: #8a1919;
+                        padding: 0.27em 0.3em;
+                      }
+                      &.hj {
+                        background: #735d3b;
                       }
                     }
                   }
@@ -275,11 +313,6 @@
                 cursor: pointer;
                 .score-span {
                   white-space: nowrap;
-                  > svg {
-                    font-size: 70%;
-                    margin-right: 3px;
-                    margin-bottom: 1px;
-                  }
                 }
                 &:hover {
                   background: #555;
@@ -386,6 +419,9 @@
 }
 
 @media screen and (max-width: 900px) {
+  .score-overlay {
+    font-size: 3vw;
+  }
   .leaderboard-page {
     .search-block {
       margin-bottom: 1vw;
@@ -394,46 +430,103 @@
       padding: 0.5vw;
       border-radius: 1vw;
     }
-    .top-list > .song-block {
-      padding: 1vw;
-      border-radius: 1vw;
-      margin-bottom: 1vw;
-      > .song-name {
-        margin-bottom: 1vw;
-        > .chart-name {
-          margin-right: 1vw;
-          height: 3vw;
-          border-radius: 0.6vw;
-          padding: 0 1vw;
+    .top-list {
+      padding: 0.4em 0;
+      > .song-block {
+        font-size: 3vw;
+        padding: 0 0 0.4em 0;
+        border-radius: 0;
+        margin-bottom: 0.5em;
+        ._on-hover {
+          display: flex;
         }
-      }
-      > .charts > .chart {
-        padding: 1vw;
-        border-radius: 1vw;
-        > .results {
-          td,
-          th {
-            padding: 1.5px;
-            &.score .score-span > svg {
-              margin-right: 0.5vw;
-            }
-            &.grade .img-holder img {
-              height: 1.8vw;
-            }
-            &.mods {
-              > .mods-container > .inner {
-                padding: 0.5vw;
-                border-radius: 0.5vw;
-              }
+        > .song-name {
+          font-size: 100%;
+          padding: 0.3em;
+
+          > * {
+            margin: 0.2em;
+          }
+
+          > ._flex-fill {
+            margin: 0;
+          }
+
+          > .song-name-text {
+            word-break: break-word;
+          }
+
+          > .youtube-link {
+            margin-left: 0.2em;
+            font-size: 110%;
+          }
+
+          > .right-side-block {
+            font-size: 110%;
+
+            .players-hidden-count {
+              font-size: 60%;
             }
           }
-          thead {
-            tr {
-              position: static;
-            }
+
+          > .chart-name {
+            margin-right: 0.3em;
+            height: 1.3em;
+            border-radius: 0.2em;
+            padding: 0 0.4em;
+          }
+        }
+        > .charts > .chart {
+          padding: 0 0.3em;
+          border-radius: 0;
+          > .results {
+            td,
             th {
-              padding: 0 0.7vw 0.7vw;
-              line-height: 100%;
+              vertical-align: middle;
+              padding: 0.24em 0.2em;
+              &.place {
+                display: none;
+              }
+              &.nickname {
+                padding: 0.1em;
+                width: 33%; // take up to 33% of all space
+              }
+              &.score {
+                width: 10%;
+              }
+              &.grade {
+                width: 3%;
+                padding: 0 0.3em 0 0.1em;
+                .img-holder img {
+                  height: 2.5vw;
+                }
+              }
+              &.number {
+                width: initial;
+                font-size: 80%;
+                padding: 0.25em;
+              }
+              &.combo {
+                width: initial;
+                font-size: 75%;
+              }
+              &.accuracy {
+                font-size: 75%;
+                width: initial;
+              }
+              &.date {
+                font-size: 75%;
+                width: initial;
+              }
+            }
+            thead {
+              tr {
+                position: static;
+              }
+              th {
+                padding: 0 0.7vw 0.7vw;
+                line-height: 100%;
+              }
             }
           }
         }
@@ -514,7 +607,7 @@
 .score-overlay-outer {
   margin-bottom: 10px;
   .score-overlay {
-    padding: 8px;
+    padding: 0.5em;
     .important {
       font-weight: bold;
       background: #666;
