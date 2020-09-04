@@ -109,7 +109,7 @@ const processBattles = ({ battles, profiles, debug, resultInfo: dictScoreInfo })
               100 - (100 * score.score) / maxScore,
               100 - (100 * enemyScore.score) / maxScore
             ) /
-            (100 - kDropCutoff * 100)
+              (100 - kDropCutoff * 100)
           ),
           0
         ) ** 2;
@@ -153,15 +153,15 @@ const processBattles = ({ battles, profiles, debug, resultInfo: dictScoreInfo })
       // if (!song.maxScore) {
       logText += `${song.chartLabel} - ${song.song} (${song.sharedChartId}) - ${
         profiles[score.playerId].name
-        } / ${profiles[enemyScore.playerId].name}
+      } / ${profiles[enemyScore.playerId].name}
 - ${score.score} / ${enemyScore.score} (${Math.floor(maxScore)} (${Math.floor(
-          song.maxScore * scoreMultiplier
-        )})) - R ${S1.toFixed(2)}/${S2.toFixed(2)} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
+        song.maxScore * scoreMultiplier
+      )})) - R ${S1.toFixed(2)}/${S2.toFixed(2)} E ${E1.toFixed(2)} / ${E2.toFixed(2)}
 - Rating ${r1.toFixed(2)} / ${r2.toFixed(2)} - ${dr1.toFixed(2)} / ${dr2.toFixed(
-          2
-        )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}${
+        2
+      )} - K ${K1.toFixed(2)} ${K2.toFixed(2)}${
         kMinimizer === 1 ? '' : ` (coef ${kMinimizer.toFixed(2)})`
-        }
+      }
 - Base elo: ${baseEloP1.toFixed(2)} / ${baseEloP2.toFixed(2)}
 - Elo change: ${(dr1 - baseEloP1).toFixed(2)} / ${(dr2 - baseEloP2).toFixed(2)}
 - New base elo: ${dictChartElo[baseEloId1].toFixed(2)} / ${dictChartElo[baseEloId2].toFixed(2)}
@@ -261,8 +261,8 @@ const postProcessProfiles = (profiles, tracklist) => {
         chartType === 'S' || chartType === 'SP'
           ? profile.progress.single
           : chartType === 'D' || chartType === 'DP'
-            ? profile.progress.double
-            : null;
+          ? profile.progress.double
+          : null;
       if (prog) {
         prog[g][l] = prog[g][l] ? prog[g][l] + 1 : 1;
       }
@@ -405,6 +405,7 @@ const processPP = ({ profiles, sharedCharts }) => {
       });
       profile.rating = profile.pp.pp;
     } else {
+      profile.pp = {};
       profile.rating = 0;
     }
   }
@@ -413,16 +414,17 @@ const processPP = ({ profiles, sharedCharts }) => {
   _.flow(
     _.values,
     _.orderBy((profile) => profile.rating, 'desc'),
-    items => items.forEach((profile, index) => {
-      profile.ratingHistory.push({
-        rating: profile.rating,
-        date: profile.firstResultDate,
-      });
-      profile.rankingHistory.push({
-        place: index + 1,
-        date: profile.firstResultDate,
-      });
-    }),
+    (items) =>
+      items.forEach((profile, index) => {
+        profile.ratingHistory.push({
+          rating: profile.rating,
+          date: profile.firstResultDate,
+        });
+        profile.rankingHistory.push({
+          place: index + 1,
+          date: profile.firstResultDate,
+        });
+      })
   )(profiles);
 
   return resultInfo;
@@ -470,8 +472,8 @@ const interpolateDifficulties = ({ sharedCharts, profiles, debug }) => {
             r.accuracyRaw > 98
               ? 1 - (r.accuracyRaw - 98) / (100 - 98)
               : r.accuracyRaw < 80
-                ? Math.max(0, (r.accuracyRaw - 50) / (80 - 50))
-                : 1,
+              ? Math.max(0, (r.accuracyRaw - 50) / (80 - 50))
+              : 1,
         };
         returnValue.weight *= Math.min(
           1,
