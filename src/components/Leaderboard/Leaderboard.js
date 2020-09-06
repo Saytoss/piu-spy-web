@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
 import toBe from 'prop-types';
 import { connect } from 'react-redux';
+import { NavLink } from 'react-router-dom';
 import _ from 'lodash/fp';
 import Select from 'react-select';
 import classNames from 'classnames';
 import localForage from 'localforage';
-import { FaRedoAlt, FaSearch } from 'react-icons/fa';
+import { FaRedoAlt, FaSearch, FaArrowLeft } from 'react-icons/fa';
 
 // styles
 import './leaderboard.scss';
@@ -21,7 +22,8 @@ import PresetsControl from './PresetsControl';
 import Chart from './Chart';
 
 // constants
-import { SORT } from 'constants/leaderboard';
+import { routes } from 'constants/routes';
+import { SORT, RANK_FILTER } from 'constants/leaderboard';
 
 // reducers
 import { fetchResults, setFilter, resetFilter, defaultFilter } from 'reducers/results';
@@ -29,7 +31,7 @@ import { selectPreset, openPreset } from 'reducers/presets';
 
 // utils
 import { colorsArray } from 'utils/colors';
-import { playersSelector, filteredDataSelector } from 'reducers/selectors';
+import { playersSelector, filteredDataSelector, sharedChartDataSelector } from 'reducers/selectors';
 
 // code
 const sortingOptions = [
@@ -71,11 +73,33 @@ const sortingOptions = [
   },
 ];
 
-const mapStateToProps = (state) => {
+const rankOptions = [
+  {
+    label: 'показывать все скоры',
+    value: RANK_FILTER.SHOW_ALL,
+  },
+  {
+    label: 'один лучший скор каждого игрока (ранк или нет)',
+    value: RANK_FILTER.SHOW_BEST,
+  },
+  {
+    label: 'только на ранке',
+    value: RANK_FILTER.SHOW_ONLY_RANK,
+  },
+  {
+    label: 'только без ранка',
+    value: RANK_FILTER.SHOW_ONLY_NORANK,
+  },
+];
+
+const mapStateToProps = (state, props) => {
+  const isChartView = !!props.match.params.sharedChartId;
+
   return {
+    isChartView,
     players: playersSelector(state),
-    filteredData: filteredDataSelector(state),
-    filter: state.results.filter,
+    filteredData: isChartView ? sharedChartDataSelector(state, props) : filteredDataSelector(state),
+    filter: isChartView ? defaultFilter : state.results.filter,
     error: state.results.error || state.tracklist.error,
     isLoading: state.results.isLoading || state.tracklist.isLoading,
     presets: state.presets.presets,
@@ -200,44 +224,30 @@ class Leaderboard extends Component {
             </div>
           </div>
         </div>
+        <div className="people-filters">
+          <div className="players-block">
+            <div className="_margin-right">
+              <label className="label">показывать ранк:</label>
+              <Select
+                closeMenuOnSelect={false}
+                className="select"
+                classNamePrefix="select"
+                placeholder="..."
+                options={rankOptions}
+                value={_.getOr(null, 'rank', filter) || RANK_FILTER.SHOW_ALL}
+                onChange={this.setFilter('rank')}
+              />
+            </div>
+          </div>
+        </div>
         <div>
           <Toggle
-            checked={_.getOr(false, 'showRank', filter)}
-            onChange={this.setFilter('showRank')}
+            checked={_.getOr(false, 'showHiddenFromPreferences', filter)}
+            onChange={this.setFilter('showHiddenFromPreferences')}
           >
-            показывать скоры на ранке
+            показывать скрытых игроков
           </Toggle>
         </div>
-        {_.get('showRank', filter) && (
-          <>
-            <div>
-              <Toggle
-                checked={_.getOr(false, 'showOnlyRank', filter)}
-                onChange={(value) => {
-                  this.setFilter('showOnlyRank', value);
-                  if (_.get('showRankAndNorank', filter)) {
-                    this.setFilter('showRankAndNorank', false);
-                  }
-                }}
-              >
-                <strong>только</strong> на ранке
-              </Toggle>
-            </div>
-            <div>
-              <Toggle
-                checked={_.getOr(false, 'showRankAndNorank', filter)}
-                onChange={(value) => {
-                  this.setFilter('showRankAndNorank', value);
-                  if (_.get('showOnlyRank', filter)) {
-                    this.setFilter('showOnlyRank', false);
-                  }
-                }}
-              >
-                показывать лучшие скоры с ранком и без
-              </Toggle>
-            </div>
-          </>
-        )}
       </div>
     );
   }
@@ -300,7 +310,7 @@ class Leaderboard extends Component {
   }
 
   render() {
-    const { isLoading, filteredData, error, filter } = this.props;
+    const { isLoading, isChartView, filteredData, error, filter, presets } = this.props;
     const { showItemsCount } = this.state;
     const canShowMore = filteredData.length > showItemsCount;
     const visibleData = _.slice(0, showItemsCount, filteredData);
@@ -332,35 +342,49 @@ class Leaderboard extends Component {
     return (
       <div className="leaderboard-page">
         <div className="content">
-          <div className="search-block">
-            {this.renderSimpleSearch()}
-            <CollapsibleBar title="фильтры">{this.renderFilters()}</CollapsibleBar>
-            <CollapsibleBar title="сортировка">{this.renderSortings()}</CollapsibleBar>
-          </div>
-          {isLoading && <Loader />}
-          {!!this.props.presets.length && (
-            <div className="presets-buttons">
-              <span>пресеты:</span>
-              {this.props.presets.map((preset) => (
-                <ToggleButton
-                  key={preset.name}
-                  text={preset.name}
-                  className="btn btn-sm btn-dark _margin-right"
-                  active={_.get('filter', preset) === this.props.filter}
-                  onToggle={() => {
-                    this.props.selectPreset(preset);
-                    this.props.openPreset();
-                  }}
-                ></ToggleButton>
-              ))}
+          {isChartView && (
+            <div className="simple-search">
+              <NavLink exact to={routes.leaderboard.path}>
+                <button className="btn btn-sm btn-dark btn-icon">
+                  <FaArrowLeft /> ко всем чартам
+                </button>
+              </NavLink>
             </div>
           )}
+          {!isChartView && (
+            <>
+              <div className="search-block">
+                {this.renderSimpleSearch()}
+                <CollapsibleBar title="фильтры">{this.renderFilters()}</CollapsibleBar>
+                <CollapsibleBar title="сортировка">{this.renderSortings()}</CollapsibleBar>
+              </div>
+              {!!presets.length && (
+                <div className="presets-buttons">
+                  <span>пресеты:</span>
+                  {presets.map((preset) => (
+                    <ToggleButton
+                      key={preset.name}
+                      text={preset.name}
+                      className="btn btn-sm btn-dark _margin-right"
+                      active={_.get('filter', preset) === filter}
+                      onToggle={() => {
+                        this.props.selectPreset(preset);
+                        this.props.openPreset();
+                      }}
+                    ></ToggleButton>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
           <div className="top-list">
+            {isLoading && <Loader />}
             {_.isEmpty(filteredData) && !isLoading && (error ? error.message : 'ничего не найдено')}
             {!isLoading &&
               visibleData.map((chart, chartIndex) => {
                 return (
                   <Chart
+                    showHiddenPlayers={isChartView || filter.showHiddenFromPreferences}
                     key={chart.sharedChartId}
                     chart={chart}
                     chartIndex={chartIndex}

@@ -113,7 +113,8 @@ function App({
     <div className="container">
       <TopBar />
       <Route exact path="/" render={() => <Redirect to={routes.leaderboard.path} />} />
-      <Route path={routes.leaderboard.path} component={Leaderboard} />
+      <Route exact path={routes.leaderboard.path} component={Leaderboard} />
+      <Route exact path={routes.leaderboard.sharedChart.path} component={Leaderboard} />
       <Route path={routes.ranking.path} component={Ranking} />
       <Route path={routes.profile.path}>
         <Switch>

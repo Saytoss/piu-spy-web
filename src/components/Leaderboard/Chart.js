@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
 import { connect } from 'react-redux';
 import _ from 'lodash/fp';
 import { FaYoutube, FaBackward, FaForward, FaGlobeAmericas } from 'react-icons/fa';
@@ -6,6 +7,7 @@ import classNames from 'classnames';
 import FlipMove from 'react-flip-move';
 import queryString from 'query-string';
 
+import { routes } from 'constants/routes';
 import { DEBUG } from 'constants/env';
 
 import Result from './Result';
@@ -30,11 +32,11 @@ const Chart = React.forwardRef(
       // shared
       chart: chartOriginal,
       // leaderboards
+      showHiddenPlayers = false,
       showProtagonistEloChange = false,
       showProtagonistPpChange = false,
       uniqueSelectedNames = [],
       protagonistName = null,
-      chartIndex,
       // socket stuff
       leftProfile = {},
       rightProfile = {},
@@ -43,7 +45,12 @@ const Chart = React.forwardRef(
     ref
   ) => {
     const [overrides, setOverrides] = useState(null);
-    const [isHidingPlayers, setHidingPlayers] = useState(true);
+    const [isHidingPlayers, setHidingPlayers] = useState(!showHiddenPlayers);
+
+    useEffect(() => {
+      setHidingPlayers(!showHiddenPlayers);
+    }, [showHiddenPlayers]);
+
     const chart = _.first(overrides) || chartOriginal;
     if (DEBUG) {
       console.log(chart, overrides);
@@ -137,7 +144,12 @@ const Chart = React.forwardRef(
             </div>
           ) : (
             <div className="song-name-text">
-              {chart.song}{' '}
+              <NavLink
+                exact
+                to={routes.leaderboard.sharedChart.getPath({ sharedChartId: chart.sharedChartId })}
+              >
+                {chart.song}
+              </NavLink>{' '}
               <span className="_grey-text">({interpDiff && interpDiff.toFixed(1)})</span>
             </div>
           )}

@@ -90,7 +90,7 @@ const Result = (
       key={res.id}
       ref={ref}
       className={classNames({
-        empty: !res.isExactDate,
+        empty: !res.accuracy,
         latest: res.date === chart.latestScoreDate,
         left: res.nickname === leftProfile.name,
         right: res.nickname === rightProfile.name,
@@ -111,7 +111,9 @@ const Result = (
         <div className="nickname-container">
           {flag}
           <span className="nickname-text">
-            {res.nickname}
+            <NavLink exact to={routes.profile.getPath({ id: res.playerId })}>
+              {res.nickname}
+            </NavLink>
             {!!placeDifference && (
               <span className="change-holder up">
                 <span>{placeDifference}</span>

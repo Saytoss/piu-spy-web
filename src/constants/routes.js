@@ -1,6 +1,10 @@
 export const routes = {
   leaderboard: {
     path: `/leaderboard`,
+    sharedChart: {
+      path: `/leaderboard/chart/:sharedChartId`,
+      getPath: (params) => `/leaderboard/chart/${params.sharedChartId}`,
+    },
   },
   songs: {
     path: `/songs`,
@@ -13,10 +17,10 @@ export const routes = {
   },
   profile: {
     path: `/profiles/:id`,
-    getPath: params => `/profiles/${params.id}`,
+    getPath: (params) => `/profiles/${params.id}`,
     compare: {
       path: `/profiles/:id/vs/:compareToId`,
-      getPath: params => `/profiles/${params.id}/vs/${params.compareToId}`,
+      getPath: (params) => `/profiles/${params.id}/vs/${params.compareToId}`,
     },
   },
 };

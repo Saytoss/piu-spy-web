@@ -2,7 +2,8 @@ import _ from 'lodash/fp';
 import { createSelector } from 'reselect';
 import matchSorter from 'match-sorter';
 
-import { SORT, CHART_MIN_MAX, DURATION_DEFAULT } from 'constants/leaderboard';
+import { SORT, CHART_MIN_MAX, DURATION_DEFAULT, RANK_FILTER } from 'constants/leaderboard';
+import { defaultFilter } from 'reducers/results';
 
 export const playersSelector = createSelector(
   (state) => state.results.players,
@@ -36,13 +37,21 @@ const filterCharts = (filter, rows) => {
   }, rows);
 };
 
-const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preferences) => {
-  // const start = performance.now();
-  // const playersHiddenStatus = preferences.playersHiddenStatus;
+const getFilteredData = (
+  data,
+  sharedCharts,
+  filter = defaultFilter,
+  resultInfo = {},
+  preferences
+) => {
+  const start = performance.now();
+  const playersHiddenStatus = preferences.playersHiddenStatus;
+  const showHidden = filter.showHiddenFromPreferences;
   const names = _.map('value', filter.players);
   const namesOr = _.map('value', filter.playersOr);
   const namesNot = _.map('value', filter.playersNot);
   const sortingType = _.get('value', filter.sortingType);
+  const rankFilter = _.get('value', filter.rank) || RANK_FILTER.SHOW_ALL;
   const protagonist = [
     SORT.PROTAGONIST,
     SORT.RANK_ASC,
@@ -55,7 +64,21 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preference
     : null;
   const excludeAntagonists = _.map('value', filter.excludeAntagonists);
 
-  const defaultSorting = [_.orderBy(['latestScoreDate'], ['desc'])];
+  const defaultSorting = [
+    _.orderBy(
+      [
+        (song) =>
+          _.max(
+            _.map(
+              (res) =>
+                showHidden || !playersHiddenStatus[res.playerId] ? res.dateObject.getTime() : 0,
+              song.results
+            )
+          ),
+      ],
+      ['desc']
+    ),
+  ];
   const newScoresProtagonistSorting = !protagonist
     ? defaultSorting
     : [
@@ -146,11 +169,21 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preference
     _.compact([
       _.map((row) => {
         let latestScoreDate = null;
+        const occuredIds = [];
         const results = row.results.filter((res, index) => {
-          // const isHiddenByPreferences =
-          //   playersHiddenStatus[res.playerId] && protagonist !== res.nickname;
-          // const isVisible = !isHiddenByPreferences && (!res.isUnknownPlayer || index === 0);
-          const isVisible = !res.isUnknownPlayer || index === 0;
+          const isVisibleWithRankFilter =
+            !rankFilter || rankFilter === RANK_FILTER.SHOW_ALL
+              ? true
+              : rankFilter === RANK_FILTER.SHOW_ONLY_RANK
+              ? res.isRank
+              : rankFilter === RANK_FILTER.SHOW_ONLY_NORANK
+              ? !res.isRank
+              : rankFilter === RANK_FILTER.SHOW_BEST
+              ? !occuredIds.includes(res.playerId)
+              : true;
+          rankFilter === RANK_FILTER.SHOW_BEST && occuredIds.push(res.playerId);
+
+          const isVisible = (!res.isUnknownPlayer || index === 0) && isVisibleWithRankFilter;
           if (isVisible && (!latestScoreDate || latestScoreDate < res.date)) {
             latestScoreDate = res.date;
           }
@@ -163,25 +196,6 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preference
         };
       }),
       filter.chartRange && ((items) => filterCharts(filter.chartRange, items)),
-      !filter.showRank &&
-        _.map((row) => ({ ...row, results: _.filter((res) => !res.isRank, row.results) })),
-      filter.showRank &&
-        filter.showOnlyRank &&
-        _.map((row) => ({ ...row, results: _.filter((res) => res.isRank, row.results) })),
-      filter.showRank &&
-        !filter.showOnlyRank &&
-        !filter.showRankAndNorank &&
-        _.map((row) => {
-          const occuredNames = [];
-          return {
-            ...row,
-            results: _.filter((res) => {
-              const alreadyOccured = occuredNames.includes(res.nickname);
-              occuredNames.push(res.nickname);
-              return !alreadyOccured;
-            }, row.results),
-          };
-        }),
       (names.length || namesOr.length || namesNot.length) &&
         _.filter((row) => {
           const rowNames = _.map('nickname', row.results);
@@ -196,7 +210,7 @@ const getFilteredData = (data, sharedCharts, filter, resultInfo = {}, preference
       filter.song && ((items) => matchSorter(items, filter.song.trim(), { keys: ['song'] })),
     ])
   )(data);
-  // console.log('Elapsed:', performance.now() - start);
+  console.log('Sorting took', performance.now() - start, 'ms');
   return result;
 };
 
@@ -207,4 +221,13 @@ export const filteredDataSelector = createSelector(
   (state) => state.results.resultInfo,
   (state) => state.preferences.data,
   getFilteredData
+);
+
+export const sharedChartDataSelector = createSelector(
+  (state) => state.results.data,
+  (state, props) => props.match.params.sharedChartId,
+  (data, sharedChartId) => {
+    const chartId = _.toNumber(sharedChartId);
+    return data.filter((chart) => chart.sharedChartId === chartId);
+  }
 );

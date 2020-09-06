@@ -13,6 +13,7 @@ import * as profilesProcessing from 'utils/workers/profilesPostProcess';
 
 import { HOST } from 'constants/backend';
 import { DEBUG } from 'constants/env';
+import { RANK_FILTER } from 'constants/leaderboard';
 
 const LOADING = `TOP/LOADING`;
 const STOP_LOADING = `TOP/STOP_LOADING`;
@@ -27,7 +28,9 @@ const highscoresUrl = process.env.REACT_APP_SOCKET
   ? 'results/highscores/trusted'
   : 'results/highscores';
 
-export const defaultFilter = { showRank: true, showRankAndNorank: true };
+export const defaultFilter = {
+  rank: RANK_FILTER.SHOW_ALL,
+};
 
 const initialState = {
   isLoading: false,
@@ -149,17 +152,17 @@ const mapResult = (res, players, chart) => {
   const perfects = Math.sqrt(_r.perfect) * 10;
   const acc = perfects
     ? Math.floor(
-      ((perfects * 100 + _r.great * 85 + _r.good * 60 + _r.bad * 20 + _r.miss * -25) /
-        (perfects + _r.great + _r.good + _r.bad + _r.miss)) *
-      100
-    ) / 100
+        ((perfects * 100 + _r.great * 85 + _r.good * 60 + _r.bad * 20 + _r.miss * -25) /
+          (perfects + _r.great + _r.good + _r.bad + _r.miss)) *
+          100
+      ) / 100
     : null;
   const accRaw = _r.perfect
     ? Math.floor(
-      ((_r.perfect * 100 + _r.great * 85 + _r.good * 60 + _r.bad * 20 + _r.miss * -25) /
-        (_r.perfect + _r.great + _r.good + _r.bad + _r.miss)) *
-      100
-    ) / 100
+        ((_r.perfect * 100 + _r.great * 85 + _r.good * 60 + _r.bad * 20 + _r.miss * -25) /
+          (_r.perfect + _r.great + _r.good + _r.bad + _r.miss)) *
+          100
+      ) / 100
     : null;
 
   _r.accuracy = acc < 0 ? 0 : accRaw === 100 ? 100 : acc && +acc.toFixed(2);
