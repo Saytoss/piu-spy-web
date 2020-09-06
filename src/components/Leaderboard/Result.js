@@ -91,7 +91,7 @@ const Result = (
       ref={ref}
       className={classNames({
         empty: !res.accuracy,
-        latest: res.date === chart.latestScoreDate,
+        latest: new Date(chart.latestScoreDate) - new Date(res.date) < 12 * 60 * 60 * 1000,
         left: res.nickname === leftProfile.name,
         right: res.nickname === rightProfile.name,
       })}
